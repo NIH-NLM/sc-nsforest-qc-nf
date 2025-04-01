@@ -2,7 +2,7 @@
 
 def helpMessage() {
     log.info """
-    Usage: nextflow rnu nsforest-parallel-by-cluster.nf --csvPath '../data/cellxgene-sample/cellxgene-sample.csv'
+    Usage: nextflow run nsforest.nf --csvPath 'cellxgene-sample/cellxgene-sample.csv'
 
     Options:
     --help
