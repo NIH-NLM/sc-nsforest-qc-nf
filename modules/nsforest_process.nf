@@ -14,9 +14,6 @@ process nsforest_process {
 
     script:
     """
-    # Copy input to path without spaces
-    safe_input="h5ad_file"
-
     nsforest.py --preprocess-adata-file -c $label_key $h5ad_file
     """
 }
