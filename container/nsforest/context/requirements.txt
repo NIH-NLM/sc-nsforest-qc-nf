@@ -1,0 +1,15 @@
+numpy==1.24.*
+pandas==2.1.*
+scanpy==1.9.*
+plotly==5.19.*
+tqdm==4.66.*
+zenodo_get==1.5.*
+# igraph==0.9.11
+# leidenalg==0.8.10
+git+https://github.com/JCVenterInstitute/NSForest.git
+# nsforest==4.1.*
+
+# Ensure setuptools is properly installed.
+# In some environments it might not be installed properly causing import errors when using celltypist.
+# https://stackoverflow.com/questions/7446187/no-module-named-pkg-resources
+setuptools

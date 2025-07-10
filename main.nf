@@ -1,37 +1,33 @@
-// main.nf - Final Safe Version for NSForest with spaces-safe workaround
+#!/usr/bin/env nextflow
 
-nextflow.enable.dsl=2
-
-params.cluster = ''
-params.input_h5ad = ''
-params.outdir = 'results'
+include { nsforest_process }  from './modules/nsforest_process.nf'
 
 workflow {
-    input_h5ad_file = file(params.input_h5ad)
-    nsforest_out = RunNSForest(input_h5ad_file)
-    nsforest_out.view()
+
+  def csv_rows_ch =
+      Channel
+        .fromPath(params.datasets_csv)
+        .ifEmpty { exit 1, "Cannot find required datasets input file : ${params.datasets_csv}" }
+        .splitCsv(header: true, sep: ',')
+        .map { row ->
+            def h5ad_ch             = file(row.h5ad_file)
+            def label_key_ch        = row.label_key
+            def embedding_key_ch    = row.embedding_key
+            def organism_ch         = row.organism
+            def disease_ch          = row.disease
+            def tissue_ch           = row.tissue
+	    def author_ch           = row.author
+	    def publication_date_ch = row.publication_date
+	    def publication_ch      = row.publication
+            def cell_count_ch       = row.cell_count
+	    
+        // final array for the channel
+        [ h5ad_ch, label_key_ch, embedding_key_ch , organism_ch, disease_ch, tissue_ch,
+	  author_ch, publication_date_ch, publication_ch, cell_count_ch ]
+      }
+	
+   nsforest_process (
+        csv_rows_ch )
+
+   nsforest_process.out.nsforest_process_output_ch
 }
-
-process RunNSForest {
-
-    tag "cluster: ${params.cluster}"
-    publishDir "${params.outdir}", mode: 'copy'
-    container 'ralatsdio/nsforest:latest'
-
-    input:
-    path input_h5ad
-
-    output:
-    path "${params.cluster}_output"
-
-    script:
-    """
-    # Copy input to path without spaces
-    safe_input="input.h5ad"
-    cp "${input_h5ad}" "\$safe_input"
-
-    mkdir -p "${params.cluster}_output"
-    nsforest.py --preprocess-adata-file -c "${params.cluster}" "\$safe_input"
-    """
-}
-
