@@ -1,0 +1,15 @@
+# Core Sphinx engine
+sphinx>=6.0
+
+# RTD Theme
+sphinx-rtd-theme>=1.2.0
+
+# Autodoc + autosummary extensions
+sphinx-autodoc-typehints>=1.24
+numpydoc>=1.5
+
+# Markdown support (optional but recommended for README.md)
+myst-parser>=2.0
+
+# Optional: copy code button in rendered docs
+sphinx-copybutton>=0.5.2

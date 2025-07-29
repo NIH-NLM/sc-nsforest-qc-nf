@@ -23,25 +23,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Conda with environment.yml
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          context: ./container/nsforest/
-          environment-file: environment.yml
-          activate-environment: scsilhouette
-          auto-activate-base: false
+      - name: Install Sphinx requirements
+        shell: bash -l {0}
+        run: |
+          pip install -r docs/requirements.txt
 
       - name: Install any missing packages (optional)
         shell: bash -l {0}
         run: |
-          conda activate scsilhouette
           python -m pip install myst-parser sphinx
 
       - name: Build HTML docs with Sphinx
         shell: bash -l {0}
         run: |
-          conda activate scsilhouette
-          sphinx-apidoc -f --separate -o docs/source/ src/scsilhouette
+          sphinx-apidoc -f --separate -o docs/source/ modules/
           make -C docs html
 
       - name: Upload artifact for GitHub Pages
