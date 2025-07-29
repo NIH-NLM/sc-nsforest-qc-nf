@@ -26,6 +26,7 @@ jobs:
       - name: Set up Conda with environment.yml
         uses: conda-incubator/setup-miniconda@v2
         with:
+          context: ./container/nsforest/
           environment-file: environment.yml
           activate-environment: scsilhouette
           auto-activate-base: false
