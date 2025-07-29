@@ -10,11 +10,11 @@ This repository includes a modular Nextflow pipeline that executes [NSForest](ht
 
 The nextflow begins by parsing the input file formated as below:
 
+The contents of this file are a test for testing the workflow, it is the same file, test.csv used in testing the [scsilhouette-nf](https://github.com/nih-nlm/scsilhouette-nf)  Nextflow workflow:
+
 ```bash
-h5ad_file,label_key,embedding_key,organism,disease,tissue,author,year,pub,cell_count
-https://datasets.cellxgene.cziscience.com/39d93cac-f79e-4f38-bd2a-2e8ad701ba14.h5ad,cell_type,X_umap,Homo_sapiens,normal,kidney,Reck,2025,Nat Comm,46957
-https://datasets.cellxgene.cziscience.com/0d2431dd-f185-47e1-be06-255f84304559.h5ad,cell_type,X_umap,Homo_sapiens,normal,kidney,Acera-Mateos,2025,bioRxiv,97125
-https://datasets.cellxgene.cziscience.com/4e6cf682-3aa0-4c79-a6e1-8abc21a85146.h5ad,cell_type,X_umap,Homo_sapiens,normal,kidney,Xu,2023,Cell,194504
+h5ad_file,label_key,embedding_key,organism,disease,filter_normal,metric,save_scores,save_cluster_summary,save_annotation,tissue,author,publication_date,publication,cell_count
+https://datasets.cellxgene.cziscience.com/10b4b990-9f06-441f-be9a-f2dfbd353716.h5ad,cell_type,X_umap,Mus_musculus,normal,True,euclidean,True,True,True,embryo,Sampath_Kumar,2025,Nat_Genet,2567
 ```
 
 It has a header file that contains:
@@ -25,10 +25,15 @@ It has a header file that contains:
 * organism (e.g. Homo sapiens)
 * disease (e.g. normal, neoplasm, etc)
 * tissue (e.g. kidney -- actually an organ level specification)
-* author (first author of a publication associated with the submitted dataset)
-* year (publication year)
-* publication (name of publication)
-* cell_count (number of cells submitted in the dataset)
+* filter_normal - this is True or False indicating whether or not the file should only be focused on the normal tissues
+* metric - not used for this NSForest function - used with scsilhouette score calculation
+* save_scores - not used for this NSForest function - used with scsilhouette score calculation
+* save_cluster_summary - not used for this NSForest function - used with scsilhouette score calculation
+* save_annotation - not used for this NSForest function - used with scsilhouette score calculation
+* author (first author of a publication associated with the submitted dataset) - not used
+* year (publication year) - not used
+* publication (name of publication) - not used
+* cell_count (number of cells submitted in the dataset) - not used
 
 ## Usage
 
@@ -41,14 +46,6 @@ The execution has been conducted on [Lifebit's free NF-Copilot](cloudos.lifebit.
 5. Select resumable
 6. Then Run Analysis.
 
-## Outputs
-
-Each dataset produces the following under results/{dataset_name}/:
-
-* Annotations, Silhouette scores and cluster summaries
-
-* Visualization summary as an interactive html of silhouette scores and cluster summaries as well as a dotplot
-
 
 ## Modular Design
 
@@ -56,10 +53,7 @@ Each pipeline process is defined in a separate module in modules/:
 
 ```bash
 modules/
-├── compute_silhouette.nf
-├── viz_summary.nf
-├── viz_dotplot.nf
-├── viz_distribution.nf
+├── nsforest_process.nf
 ```
 
 
