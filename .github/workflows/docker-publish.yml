@@ -38,4 +38,4 @@ jobs:
         with:
           context: ./container/nsforest/
           push: true
-          tags: ${{ env.REGISTRY }}/nsforest:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/nsforest:latest
