@@ -2,7 +2,7 @@
 
 include { prep_medians_process }       from './modules/prep_medians.nf'
 include { prep_binary_scores_process } from './modules/prep_binary_scores.nf' 
-include { nsforest_process }           from './modules/run_nsforest.nf'
+include { run_nsforest }               from './modules/run_nsforest.nf'
 
 workflow {
 
@@ -17,14 +17,14 @@ workflow {
             def embedding_key_ch        = row.embedding_key
             def organism_ch             = row.organism
             def disease_ch              = row.disease
-	    def filter_ch               = row.filter_normal
-	    def metric_ch               = row.metric
-	    def save_scores_ch          = row.save_scores
-	    def save_cluster_summary_ch = row.save_cluster_summary
-	    def save_annotation_ch      = row.save_annotation
+            def filter_ch               = row.filter_normal
+            def metric_ch               = row.metric
+            def save_scores_ch          = row.save_scores
+            def save_cluster_summary_ch = row.save_cluster_summary
+            def save_annotation_ch      = row.save_annotation
             def tissue_ch               = row.tissue
-	    def author_ch               = row.author
-	    def publication_date_ch     = row.publication_date
+            def author_ch               = row.author
+            def publication_date_ch     = row.publication_date
 	    def publication_ch          = row.publication
             def cell_count_ch           = row.cell_count
 	    
