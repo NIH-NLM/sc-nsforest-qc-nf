@@ -15,7 +15,7 @@ process prep_medians_process {
 	      path("medians*.h5ad"),
               emit: prep_medians_output_ch
 
-    script
+    script:
     """
     nsforest-cli prep-medians --input-path $h5ad_file --cluster-header $label_key --output-path medians-$h5ad_file
     """

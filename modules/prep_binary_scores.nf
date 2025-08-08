@@ -16,7 +16,7 @@ output:
 	      path(medians_h5ad_file), path("binary_scores*.h5ad"),
               emit: prep_binary_scores_output_ch
 
-    script
+    script:
     """
     nsforest-cli prep-binary-scores --input-path $h5ad_file --cluster-header $label_key --output-path binary_scores-$h5ad_file
     """

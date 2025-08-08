@@ -18,7 +18,7 @@ process run_nsforest {
 	      path("*.csv"),
               emit: run_nsforest_output_ch
 
-    script
+    script:
     """
     nsforest-cli run_nsforest --input-path $binary_scores_h5ad_file --cluster-header $label_key
     """
