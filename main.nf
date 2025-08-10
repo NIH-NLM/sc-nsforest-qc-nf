@@ -2,7 +2,7 @@
 
 include { prep_medians_process }       from './modules/prep_medians.nf'
 include { prep_binary_scores_process } from './modules/prep_binary_scores.nf' 
-include { run_nsforest }               from './modules/run_nsforest.nf'
+include { run_nsforest_process }       from './modules/run_nsforest.nf'
 
 workflow {
 
