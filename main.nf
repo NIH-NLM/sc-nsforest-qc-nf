@@ -41,7 +41,7 @@ workflow {
         prep_medians_process.out.prep_medians_output_ch )
 
       run_nsforest_process (
-        prep_binary_scores_process.out.binary_scores_output_ch )
+        prep_binary_scores_process.out.prep_binary_scores_output_ch )
 
 
 }
