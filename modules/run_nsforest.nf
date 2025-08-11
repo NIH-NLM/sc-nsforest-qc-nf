@@ -2,6 +2,7 @@ process run_nsforest_process {
 
     tag "${h5ad_file}-${label_key}-${embedding_key}-${organism}-${disease}-${filter},${metric}-${save_scores}-${save_cluster_summary}-${save_annotation}-${tissue}-${author}-${publication_date}-${publication}-${cell_count}"
 
+    publishDir "${params.outdir}", mode: 'copy'
     
     input:
         tuple path(h5ad_file), val(label_key), val(embedding_key), val(organism),val(disease),
@@ -19,7 +20,7 @@ process run_nsforest_process {
 
     script:
     """
-    nsforest-cli run-nsforest --input-path $binary_scores_h5ad_file --cluster-header $label_key --output-folder "."
+    nsforest-cli run-nsforest --input-path $binary_scores_h5ad_file --cluster-header $label_key --output-folder nsforest-results-$h5ad_file
     """
 }
 
