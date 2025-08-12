@@ -20,7 +20,7 @@ process run_nsforest_process {
 
     script:
     """
-    nsforest-cli run-nsforest --input-path $binary_scores_h5ad_file --cluster-header $label_key --output-folder nsforest-results-$h5ad_file
+    nsforest-cli run-nsforest --input-path $binary_scores_h5ad_file --cluster-header $label_key --output-folder nsforest-results-$label_key-$embedding_key-$h5ad_file
     """
 }
 

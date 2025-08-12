@@ -19,7 +19,7 @@ output:
 
     script:
     """
-    nsforest-cli prep-binary-scores --input-path $medians_h5ad_file --cluster-header $label_key --output-path binary_scores-$h5ad_file
+    nsforest-cli prep-binary-scores --input-path $medians_h5ad_file --cluster-header $label_key --output-path binary_scores-$label_key-$embedding_key-$h5ad_file
     """
 }
 
