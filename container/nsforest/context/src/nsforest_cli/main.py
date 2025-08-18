@@ -7,17 +7,17 @@ import typer
 import plotly.io as pio
 
 # ---- pure helpers: each provides exactly one function ----
-from nsforest_cli.dotplot import dotplot_run
-from nsforest_cli.violinplot import violinplot_run
-from nsforest_cli.dendrogramplot import dendrogramplot_run
+from .dotplot            import dotplot_run
+from .violinplot         import violinplot_run
+from .dendrogramplot     import dendrogramplot_run
 
-from nsforest_cli.prep_medians import prep_medians_run
-from nsforest_cli.prep_binary_scores import prep_binary_scores_run
-from nsforest_cli.run_nsforest import nsforest_run
-from nsforest_cli.eval_markers import eval_markers_run
+from .prep_medians       import prep_medians_run
+from .prep_binary_scores import prep_binary_scores_run
+from .run_nsforest       import nsforest_run
+from .eval_markers       import eval_markers_run
 
-from nsforest_cli.sanitize_labels import sanitize_labels_run
-from nsforest_cli.filter_obs import filter_by_obs_run
+from .sanitize           import sanitize_labels_run
+from .filter_obs         import filter_by_obs_run
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -29,75 +29,58 @@ app = typer.Typer(no_args_is_help=True)
 @app.command("dotplot")
 def cmd_dotplot(
     h5ad_in: Path = typer.Argument(..., exists=True, readable=True),
-    markers_json: Path = typer.Argument(..., exists=True, readable=True),
-    label_key: str = typer.Option(..., "--label-key", "-l", help="obs column with cluster labels"),
-    # outputs: require caller to specify at least one
-    png_out: Optional[Path] = typer.Option(None, "--png-out", help="Write static PNG via Matplotlib"),
-    svg_out: Optional[Path] = typer.Option(None, "--svg-out", help="Write static SVG via Matplotlib"),
-    html_out: Optional[Path] = typer.Option(None, "--html-out", help="Write interactive HTML via Plotly"),
+    results_csv: Path = typer.Argument(..., exists=True, readable=True),
+    label_key: str = typer.Option(..., "--label-key", "-l"),
+
+    # allow column overrides
+    cluster_col: str = typer.Option("clusterName", "--cluster-col"),
+    markers_col: str = typer.Option("NSForest_markers", "--markers-col", help="Use 'binary_genes' to plot those instead"),
+
+    # outputs
+    png_out: Optional[Path] = typer.Option(None, "--png-out"),
+    svg_out: Optional[Path] = typer.Option(None, "--svg-out"),
+#    html_out: Optional[Path] = typer.Option(None, "--html-out"),
     dpi: int = typer.Option(300, "--dpi"),
 ):
-    """
-    Dotplot using NS-Forest plotting helper.
-    Writes only the files you explicitly request. No directories are created.
-    """
     if not (png_out or svg_out or html_out):
         raise typer.BadParameter("Provide at least one of --png-out / --svg-out / --html-out.")
-
-    fig = dotplot_run(h5ad_in, markers_json, label_key)
-
-    if png_out:
-        fig.savefig(str(png_out), bbox_inches="tight", dpi=dpi)
-    if svg_out:
-        fig.savefig(str(svg_out), bbox_inches="tight", format="svg")
-    if html_out:
-        pfig = pio.from_matplotlib(fig)
-        pio.write_html(pfig, file=str(html_out), full_html=True, include_plotlyjs="cdn")
-
+    fig = dotplot_run(h5ad_in, results_csv, label_key, cluster_col=cluster_col, markers_col=markers_col)
+    if png_out: fig.savefig(str(png_out), bbox_inches="tight", dpi=dpi)
+    if svg_out: fig.savefig(str(svg_out), bbox_inches="tight", format="svg")
+#    if html_out:
+#        pfig = pio.from_matplotlib(fig)
+#        pio.write_html(pfig, file=str(html_out), full_html=True, include_plotlyjs="cdn")
 
 @app.command("violinplot")
 def cmd_violinplot(
     h5ad_in: Path = typer.Argument(..., exists=True, readable=True),
-    markers_json: Path = typer.Argument(..., exists=True, readable=True),
+    results_csv: Path = typer.Argument(..., exists=True, readable=True),
     label_key: str = typer.Option(..., "--label-key", "-l"),
+    cluster_col: str = typer.Option("clusterName", "--cluster-col"),
+    markers_col: str = typer.Option("NSForest_markers", "--markers-col"),
+
     png_out: Optional[Path] = typer.Option(None, "--png-out"),
     svg_out: Optional[Path] = typer.Option(None, "--svg-out"),
-    html_out: Optional[Path] = typer.Option(None, "--html-out"),
+#    html_out: Optional[Path] = typer.Option(None, "--html-out"),
     dpi: int = typer.Option(300, "--dpi"),
 ):
-    """
-    Stacked violin using NS-Forest plotting helper.
-    Writes only the files you explicitly request. No directories are created.
-    """
     if not (png_out or svg_out or html_out):
         raise typer.BadParameter("Provide at least one of --png-out / --svg-out / --html-out.")
-
-    fig = violinplot_run(h5ad_in, markers_json, label_key)
-
-    if png_out:
-        fig.savefig(str(png_out), bbox_inches="tight", dpi=dpi)
-    if svg_out:
-        fig.savefig(str(svg_out), bbox_inches="tight", format="svg")
-    if html_out:
-        pfig = pio.from_matplotlib(fig)
-        pio.write_html(pfig, file=str(html_out), full_html=True, include_plotlyjs="cdn")
-
-
-# --------------------------
-# Dendrogram metadata
-# --------------------------
+    fig = violinplot_run(h5ad_in, results_csv, label_key, cluster_col=cluster_col, markers_col=markers_col)
+    if png_out: fig.savefig(str(png_out), bbox_inches="tight", dpi=dpi)
+    if svg_out: fig.savefig(str(svg_out), bbox_inches="tight", format="svg")
+#    if html_out:
+#        pfig = pio.from_matplotlib(fig)
+#        pio.write_html(pfig, file=str(html_out), full_html=True, include_plotlyjs="cdn")
 
 @app.command("dendrogramplot")
 def cmd_dendrogramplot(
     h5ad_in: Path = typer.Argument(..., exists=True, readable=True),
+    results_csv: Path = typer.Argument(..., exists=True, readable=True),  # unused, kept for flow consistency
     h5ad_out: Path = typer.Argument(...),
     label_key: str = typer.Option(..., "--label-key", "-l"),
 ):
-    """
-    Compute/attach dendrogram metadata via NS-Forest preprocessing helper.
-    Writes the updated .h5ad to the path you provide.
-    """
-    adata = dendrogramplot_run(h5ad_in, label_key)
+    adata = dendrogramplot_run(h5ad_in, results_csv, label_key)
     adata.write_h5ad(str(h5ad_out))
 
 
@@ -110,12 +93,11 @@ def cmd_prep_medians(
     h5ad_in: Path = typer.Argument(..., exists=True, readable=True),
     h5ad_out: Path = typer.Argument(...),
     label_key: str = typer.Option(..., "--label-key", "-l"),
-    medians_header: str = typer.Option("medians_", "--medians-header"),
 ):
     """
     Compute per-cluster medians (nsforest.pp.prep_medians) and write a new .h5ad.
     """
-    adata = prep_medians_run(h5ad_in, label_key, medians_header=medians_header)
+    adata = prep_medians_run(h5ad_in, label_key)
     adata.write_h5ad(str(h5ad_out))
 
 
@@ -124,12 +106,11 @@ def cmd_prep_binary_scores(
     h5ad_in: Path = typer.Argument(..., exists=True, readable=True),
     h5ad_out: Path = typer.Argument(...),
     label_key: str = typer.Option(..., "--label-key", "-l"),
-    binary_scores_header: str = typer.Option("binary_scores_", "--binary-scores-header"),
 ):
     """
     Compute per-cluster binary scores (nsforest.pp.prep_binary_scores) and write a new .h5ad.
     """
-    adata = prep_binary_scores_run(h5ad_in, label_key, binary_scores_header=binary_scores_header)
+    adata = prep_binary_scores_run(h5ad_in, label_key)
     adata.write_h5ad(str(h5ad_out))
 
 

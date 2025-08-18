@@ -64,5 +64,9 @@ def filter_by_obs_run(
         raise ValueError("mode must be 'exact' | 'contains' | 'regex'")
 
     final_mask = mask_valid & ( ~mask_match if invert else mask_match )
-    return adata[final_mask].copy()
+
+    # AnnData expects a NumPy bool array, not Pandas BooleanArray
+    final_mask_np = final_mask.to_numpy(dtype=bool)
+    return adata[final_mask_np].copy()
+
 

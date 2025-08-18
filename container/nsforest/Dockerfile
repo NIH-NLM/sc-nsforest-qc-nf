@@ -23,10 +23,24 @@ RUN apt-get update && \
 # Copy CLI code
 COPY context/src ./src
 COPY context/setup.py .
-COPY context/requirements-freeze.txt .
+
+# system toolchain for building wheels
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential gcc g++ gfortran \
+ && rm -rf /var/lib/apt/lists/*
+
+# modern build frontends help many packages
+RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# now install your requirements
+COPY context/requirements-freeze.txt /app/requirements.txt
+RUN python -m pip install --no-cache-dir -r /app/requirements.txt
+
+# and force the Plotly you want (ensures from_matplotlib exists)
+RUN python -m pip install --no-cache-dir "plotly==5.22.0"
 
 # Install nsforest-cli CLI tool
-RUN pip install ./
+RUN pip install /app/
 
 # Clone NSForest repo and expose it to Python
 RUN git clone https://github.com/JCVenterInstitute/NSForest.git /opt/nsforest
