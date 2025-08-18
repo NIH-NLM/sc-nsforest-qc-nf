@@ -5,6 +5,36 @@
 
 This repository includes a modular Nextflow pipeline that executes [NSForest](https://github.com/JCVenterInstitute/NSForest).  This program finds for each cluster specified the necessary and sufficient markers based upon the data as measured and prepared in the single cell RNA seq results in a supplied h5ad file.  Additionally, the top 10 binary genes are also provided.  Each computational step is implemented as an individual Nextflow module in the modules/ directory. The master workflow is defined in main.nf.
 
+## Containerized NSForest
+
+All of the calls used by this nsforest-nf workflow call the dockerized container of the NSForest package.
+
+Using "Typer" all calls are converted to command line calls to facilitate the "nextflow-ification" of the package.
+
+This is the similar technique and pattern used in the scsilhouette (single cell silhouette package) which also used the Typer package to facilitate the construction of the command line interface to that package.
+
+Difference between the two is that one was a package that was written by me, and the other, NSForest, was written by another group.  I am using that package to operate it at scale.  That package requires the construction of calls which I have chosen to put into the Typer package.
+
+## Command-line Entrypoint (main.py vs cli.py)
+
+This package provides a command-line interface (CLI) implemented with Typer. The actual filename of the CLI module is not important; what matters is how the entrypoint is declared in the packaging configuration.
+
+**Why main.py?**
+
+By convention, many Python projects use a main.py module as the root entrypoint. Our main.py defines the Typer app object and registers all CLI commands. The console script (nsforest-cli) is then mapped to nsforest_cli.main:app.
+
+**Why could it have been cli.py?**
+
+Some projects choose cli.py instead to emphasize that the file only contains command-line definitions. Both are equally valid. If we renamed the file to cli.py, we would simply update the entrypoint declaration in pyproject.toml (or setup.cfg):
+
+```bash
+[tool.poetry.scripts]
+nsforest-cli = "nsforest_cli.cli:app"
+```
+
+**Key Point**
+
+The filename (main.py vs cli.py) is cosmetic. The entrypoint mapping in the packaging configuration controls which module is executed. For contributors, this means you can expect the same behavior regardless of the filename, and if the name ever changes, only the entrypoint declaration needs to be updated.
 
 ## input
 
@@ -55,5 +85,6 @@ Each pipeline process is defined in a separate module in modules/:
 modules/
 ├── nsforest_process.nf
 ```
+
 
 
