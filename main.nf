@@ -1,8 +1,14 @@
 #!/usr/bin/env nextflow
 
-include { prep_medians_process }       from './modules/prep_medians.nf'
-include { prep_binary_scores_process } from './modules/prep_binary_scores.nf' 
-include { run_nsforest_process }       from './modules/run_nsforest.nf'
+include { plot_dendrogramplot_process } from './modules/plot_dendrogram.nf'
+include { plot_dotplot_process }        from './modules/plot_dotplot.nf'
+include { plot_violinplot_process }     from './modules/plot_violinplot.nf'
+include { filter_condition_process }    from './modules/filter_condition.nf'
+include { filter_tissue_process }       from './modules/filter_tissue.nf'
+include { sanitize_process }            from './modules/sanitize.nf'
+include { prep_medians_process }        from './modules/prep_medians.nf'
+include { prep_binary_scores_process }  from './modules/prep_binary_scores.nf' 
+include { run_nsforest_process }        from './modules/run_nsforest.nf'
 
 workflow {
 
@@ -33,15 +39,31 @@ workflow {
 	  filter_ch, metric_ch, save_scores_ch, save_cluster_summary_ch, save_annotation_ch,
 	  tissue_ch, author_ch, publication_date_ch, publication_ch, cell_count_ch ]
       }
-	
-      prep_medians_process (
-        csv_rows_ch )
 
-      prep_binary_scores_process (
-        prep_medians_process.out.prep_medians_output_ch )
+      sanitize_output_ch       = sanitize_process (
+         csv_rows_ch )
 
-      run_nsforest_process (
-        prep_binary_scores_process.out.prep_binary_scores_output_ch )
+      filter_disease_output_ch = filter_disease (
+         sanitize_output_ch )
 
+      filter_tissue_output_ch  = filter_tissue (
+         filter_disease_output_ch )
 
+      medians_output_ch   = prep_medians_process (
+         filter_tissue_output_ch )
+
+      binary_scores_output_ch = prep_binary_scores_process (
+         prep_medians_output_ch )
+
+      nsforest_output_ch = run_nsforest_process (
+         binary_scores_output_ch )
+
+      dendrogramplot_process (
+         nsforest_output_ch )
+
+      violinplot_process (
+         nsforest_output_ch )
+
+      dotplot_process (
+         nsforest_output_ch )
 }

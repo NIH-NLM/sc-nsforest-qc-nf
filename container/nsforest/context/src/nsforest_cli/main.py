@@ -10,6 +10,7 @@ import plotly.io as pio
 from .dotplot            import dotplot_run
 from .violinplot         import violinplot_run
 from .dendrogramplot     import dendrogramplot_run
+from .dendro_subset      import subset_by_dendro_range_run, print_dendro_order_run
 
 from .prep_medians       import prep_medians_run
 from .prep_binary_scores import prep_binary_scores_run
@@ -19,8 +20,40 @@ from .eval_markers       import eval_markers_run
 from .sanitize           import sanitize_labels_run
 from .filter_obs         import filter_by_obs_run
 
+
 app = typer.Typer(no_args_is_help=True)
 
+# --------------------------
+# subsetting 
+# --------------------------
+
+@app.command("print-dendro-order")
+def cmd_print_dendro_order(
+    h5ad_in: Path,
+    label_key: str = typer.Option(..., "--label-key", "-l"),
+):
+    """
+    Print the dendrogram leaf order (index and label), so you can pick
+    positions by number without knowing names.
+    """
+    order = print_dendro_order_run(h5ad_in, label_key)
+    for i, lab in enumerate(order):
+        print(f"{i}\t{lab}")
+
+@app.command("subset-by-dendro-range")
+def cmd_subset_by_dendro_range(
+    h5ad_in: Path,
+    h5ad_out: Path,
+    label_key: str = typer.Option(..., "--label-key", "-l"),
+    start: int = typer.Option(..., "--start", "-s", help="0-based start index (inclusive)"),
+    end: int   = typer.Option(..., "--end", "-e", help="0-based end index (inclusive)"),
+    invert: bool = typer.Option(False, "--invert", help="Exclude the range instead of keeping it"),
+):
+    """
+    Create a subset .h5ad by selecting a contiguous range of leaves by position
+    in the dendrogram (no label strings required).
+    """
+    subset_by_dendro_range_run(h5ad_in, h5ad_out, label_key, start, end, invert)
 
 # --------------------------
 # Plotting
@@ -73,16 +106,23 @@ def cmd_violinplot(
 #        pfig = pio.from_matplotlib(fig)
 #        pio.write_html(pfig, file=str(html_out), full_html=True, include_plotlyjs="cdn")
 
+
+
 @app.command("dendrogramplot")
 def cmd_dendrogramplot(
-    h5ad_in: Path = typer.Argument(..., exists=True, readable=True),
-    results_csv: Path = typer.Argument(..., exists=True, readable=True),  # unused, kept for flow consistency
-    h5ad_out: Path = typer.Argument(...),
+    h5ad_in: Path,
+    results_csv: Path,
+    h5ad_out: Path,
     label_key: str = typer.Option(..., "--label-key", "-l"),
+    png_out: Optional[Path] = typer.Option(None, "--png-out", help="Save dendrogram as PNG"),
+    svg_out: Optional[Path] = typer.Option(None, "--svg-out", help="Save dendrogram as SVG"),
 ):
-    adata = dendrogramplot_run(h5ad_in, results_csv, label_key)
-    adata.write_h5ad(str(h5ad_out))
-
+    adata = dendrogramplot_run(
+        h5ad_in, results_csv, label_key,
+        png_out=png_out, svg_out=svg_out
+    )
+    if adata is not None:
+        adata.write_h5ad(str(h5ad_out))
 
 # --------------------------
 # Preprocessing helpers
