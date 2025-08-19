@@ -20,7 +20,7 @@ process prep_medians_process {
               val(base),
               path(base_sanitized_h5ad),
               path(base_sanitized_disease_h5ad),
-              path(base_sanitized_disease_tissue_h5ad)
+              path(base_sanitized_disease_tissue_h5ad),
               path("${base}-sanitized-${disease}-${tissue}-medians.h5ad"),
               emit: prep_medians_output_ch
 
