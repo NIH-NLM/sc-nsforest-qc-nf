@@ -1,8 +1,8 @@
 #!/usr/bin/env nextflow
 
-include { plot_dendrogramplot_process } from './modules/plot_dendrogram.nf'
-include { plot_dotplot_process }        from './modules/plot_dotplot.nf'
-include { plot_violinplot_process }     from './modules/plot_violinplot.nf'
+include { run_dendrogramplot_process }  from './modules/dendrogram.nf'
+include { run_violinplot_process }      from './modules/violinplot.nf'
+include { run_dotplot_process }         from './modules/dotplot.nf'
 include { filter_condition_process }    from './modules/filter_condition.nf'
 include { filter_tissue_process }       from './modules/filter_tissue.nf'
 include { sanitize_process }            from './modules/sanitize.nf'
@@ -43,13 +43,13 @@ workflow {
       sanitize_output_ch       = sanitize_process (
          csv_rows_ch )
 
-      filter_disease_output_ch = filter_disease (
+      filter_disease_output_ch = filter_condition_process (
          sanitize_output_ch )
 
-      filter_tissue_output_ch  = filter_tissue (
+      filter_tissue_output_ch  = filter_tissue_process (
          filter_disease_output_ch )
 
-      medians_output_ch   = prep_medians_process (
+      prep_medians_output_ch   = prep_medians_process (
          filter_tissue_output_ch )
 
       binary_scores_output_ch = prep_binary_scores_process (
@@ -58,12 +58,12 @@ workflow {
       nsforest_output_ch = run_nsforest_process (
          binary_scores_output_ch )
 
-      dendrogramplot_process (
+      run_dendrogramplot_process (
          nsforest_output_ch )
 
-      violinplot_process (
+      run_violinplot_process (
          nsforest_output_ch )
 
-      dotplot_process (
+      run_dotplot_process (
          nsforest_output_ch )
 }
