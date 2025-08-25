@@ -1,77 +1,60 @@
-# nsforest_cli/dendro_subset.py
+# container/nsforest/context/src/nsforest_cli/dendro_subset.py
 from __future__ import annotations
-from pathlib import Path
-from typing import List, Optional
 
+from typing import List, Optional, Sequence, Tuple
 import scanpy as sc
-import pandas as pd
 import numpy as np
+from anndata import AnnData
 
-def _ordered_categories_from_uns(uns: dict) -> List[str]:
-    # Try common keys that Scanpy stores
-    for k in ("categories_ordered", "ordered_categories"):
-        if k in uns and uns[k] is not None:
-            return list(uns[k])
-    # Fallback: derive from categories + index order
-    if "categories" in uns and "categories_idx_ordered" in uns:
-        cats = list(map(str, uns["categories"]))
-        idx  = list(map(int, uns["categories_idx_ordered"]))
-        return [cats[i] for i in idx]
-    # Last resort: try dendrogram_info["ivl"] (labels produced by scipy)
-    info = uns.get("dendrogram_info", {})
-    if "ivl" in info and info["ivl"] is not None:
-        return list(map(str, info["ivl"]))
-    raise ValueError("Could not determine ordered categories from .uns dendrogram payload.")
 
-def subset_by_dendro_range_run(
-    h5ad_in: Path,
-    h5ad_out: Path,
+def _parse_leaf_range(s: str) -> Tuple[int, int]:
+    # accepts "start:end" (python-style, end exclusive)
+    s = s.strip()
+    if ":" not in s:
+        raise ValueError("Leaf range must be 'start:end' with ':'")
+    a, b = s.split(":", 1)
+    start = int(a) if a else 0
+    end = int(b) if b else 10**9
+    if end <= start:
+        raise ValueError("Leaf range end must be greater than start")
+    return start, end
+
+
+def leaves_from_dendrogram(
+    adata: AnnData,
     label_key: str,
-    start: int,
-    end: int,
-    invert: bool = False,
-) -> None:
+    *,
+    leaf_range: Optional[str] = None,
+    leaf_indices: Optional[Sequence[int]] = None,
+) -> List[str]:
     """
-    Subset cells by taking clusters whose positions in the dendrogram leaf order
-    fall within [start, end] (0-based, inclusive). If invert=True, exclude that range.
+    Return cluster labels in dendrogram leaf order, optionally subset by positions.
     """
-    adata = sc.read_h5ad(str(h5ad_in))
+    # Compute dendrogram (idempotent; overwrites/creates uns)
+    sc.tl.dendrogram(adata, groupby=label_key)
+    dendro_key = f"dendrogram_{label_key}"
+    info = adata.uns.get(dendro_key, {}).get("dendrogram_info", {})
+    ivl: List[str] = list(info.get("ivl", []))  # leaf labels in order
 
-    key = f"dendrogram_{label_key}"
-    if key not in adata.uns:
-        # Compute dendrogram if missing (uses PCA fallback automatically)
-        sc.tl.dendrogram(adata, groupby=label_key)
+    if not ivl:
+        raise RuntimeError(f"No dendrogram info found under adata.uns['{dendro_key}']")
 
-    order = _ordered_categories_from_uns(adata.uns[key])
+    # Full list if no subsetting
+    if not leaf_range and not leaf_indices:
+        return ivl
 
-    n = len(order)
-    if start < 0 or end < 0 or start >= n or end >= n:
-        raise ValueError(f"Range out of bounds: start={start}, end={end}, n_leaves={n}")
-    if end < start:
-        raise ValueError(f"end ({end}) must be >= start ({start})")
+    if leaf_range:
+        start, end = _parse_leaf_range(leaf_range)
+        end = min(end, len(ivl))
+        if start < 0 or start >= len(ivl):
+            raise IndexError("leaf_range start out of bounds")
+        if end <= start:
+            raise IndexError("leaf_range end must be > start")
+        return ivl[start:end]
 
-    selected = set(order[start:end + 1])
-
-    col = pd.Series(adata.obs[label_key].astype("string"))
-    keep = col.isin(selected)
-    if invert:
-        keep = ~keep
-
-    adata_sub = adata[keep.to_numpy()].copy()
-    # Ensure clean categories on the grouping column
-    adata_sub.obs[label_key] = adata_sub.obs[label_key].astype("category")
-    adata_sub.obs[label_key] = adata_sub.obs[label_key].cat.remove_unused_categories()
-
-    adata_sub.write_h5ad(str(h5ad_out))
-
-
-def print_dendro_order_run(h5ad_in: Path, label_key: str) -> List[str]:
-    """
-    Return the dendrogram leaf order (list of label strings).
-    """
-    adata = sc.read_h5ad(str(h5ad_in))
-    key = f"dendrogram_{label_key}"
-    if key not in adata.uns:
-        sc.tl.dendrogram(adata, groupby=label_key)
-    return _ordered_categories_from_uns(adata.uns[key])
+    # explicit indices
+    idxs = np.array(list(leaf_indices), dtype=int)
+    if (idxs < 0).any() or (idxs >= len(ivl)).any():
+        raise IndexError("leaf_indices out of bounds for dendrogram leaves")
+    return [ivl[i] for i in idxs]
 

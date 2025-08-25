@@ -1,45 +1,42 @@
-# nsforest_cli/dendrogramplot.py
+# container/nsforest/context/src/nsforest_cli/dendrogram.py
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Optional
-
 import scanpy as sc
 import matplotlib.pyplot as plt
-import pandas as pd
+from .dendro_subset import leaves_from_dendrogram
+
 
 def dendrogramplot_run(
     h5ad_in: Path,
-    results_csv: Path,              # kept for interface consistency; not used currently
+    results_csv: Path,   # kept for uniform CLI; not used here
     label_key: str,
+    *,
     png_out: Optional[Path] = None,
     svg_out: Optional[Path] = None,
+    dpi: int = 300,
+    # new leaf subsetting
+    leaf_range: Optional[str] = None,
+    leaf_indices: Optional[list[int]] = None,
 ):
-    """
-    Compute dendrogram (sc.tl.dendrogram) and plot it. Optionally save PNG/SVG.
-    Returns the AnnData (so caller can write .h5ad).
-    """
     adata = sc.read_h5ad(str(h5ad_in))
 
-    # Ensure groupby column is categorical
-    if not pd.api.types.is_categorical_dtype(adata.obs[label_key]):
-        adata.obs[label_key] = adata.obs[label_key].astype("category")
+    # optional subsetting by leaf positions
+    if leaf_range or leaf_indices:
+        selected_labels = leaves_from_dendrogram(
+            adata, label_key, leaf_range=leaf_range, leaf_indices=leaf_indices
+        )
+        adata = adata[adata.obs[label_key].isin(selected_labels)].copy()
 
-    # Compute dendrogram (stores linkage & info in adata.uns[f"dendrogram_{label_key}"])
     sc.tl.dendrogram(adata, groupby=label_key)
+    sc.pl.dendrogram(adata, groupby=label_key, show=False)
+    fig = plt.gcf()
 
-    # Plot without trying to use return_fig (not available on all versions)
-    ax = sc.pl.dendrogram(adata, groupby=label_key, show=False)
-    # Resolve figure handle robustly
-    if ax is None:
-        fig = plt.gcf()
-    else:
-        fig = getattr(ax, "figure", plt.gcf())
-
-    # Save, if requested
     if png_out:
-        fig.savefig(str(png_out), bbox_inches="tight", dpi=300)
+        fig.savefig(str(png_out), bbox_inches="tight", dpi=dpi)
     if svg_out:
         fig.savefig(str(svg_out), bbox_inches="tight", format="svg")
 
-    plt.close(fig)
-    return adata
+    return fig
 
