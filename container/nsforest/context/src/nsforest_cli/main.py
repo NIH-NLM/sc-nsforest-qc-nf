@@ -38,7 +38,6 @@ def cmd_violinplot(
     use_ensembl: bool = typer.Option(True, "--use-ensembl/--no-use-ensembl"),
     png_out: Optional[Path] = typer.Option(None, "--png-out"),
     svg_out: Optional[Path] = typer.Option(None, "--svg-out"),
-    dpi: int = typer.Option(300, "--dpi"),
     markers_col: str = typer.Option("NSForest_markers", "--markers-col"),
     cluster_col: str = typer.Option("clusterName", "--cluster-col"),
     # new leaf selectors
@@ -50,12 +49,11 @@ def cmd_violinplot(
     violinplot_run(
         h5ad_in,
         results_csv,
-        label_key,
+        label_key=label_key,
         clusters=clusters,
         top_n=top_n,
         log1p=log1p,
         use_ensembl=use_ensembl,
-        dpi=dpi,
         png_out=png_out,
         svg_out=svg_out,
         markers_col=markers_col,
@@ -76,7 +74,6 @@ def cmd_dotplot(
     use_ensembl: bool = typer.Option(True, "--use-ensembl/--no-use-ensembl"),
     png_out: Optional[Path] = typer.Option(None, "--png-out"),
     svg_out: Optional[Path] = typer.Option(None, "--svg-out"),
-    dpi: int = typer.Option(300, "--dpi"),
     markers_col: str = typer.Option("NSForest_markers", "--markers-col"),
     cluster_col: str = typer.Option("clusterName", "--cluster-col"),
     leaf_range: Optional[str] = typer.Option(None, "--leaf-range"),
@@ -87,12 +84,11 @@ def cmd_dotplot(
     dotplot_run(
         h5ad_in,
         results_csv,
-        label_key,
+        label_key=label_key,
         clusters=clusters,
         top_n=top_n,
         log1p=log1p,
         use_ensembl=use_ensembl,
-        dpi=dpi,
         png_out=png_out,
         svg_out=svg_out,
         markers_col=markers_col,
@@ -110,14 +106,17 @@ def cmd_dendrogramplot(
     label_key: str = typer.Option(..., "--label-key", "-l"),
     png_out: Optional[Path] = typer.Option(None, "--png-out"),
     svg_out: Optional[Path] = typer.Option(None, "--svg-out"),
-    dpi: int = typer.Option(300, "--dpi"),
     leaf_range: Optional[str] = typer.Option(None, "--leaf-range"),
     leaf_indices: Optional[List[int]] = typer.Option(None, "--leaf-indices"),
 ):
     dendrogramplot_run(
-        h5ad_in, results_csv, label_key,
-        png_out=png_out, svg_out=svg_out, dpi=dpi,
-        leaf_range=leaf_range, leaf_indices=leaf_indices
+        h5ad_in,
+        results_csv,
+        label_key=label_key,
+        png_out=png_out,
+        svg_out=svg_out,
+        leaf_range=leaf_range,
+        leaf_indices=leaf_indices
     )
     if h5ad_out:
         adata = sc.read_h5ad(str(h5ad_in))

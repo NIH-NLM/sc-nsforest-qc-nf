@@ -7,108 +7,150 @@ from typing import Dict, List, Optional, Sequence
 import scanpy as sc
 import matplotlib.pyplot as plt
 
-from .utils import markers_from_nsforest_results
-from .ensembl_lookup import ensg_to_symbol
-from .dendro_subset import leaves_from_dendrogram
-
 
 def violinplot_run(
     h5ad_in: Path,
     results_csv: Path,
-    label_key: str,
     *,
-    # existing
+    label_key: str,
     markers_col: str = "NSForest_markers",
     cluster_col: str = "clusterName",
     clusters: Optional[Sequence[str]] = None,
     top_n: Optional[int] = None,
     log1p: bool = True,
-    use_ensembl: bool = True,
-    id_source: str = "var_names",
-    dpi: int = 300,
+    use_ensembl: bool = True,   # accepted for CLI parity
+    id_source: str = "var_names",  # accepted for CLI parity
     png_out: Optional[Path] = None,
     svg_out: Optional[Path] = None,
-    # new leaf-driven subsetting
-    leaf_range: Optional[str] = None,          # e.g., "0:10"
-    leaf_indices: Optional[Sequence[int]] = None,  # e.g., 0 1 2 9
-):
+    leaf_range: Optional[str] = None,        # accepted for CLI parity
+    leaf_indices: Optional[Sequence[int]] = None,  # accepted for CLI parity
+) -> None:
+    """
+    Render a stacked violin plot replicating the NSForest tutorial behavior.
+
+    Behavior:
+      - Reads an AnnData .h5ad and the NSForest results .csv.
+      - Ensures a dendrogram exists for `label_key` and respects its category order.
+      - Optionally subsets clusters; still preserves order from the dendrogram.
+      - Builds a markers dictionary from the results CSV.
+      - Slices AnnData to the exact genes plotted; sets `.raw=None`; applies log1p to X if requested.
+      - Uses `nsforest.pl.stackedviolin(..., save=False)` to obtain a Matplotlib figure.
+      - Saves exactly the filenames provided by `--png-out` / `--svg-out`.
+      - Closes the figure and returns None.
+    """
+    import pandas as pd
+    import ast
+    import numpy as np
+    from scipy import sparse
+    import nsforest as ns
+
+    # Load AnnData and ensure groupby column is categorical
     adata = sc.read_h5ad(str(h5ad_in))
+    if label_key not in adata.obs:
+        raise ValueError(f"obs['{label_key}'] not found in {h5ad_in}")
+    adata.obs[label_key] = adata.obs[label_key].astype("category")
 
-    # 1) Resolve clusters to keep
-    if leaf_range or leaf_indices:
-        # compute leaf-ordered labels and subset clusters by positions
-        selected_labels = leaves_from_dendrogram(
-            adata, label_key, leaf_range=leaf_range, leaf_indices=leaf_indices
-        )
-    elif clusters:
-        selected_labels = list(clusters)
-    else:
-        selected_labels = None
+    # Ensure dendrogram exists; derive order
+    dendro_key = f"dendrogram_{label_key}"
+    if dendro_key not in adata.uns or "categories_ordered" not in adata.uns.get(dendro_key, {}):
+        sc.tl.dendrogram(adata, groupby=label_key)
+    dendrogram: List[str] = list(adata.uns[dendro_key]["categories_ordered"])
 
-    if selected_labels:
-        adata = adata[adata.obs[label_key].isin(selected_labels)].copy()
+    # Optional subset of clusters while preserving dendrogram order
+    if clusters:
+        keep = set(clusters)
+        dendrogram = [c for c in dendrogram if c in keep]
+        adata = adata[adata.obs[label_key].isin(keep)].copy()
+        adata.obs[label_key] = adata.obs[label_key].cat.reorder_categories(dendrogram, ordered=True)
 
-    # 2) Markers → only for selected clusters (if any)
-    markers_dict: Dict[str, List[str]] = markers_from_nsforest_results(
-        results_csv, cluster_col=cluster_col, markers_col=markers_col
-    )
-    if not markers_dict:
-        raise ValueError(f"No marker sets found in {results_csv}")
+    # Read NSForest results and align to cluster order
+    df = pd.read_csv(results_csv)
+    for col in (cluster_col, markers_col):
+        if col not in df.columns:
+            raise ValueError(f"Column '{col}' missing in {results_csv}")
+    df = df[df[cluster_col].isin(dendrogram)].copy()
+    df[cluster_col] = df[cluster_col].astype("category").cat.set_categories(dendrogram)
+    df = df.sort_values(cluster_col)
 
-    if selected_labels:
-        markers_dict = {k: v for k, v in markers_dict.items() if k in set(selected_labels)}
+    # Optionally trim markers per cluster
+    if top_n is not None and top_n > 0:
+        def _trim(v: str) -> str:
+            if not isinstance(v, str):
+                return v
+            s = v.strip()
+            if s.startswith("[") and s.endswith("]"):
+                try:
+                    lst = [str(x).strip() for x in ast.literal_eval(s)]
+                except Exception:
+                    lst = [p.strip() for p in s.strip("[]").split(",")]
+            else:
+                lst = [p.strip() for p in s.split(";")]
+            return ";".join(lst[:top_n])
+        df[markers_col] = df[markers_col].map(_trim)
 
-    # 3) Flatten marker gene list; de-dup; apply top_n per cluster
-    gene_order: List[str] = []
-    for cl, lst in markers_dict.items():
-        take = lst if top_n is None else lst[:top_n]
-        gene_order.extend(take)
+    # Build markers_dict from results
+    def _split(val: str) -> list[str]:
+        if not isinstance(val, str):
+            return []
+        s = val.strip()
+        if s.startswith("[") and s.endswith("]"):
+            try:
+                lst = list(ast.literal_eval(s))
+                return [str(x).strip() for x in lst if str(x).strip()]
+            except Exception:
+                pass
+        return [g.strip() for g in s.split(";") if g.strip()]
 
+    markers_dict: Dict[str, List[str]] = {
+        row[cluster_col]: _split(row[markers_col]) for _, row in df.iterrows() if row[cluster_col] in dendrogram
+    }
+
+    # Union of plotted genes in dendrogram cluster order (stable, no duplicates)
+    union_order: List[str] = []
     seen = set()
-    gene_order = [g for g in gene_order if not (g in seen or seen.add(g))]
-    present = [g for g in gene_order if g in adata.var_names]
+    for cl in dendrogram:
+        for g in markers_dict.get(cl, []):
+            if g not in seen:
+                seen.add(g)
+                union_order.append(g)
+    if not union_order:
+        raise ValueError("No marker genes found to plot (empty union from results).")
+
+    # Keep only genes present in the AnnData
+    present = [g for g in union_order if g in adata.var_names]
     if not present:
-        raise ValueError("None of the markers from results CSV are present in .var_names")
+        raise ValueError("None of the requested marker genes are present in adata.var_names.")
 
-    adata = adata[:, present].copy()
-
-    # 4) Symbols for display only
-    display_names = list(adata.var_names)
-    if use_ensembl:
-        mapping = ensg_to_symbol(adata.var_names)
-        display_names = [mapping.get(g, g) for g in adata.var_names]
-
-    # 5) Log transform (as in NSForest tutorial)
+    # Slice to present genes; ensure plotting uses X, not .raw; apply log1p if requested
+    ad_for_plot = adata[:, present].copy()
+    ad_for_plot.raw = None
     if log1p:
-        sc.pp.log1p(adata)
+        X = ad_for_plot.X
+        if sparse.issparse(X):
+            ad_for_plot.X = sparse.csr_matrix(np.log1p(X.toarray()))
+        else:
+            ad_for_plot.X = np.log1p(X)
 
-    # 6) Ensure dendrogram is computed on the *subset* and show it in the violin
-    sc.tl.dendrogram(adata, groupby=label_key)
-    sc.pl.violin(
-        adata,
-        keys=adata.var_names.tolist(),
-        groupby=label_key,
-        log=False,
-        use_raw=False,
-        stripplot=False,
-        dendrogram=True,
-        rotation=90,
-        show=False,
+    # Render via NSForest plotting (no internal saving) and grab the figure
+    ax = ns.pl.stackedviolin(
+        ad_for_plot,
+        markers_dict,
+        label_key,
+        dendrogram=dendrogram,
+        save=False,
+        output_folder=".",
+        outputfilename_suffix=".",
     )
-    fig = plt.gcf()
+    fig = ax.get_figure() if hasattr(ax, "get_figure") else plt.gcf()
 
-    # 7) Swap x tick labels to symbols when counts match
-    try:
-        for ax in fig.axes:
-            if len(ax.get_xticklabels()) == len(display_names):
-                ax.set_xticklabels(display_names, rotation=90)
-    except Exception:
-        pass
-
+    # Save exactly what was requested; no dpi override
     if png_out:
-        fig.savefig(str(png_out), bbox_inches="tight", dpi=dpi)
+        Path(png_out).parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(str(png_out), bbox_inches="tight")
     if svg_out:
+        Path(svg_out).parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(str(svg_out), bbox_inches="tight", format="svg")
 
-    return fig
+    plt.close(fig)
+    return None
 
