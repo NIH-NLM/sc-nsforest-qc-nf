@@ -1,4 +1,4 @@
-# container/nsforest/context/src/nsforest_cli/dotplot.py
+# container/nsforest/context/src/nsforest_cli/matrixplot.py
 from __future__ import annotations
 
 from pathlib import Path
@@ -8,18 +8,12 @@ import matplotlib.pyplot as plt
 import scanpy as sc
 
 
-# --- helpers ---------------------------------------------------------------
-
 def _slice_leaves(
     leaves: list[str],
     *,
     leaf_range: Optional[str] = None,
     leaf_indices: Optional[Sequence[int]] = None,
 ) -> list[str]:
-    """Slice dendrogram leaves by explicit indices or start:end string.
-    - If both are provided, indices win.
-    - Invalid specs are ignored (returns original order).
-    """
     if leaf_indices:
         n = len(leaves)
         idx = [i for i in leaf_indices if -n <= i < n]
@@ -36,14 +30,7 @@ def _slice_leaves(
 
 
 def _resolve_symbol_map(adata, genes: List[str]) -> Dict[str, str]:
-    """Resolve gene symbols for display.
-    Priority:
-      1) adata.var['gene_symbols'] when available
-      2) project helper nsforest_cli.ensembl_lookup.* (best-effort)
-      3) fallback to the original gene id
-    """
     mapping: Dict[str, str] = {}
-    # From AnnData.var
     if hasattr(adata, "var") and "gene_symbols" in adata.var.columns:
         subset = [g for g in genes if g in adata.var.index]
         if subset:
@@ -52,9 +39,8 @@ def _resolve_symbol_map(adata, genes: List[str]) -> Dict[str, str]:
                 s = symbols.get(g)
                 if s and s != "nan":
                     mapping[g] = s
-    # From project helper (best-effort, no hard fail)
     try:
-        from nsforest_cli import ensembl_lookup as el  # your existing utility
+        from nsforest_cli import ensembl_lookup as el
         for fn_name in ("lookup_symbols", "map_symbols", "map_ensembl_ids", "get_symbols"):
             if hasattr(el, fn_name):
                 fn = getattr(el, fn_name)
@@ -69,39 +55,22 @@ def _resolve_symbol_map(adata, genes: List[str]) -> Dict[str, str]:
                 break
     except Exception:
         pass
-    # Fallback to ids
     for g in genes:
         mapping.setdefault(g, g)
     return mapping
 
 
-# --- public API ------------------------------------------------------------
-
-def dotplot_run(
+def matrixplot_run(
     *,
     h5ad_in: Path,
     results_csv: Path,
     label_key: str,
-    cluster_col: str = "clusterName",
-    markers_col: str = "NSForest_markers",
-    clusters: Optional[Sequence[str]] = None,
-    top_n: Optional[int] = None,
     png_out: Optional[Path] = None,
     svg_out: Optional[Path] = None,
     leaf_range: Optional[str] = None,
     leaf_indices: Optional[Sequence[int]] = None,
 ) -> None:
-    """Generate a dot plot (matrix plot) using nsforest plotting.
-
-    Behavior
-    --------
-    - Ensures/uses dendrogram order for `label_key`.
-    - Optional cluster subsetting and leaf slicing.
-    - Parses NSForest results CSV to build a per-cluster markers dict.
-    - Slices to present genes; creates a plotting copy; clears `.raw` to avoid
-      Scanpy using it; applies **true `log1p` on X**.
-    - Resolves gene symbols (AnnData → helper → fallback) for display.
-    - Calls **nsforest.pl.matrixplot** with `save=False`, then saves PNG/SVG if requested.
+    """Matrix (dot) plot using nsforest.pl.matrixplot with log1p + symbols, options-only API.
     """
     import ast
     import numpy as np
@@ -109,19 +78,16 @@ def dotplot_run(
     from scipy import sparse as sp
     import nsforest as ns
 
-    # Load AnnData and ensure categorical groupby
     adata = sc.read_h5ad(str(h5ad_in))
     if label_key not in adata.obs:
         raise ValueError(f"obs['{label_key}'] not found in {h5ad_in}")
     adata.obs[label_key] = adata.obs[label_key].astype("category")
 
-    # Ensure dendrogram exists
     dendro_key = f"dendrogram_{label_key}"
     if dendro_key not in adata.uns or "categories_ordered" not in adata.uns.get(dendro_key, {}):
         sc.tl.dendrogram(adata, groupby=label_key)
     leaves = list(adata.uns[dendro_key]["categories_ordered"])
 
-    # Leaf slice + explicit cluster subset (if provided)
     sliced = _slice_leaves(leaves, leaf_range=leaf_range, leaf_indices=leaf_indices)
     if clusters:
         want = set(clusters)
@@ -131,20 +97,17 @@ def dotplot_run(
     if not dendrogram:
         raise ValueError("No clusters selected for plotting after subsetting.")
 
-    # Restrict AnnData to selected clusters; enforce ordered categories
     adata = adata[adata.obs[label_key].isin(dendrogram)].copy()
     adata.obs[label_key] = adata.obs[label_key].cat.set_categories(dendrogram, ordered=True)
 
-    # Read NSForest results and align order
     df = pd.read_csv(results_csv)
-    for col in (cluster_col, markers_col):
+    for col in ("cluster_header", "NSForest_markers"):
         if col not in df.columns:
             raise ValueError(f"Column '{col}' missing in {results_csv}")
-    df = df[df[cluster_col].isin(dendrogram)].copy()
-    df[cluster_col] = df[cluster_col].astype("category").cat.set_categories(dendrogram)
-    df = df.sort_values(cluster_col)
+    df = df[df["cluster_header"].isin(dendrogram)].copy()
+    df[cluster_col] = df["cluster_header"].astype("category").cat.set_categories(dendrogram)
+    df = df.sort_values("cluster_header")
 
-    # Top-N per cluster (optional)
     if top_n is not None and top_n > 0:
         def _trim(v: str) -> str:
             if not isinstance(v, str):
@@ -158,9 +121,8 @@ def dotplot_run(
             else:
                 lst = [p.strip() for p in s.split(";")]
             return ";".join(lst[:top_n])
-        df[markers_col] = df[markers_col].map(_trim)
+        df["NSForest_markers"] = df["NSForest_markers"].map(_trim)
 
-    # Build markers dict
     def _split(val: str) -> list[str]:
         if not isinstance(val, str):
             return []
@@ -174,10 +136,9 @@ def dotplot_run(
         return [g.strip() for g in s.split(";") if g.strip()]
 
     markers_dict: Dict[str, List[str]] = {
-        row[cluster_col]: _split(row[markers_col]) for _, row in df.iterrows() if row[cluster_col] in dendrogram
+        row["cluster_header"]: _split(row["NSForest_markers"]) for _, row in df.iterrows() if row["cluster_header"] in dendrogram
     }
 
-    # Union of genes in dendrogram order → keep only those present
     union_order: List[str] = []
     seen = set()
     for cl in dendrogram:
@@ -191,24 +152,19 @@ def dotplot_run(
     if not present:
         raise ValueError("None of the requested marker genes are present in adata.var_names.")
 
-    # Resolve symbols and make plotting copy with true log1p on X
     sym_map = _resolve_symbol_map(adata, present)
-    ad_for_plot = adata[:, present].copy()
-    ad_for_plot.raw = None  # force plotting to use X
 
+    ad_for_plot = adata[:, present].copy()
+    ad_for_plot.raw = None
     X = ad_for_plot.X
     if sp.issparse(X):
-        import numpy as np
         ad_for_plot.X = sp.csr_matrix(np.log1p(X.toarray()))
     else:
-        import numpy as np
         ad_for_plot.X = np.log1p(X)
 
-    # Display names + remap the markers dict to symbols
     disp_names = [sym_map[g] for g in present]
     ad_for_plot.var_names = disp_names
     disp_set = set(disp_names)
-
     remapped_markers: Dict[str, List[str]] = {}
     for cl, genes in markers_dict.items():
         out: List[str] = []
@@ -218,7 +174,6 @@ def dotplot_run(
                 out.append(s)
         remapped_markers[cl] = out
 
-    # Plot via nsforest (which wraps Scanpy's matrixplot) and save
     import nsforest as ns
     ax = ns.pl.matrixplot(
         ad_for_plot,

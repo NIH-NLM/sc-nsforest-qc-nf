@@ -10,7 +10,9 @@ def _clean_token(s: str) -> str:
     s2 = re.sub(r'_+', '_', s2).strip('_')
     return s2 or "cluster"
 
-def sanitize_labels_run(h5ad_in: Path, label_key: str):
+def sanitize_labels_run(
+        h5ad_in: Path,
+        label_key: str):
     """
     Clean labels in .obs[label_key] by replacing non [A-Za-z0-9_-] with '_',
     collapsing repeats, trimming ends. Preserve duplicates across cells.

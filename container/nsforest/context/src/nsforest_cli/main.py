@@ -3,12 +3,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List, Optional, Sequence
 
+import scanpy as sc
 import typer
 
 # ---- your single-function modules ----
-from .dotplot import dotplot_run
-from .violinplot import violinplot_run
 from .dendrogramplot import dendrogramplot_run
+from .dotplot import dotplot_run
+from .matrixplot import matrixplot_run
+from .violinplot import violinplot_run
 
 # existing modules you already have in nsforest_cli/
 from .prep_medians import prep_medians_run
@@ -26,73 +28,28 @@ app = typer.Typer(no_args_is_help=True)
 # Plotting commands
 # --------------------------
 
-# ---------- VIOLIN ----------
-@app.command("violinplot")
-def cmd_violinplot(
-    h5ad_in: Path,
-    results_csv: Path,
-    label_key: str = typer.Option(..., "--label-key", "-l"),
-    clusters: Optional[List[str]] = typer.Option(None, "--clusters"),
-    top_n: Optional[int] = typer.Option(None, "--top-n"),
-    log1p: bool = typer.Option(True, "--log1p/--no-log1p"),
-    use_ensembl: bool = typer.Option(True, "--use-ensembl/--no-use-ensembl"),
-    png_out: Optional[Path] = typer.Option(None, "--png-out"),
-    svg_out: Optional[Path] = typer.Option(None, "--svg-out"),
-    markers_col: str = typer.Option("NSForest_markers", "--markers-col"),
-    cluster_col: str = typer.Option("clusterName", "--cluster-col"),
-    # new leaf selectors
-    leaf_range: Optional[str] = typer.Option(None, "--leaf-range", help="Slice of leaf positions, e.g. '0:10'"),
-    leaf_indices: Optional[List[int]] = typer.Option(None, "--leaf-indices", help="Explicit leaf indices, e.g. --leaf-indices 0 3 4"),
-):
-    if not (png_out or svg_out):
-        raise typer.BadParameter("Provide at least one of --png-out / --svg-out")
-    violinplot_run(
-        h5ad_in,
-        results_csv,
-        label_key=label_key,
-        clusters=clusters,
-        top_n=top_n,
-        log1p=log1p,
-        use_ensembl=use_ensembl,
-        png_out=png_out,
-        svg_out=svg_out,
-        markers_col=markers_col,
-        cluster_col=cluster_col,
-        leaf_range=leaf_range,
-        leaf_indices=leaf_indices,
-    )
-
-# ---------- DOT ----------
+# ---------- DOTPLOT ----------
 @app.command("dotplot")
 def cmd_dotplot(
-    h5ad_in: Path,
-    results_csv: Path,
-    label_key: str = typer.Option(..., "--label-key", "-l"),
-    clusters: Optional[List[str]] = typer.Option(None, "--clusters"),
-    top_n: Optional[int] = typer.Option(None, "--top-n"),
-    log1p: bool = typer.Option(True, "--log1p/--no-log1p"),
-    use_ensembl: bool = typer.Option(True, "--use-ensembl/--no-use-ensembl"),
-    png_out: Optional[Path] = typer.Option(None, "--png-out"),
-    svg_out: Optional[Path] = typer.Option(None, "--svg-out"),
-    markers_col: str = typer.Option("NSForest_markers", "--markers-col"),
-    cluster_col: str = typer.Option("clusterName", "--cluster-col"),
-    leaf_range: Optional[str] = typer.Option(None, "--leaf-range"),
-    leaf_indices: Optional[List[int]] = typer.Option(None, "--leaf-indices"),
+    h5ad_in:     Path                = typer.Option(..., "--h5ad-in",     exists=True, dir_okay=False, readable=True),
+    results_csv: Path                = typer.Option(..., "--results-csv", exists=True, dir_okay=False, readable=True),
+    label_key:   str                 = typer.Option(..., "--label-key", "-l"),
+    png_out:     Optional[Path]      = typer.Option(None, "--png-out"),
+    svg_out:     Optional[Path]      = typer.Option(None, "--svg-out"),
+    leaf_range:  Optional[str]       = typer.Option(None, "--leaf-range",   help="Slice of leaf positions, e.g. '0:10'"),
+    leaf_indices:Optional[List[int]] = typer.Option(None, "--leaf-indices", help="Explicit leaf indices, e.g. --leaf-indices 0 3 4"),
 ):
+    """
+    Display the per-cluster NSForest Markers dotplot (log scaled)
+    """
     if not (png_out or svg_out):
         raise typer.BadParameter("Provide at least one of --png-out / --svg-out")
     dotplot_run(
-        h5ad_in,
-        results_csv,
+        h5ad_in=h5ad_in,
+        results_csv=results_csv,
         label_key=label_key,
-        clusters=clusters,
-        top_n=top_n,
-        log1p=log1p,
-        use_ensembl=use_ensembl,
         png_out=png_out,
         svg_out=svg_out,
-        markers_col=markers_col,
-        cluster_col=cluster_col,
         leaf_range=leaf_range,
         leaf_indices=leaf_indices,
     )
@@ -100,35 +57,78 @@ def cmd_dotplot(
 # ---------- DENDROGRAM ----------
 @app.command("dendrogramplot")
 def cmd_dendrogramplot(
-    h5ad_in: Path,
-    results_csv: Path,
-    h5ad_out: Optional[Path] = typer.Argument(None),
-    label_key: str = typer.Option(..., "--label-key", "-l"),
-    png_out: Optional[Path] = typer.Option(None, "--png-out"),
-    svg_out: Optional[Path] = typer.Option(None, "--svg-out"),
-    leaf_range: Optional[str] = typer.Option(None, "--leaf-range"),
-    leaf_indices: Optional[List[int]] = typer.Option(None, "--leaf-indices"),
+    h5ad_in:     Path                = typer.Option(...,  "--h5ad-in",     exists=True, dir_okay=False, readable=True),
+    label_key:   str                 = typer.Option(...,  "--label-key", "-l"),
+    h5ad_out:    Path                = typer.Option(...,  "--h5ad-out",     exists=True, dir_okay=False, readable=True),
+    png_out:     Optional[Path]      = typer.Option(None, "--png-out"),
+    svg_out:     Optional[Path]      = typer.Option(None, "--svg-out"),
+    leaf_range:  Optional[str]       = typer.Option(None, "--leaf-range",   help="Slice of leaf positions, e.g. '0:10'"),
+    leaf_indices:Optional[List[int]] = typer.Option(None, "--leaf-indices", help="Explicit leaf indices, e.g. --leaf-indices 0 3 4"),
 ):
-    dendrogramplot_run(
-        h5ad_in,
-        results_csv,
+    """
+    Display the hierarchical cluster dendrogram - since we are running each step in serial, save the dendrogram output.
+    """
+    adata = dendrogramplot_run(
+        h5ad_in=h5ad_in,
         label_key=label_key,
         png_out=png_out,
         svg_out=svg_out,
         leaf_range=leaf_range,
-        leaf_indices=leaf_indices
+        leaf_indices=leaf_indices,
     )
-    if h5ad_out:
-        adata = sc.read_h5ad(str(h5ad_in))
-        if leaf_range or leaf_indices:
-            # persist the dendrogram on the subset we plotted
-            from .dendro_subset import leaves_from_dendrogram
-            selected_labels = leaves_from_dendrogram(
-                adata, label_key, leaf_range=leaf_range, leaf_indices=leaf_indices
-            )
-            adata = adata[adata.obs[label_key].isin(selected_labels)].copy()
-        sc.tl.dendrogram(adata, groupby=label_key)
-        adata.write_h5ad(str(h5ad_out))
+    adata.write_h5ad(str(h5ad_out))
+   
+# ---------- MATRIXPLOT  ----------
+@app.command("matrixplot")
+def cmd_matrixplot(
+    h5ad_in:     Path                = typer.Option(..., "--h5ad-in",     exists=True, dir_okay=False, readable=True),
+    results_csv: Path                = typer.Option(..., "--results-csv", exists=True, dir_okay=False, readable=True),
+    label_key:   str                 = typer.Option(..., "--label-key", "-l"),
+    png_out:     Optional[Path]      = typer.Option(None, "--png-out"),
+    svg_out:     Optional[Path]      = typer.Option(None, "--svg-out"),
+    leaf_range:  Optional[str]       = typer.Option(None, "--leaf-range",   help="Slice of leaf positions, e.g. '0:10'"),
+    leaf_indices:Optional[List[int]] = typer.Option(None, "--leaf-indices", help="Explicit leaf indices, e.g. --leaf-indices 0 3 4"),
+):
+    """
+    Display the per-cluster NSForest Markers matrixplot (log scaled)
+    """
+    if not (png_out or svg_out):
+        raise typer.BadParameter("Provide at least one of --png-out / --svg-out")
+    matrixplot_run(
+        h5ad_in=h5ad_in,
+        results_csv=results_csv,
+        label_key=label_key,
+        png_out=png_out,
+        svg_out=svg_out,
+        leaf_range=leaf_range,
+        leaf_indices=leaf_indices,
+    )
+
+# ---------- VIOLIN ----------
+@app.command("violinplot")
+def cmd_violinplot(
+    h5ad_in:     Path                = typer.Option(..., "--h5ad-in",     exists=True, dir_okay=False, readable=True),
+    results_csv: Path                = typer.Option(..., "--results-csv", exists=True, dir_okay=False, readable=True),
+    label_key:   str                 = typer.Option(..., "--label-key", "-l"),
+    png_out:     Optional[Path]      = typer.Option(None, "--png-out"),
+    svg_out:     Optional[Path]      = typer.Option(None, "--svg-out"),
+    leaf_range:  Optional[str]       = typer.Option(None, "--leaf-range",   help="Slice of leaf positions, e.g. '0:10'"),
+    leaf_indices:Optional[List[int]] = typer.Option(None, "--leaf-indices", help="Explicit leaf indices, e.g. --leaf-indices 0 3 4"),
+):
+    """
+    Display the per-cluster NSForest Markers violinplot (log scaled)
+    """
+    if not (png_out or svg_out):
+        raise typer.BadParameter("Provide at least one of --png-out / --svg-out")
+    violinplot_run(
+        h5ad_in=h5ad_in,
+        results_csv=results_csv,
+        label_key=label_key,
+        png_out=png_out,
+        svg_out=svg_out,
+        leaf_range=leaf_range,
+        leaf_indices=leaf_indices,
+    )
 
 # --------------------------
 # NSForest preprocessing / core
@@ -136,40 +136,42 @@ def cmd_dendrogramplot(
 
 @app.command("prep-medians")
 def cmd_prep_medians(
-    h5ad_in: Path,
-    h5ad_out: Path,
+    h5ad_in:     Path                = typer.Option(...,  "--h5ad-in",     exists=True, dir_okay=False, readable=True),
+    label_key:   str                 = typer.Option(...,  "--label-key", "-l"),
     *,
-    label_key: str = typer.Option(..., "--label-key", "-l"),
+    h5ad_out:    Path                = typer.Option(...,  "--h5ad-out",     exists=True, dir_okay=False, readable=True),
 ):
     """
     Compute per-cluster medians (nsforest.pp.prep_medians) and write a new .h5ad.
     """
-    adata = prep_medians_run(h5ad_in, label_key)
+    adata = prep_medians_run(h5ad_in=h5ad_in,
+                             label_key=label_key)
     adata.write_h5ad(str(h5ad_out))
 
 
 @app.command("prep-binary-scores")
 def cmd_prep_binary_scores(
-    h5ad_in: Path,
-    h5ad_out: Path,
+    h5ad_in:     Path                = typer.Option(...,  "--h5ad-in",     exists=True, dir_okay=False, readable=True),
+    label_key:   str                 = typer.Option(...,  "--label-key", "-l"),
     *,
-    label_key: str = typer.Option(..., "--label-key", "-l"),
+    h5ad_out:    Path                = typer.Option(...,  "--h5ad-out",     exists=True, dir_okay=False, readable=True),
 ):
     """
     Compute per-cluster binary scores (nsforest.pp.prep_binary_scores) and write a new .h5ad.
     """
-    adata = prep_binary_scores_run(h5ad_in, label_key)
+    adata = prep_binary_scores_run(h5ad_in=h5ad_in,
+                                   label_key=label_key)
     adata.write_h5ad(str(h5ad_out))
 
 
 @app.command("nsforest")
 def cmd_nsforest(
-    h5ad_in: Path,
-    results_csv_out: Path,
+    h5ad_in:     Path                = typer.Option(...,  "--h5ad-in",     exists=True, dir_okay=False, readable=True),
+    results_csv: Path                = typer.Option(...,  "--results-csv", exists=True, dir_okay=False, readable=True),
+    label_key:   str                 = typer.Option(...,  "--label-key", "-l"),
+    h5ad_out:    Path                = typer.Option(...,  "--h5ad-out",     exists=True, dir_okay=False, readable=True),
     *,
-    label_key: str = typer.Option(..., "--label-key", "-l"),
-    output_folder: Optional[Path] = typer.Option(None, "--output-folder"),
-    n_trees: int = typer.Option(1000, "--n-trees"),
+    n_trees: int                     = typer.Option(1000, "--n-trees"),
 ):
     """
     Run NS-Forest core algorithm and write the results CSV.
@@ -179,24 +181,24 @@ def cmd_nsforest(
         h5ad_in=h5ad_in,
         label_key=label_key,
         results_csv_out=results_csv_out,
-        output_folder=output_folder,
         n_trees=n_trees,
     )
 
 
 @app.command("eval-markers")
 def cmd_eval_markers(
-    h5ad_in: Path,
-    results_csv_in: Path,
-    eval_csv_out: Path,
+    h5ad_in:     Path                = typer.Option(...,  "--h5ad-in",     exists=True, dir_okay=False, readable=True),
+    eval_csv_out: Path               = typer.Option(...,  "--eval-results-csv", exists=True, dir_okay=False, readable=True),
     *,
-    label_key: str = typer.Option(..., "--label-key", "-l"),
+    label_key:   str                 = typer.Option(...,  "--label-key", "-l"),
 ):
     """
     Evaluate marker sets using nsforest.evaluating helpers; write results CSV.
     """
     eval_markers_run(
-        h5ad_in=h5ad_in, results_csv_in=results_csv_in, eval_csv_out=eval_csv_out, label_key=label_key
+        h5ad_in=h5ad_in,
+        eval_csv_out=eval_csv_out,
+        label_key=label_key
     )
 
 
@@ -206,33 +208,36 @@ def cmd_eval_markers(
 
 @app.command("sanitize-labels")
 def cmd_sanitize_labels(
-    h5ad_in: Path,
-    h5ad_out: Path,
+    h5ad_in:     Path                = typer.Option(...,  "--h5ad-in",     exists=True, dir_okay=False, readable=True),
+    label_key:   str                 = typer.Option(...,  "--label-key", "-l"),
     *,
-    label_key: str = typer.Option(..., "--label-key", "-l"),
+    h5ad_out:    Path                = typer.Option(...,  "--h5ad-out",     exists=True, dir_okay=False, readable=True),
 ):
     """
     Collision-safe label sanitizer (replaces non [A-Za-z0-9_-] with '_', collapses repeats, dedupes).
     Writes a new .h5ad to the path you provide.
     """
-    adata = sanitize_labels_run(h5ad_in, label_key)
+    adata = sanitize_labels_run(
+        h5ad_in=h5ad_in,
+        label_key=label_key)
     adata.write_h5ad(str(h5ad_out))
 
 
 @app.command("filter-by-obs")
 def cmd_filter_by_obs(
-    h5ad_in: Path,
-    h5ad_out: Path,
-    *,
-    obs_key: str = typer.Option(..., "--obs-key", "-k", help="obs column to filter"),
-    value: Optional[str] = typer.Option(None, "--value", "-v", help="Single exact value"),
-    values: Optional[List[str]] = typer.Option(None, "--values", help="Multiple values (repeat flag)"),
-    mode: str = typer.Option(
+    h5ad_in:     Path                = typer.Option(...,  "--h5ad-in",     exists=True, dir_okay=False, readable=True),
+    label_key:   str                 = typer.Option(...,  "--label-key", "-l"),
+    h5ad_out:    Path                = typer.Option(...,  "--h5ad-out",     exists=True, dir_okay=False, readable=True),
+    obs_key:     str                 = typer.Option(..., "--obs-key", "-k", help="obs column to filter"),
+    value:       Optional[str]       = typer.Option(None, "--value", "-v", help="Single exact value"),
+    values:      Optional[List[str]] = typer.Option(None, "--values", help="Multiple values (repeat flag)"),
+    mode:        str = typer.Option(
         "exact", "--mode", help="exact | contains | regex"
     ),
-    case_insensitive: bool = typer.Option(True, "--case-insensitive/--case-sensitive"),
-    na_policy: str = typer.Option("drop", "--na-policy", help="keep | drop"),
-    invert: bool = typer.Option(False, "--invert/--no-invert"),
+    case_insensitive: bool           = typer.Option(True, "--case-insensitive/--case-sensitive"),
+    na_policy: str                   = typer.Option("drop", "--na-policy", help="keep | drop"),
+    *,
+    invert: bool                     = typer.Option(False, "--invert/--no-invert"),
 ):
     """
     Filter by a SINGLE obs field. Chain this command multiple times for tissue, then disease, etc.

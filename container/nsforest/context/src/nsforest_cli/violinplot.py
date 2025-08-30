@@ -13,17 +13,8 @@ def violinplot_run(
     results_csv: Path,
     *,
     label_key: str,
-    markers_col: str = "NSForest_markers",
-    cluster_col: str = "clusterName",
-    clusters: Optional[Sequence[str]] = None,
-    top_n: Optional[int] = None,
-    log1p: bool = True,
-    use_ensembl: bool = True,   # accepted for CLI parity
-    id_source: str = "var_names",  # accepted for CLI parity
     png_out: Optional[Path] = None,
     svg_out: Optional[Path] = None,
-    leaf_range: Optional[str] = None,        # accepted for CLI parity
-    leaf_indices: Optional[Sequence[int]] = None,  # accepted for CLI parity
 ) -> None:
     """
     Render a stacked violin plot replicating the NSForest tutorial behavior.
@@ -31,9 +22,7 @@ def violinplot_run(
     Behavior:
       - Reads an AnnData .h5ad and the NSForest results .csv.
       - Ensures a dendrogram exists for `label_key` and respects its category order.
-      - Optionally subsets clusters; still preserves order from the dendrogram.
       - Builds a markers dictionary from the results CSV.
-      - Slices AnnData to the exact genes plotted; sets `.raw=None`; applies log1p to X if requested.
       - Uses `nsforest.pl.stackedviolin(..., save=False)` to obtain a Matplotlib figure.
       - Saves exactly the filenames provided by `--png-out` / `--svg-out`.
       - Closes the figure and returns None.
@@ -57,20 +46,20 @@ def violinplot_run(
     dendrogram: List[str] = list(adata.uns[dendro_key]["categories_ordered"])
 
     # Optional subset of clusters while preserving dendrogram order
-    if clusters:
-        keep = set(clusters)
-        dendrogram = [c for c in dendrogram if c in keep]
-        adata = adata[adata.obs[label_key].isin(keep)].copy()
-        adata.obs[label_key] = adata.obs[label_key].cat.reorder_categories(dendrogram, ordered=True)
+#    if clusters:
+#        keep = set(clusters)
+#        dendrogram = [c for c in dendrogram if c in keep]
+#        adata = adata[adata.obs[label_key].isin(keep)].copy()
+#        adata.obs[label_key] = adata.obs[label_key].cat.reorder_categories(dendrogram, ordered=True)
 
     # Read NSForest results and align to cluster order
     df = pd.read_csv(results_csv)
-    for col in (cluster_col, markers_col):
+    for col in (, "NSForest_markers"):
         if col not in df.columns:
             raise ValueError(f"Column '{col}' missing in {results_csv}")
-    df = df[df[cluster_col].isin(dendrogram)].copy()
-    df[cluster_col] = df[cluster_col].astype("category").cat.set_categories(dendrogram)
-    df = df.sort_values(cluster_col)
+    df = df[df["cluster_header"].isin(dendrogram)].copy()
+    df["cluster_header"l] = df["cluster_header"].astype("category").cat.set_categories(dendrogram)
+    df = df.sort_values("cluster_header")
 
     # Optionally trim markers per cluster
     if top_n is not None and top_n > 0:
@@ -86,7 +75,7 @@ def violinplot_run(
             else:
                 lst = [p.strip() for p in s.split(";")]
             return ";".join(lst[:top_n])
-        df[markers_col] = df[markers_col].map(_trim)
+        df["NSForest_markers"] = df["NSForest_markers"].map(_trim)
 
     # Build markers_dict from results
     def _split(val: str) -> list[str]:
@@ -102,7 +91,7 @@ def violinplot_run(
         return [g.strip() for g in s.split(";") if g.strip()]
 
     markers_dict: Dict[str, List[str]] = {
-        row[cluster_col]: _split(row[markers_col]) for _, row in df.iterrows() if row[cluster_col] in dendrogram
+        row["cluster_header"]: _split(row["NSForest_markers"]) for _, row in df.iterrows() if row["cluster_header"] in dendrogram
     }
 
     # Union of plotted genes in dendrogram cluster order (stable, no duplicates)

@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional, Sequence
 
+import nsforest as ns
 import scanpy as sc
 import matplotlib.pyplot as plt
 
@@ -34,24 +35,13 @@ def _slice_leaves(
 
 def dendrogramplot_run(
     h5ad_in: Path,
-    results_csv: Path,  # accepted for CLI parity; not used here
-    *,
     label_key: str,
-    clusters: Optional[Sequence[str]] = None,
-    png_out: Optional[Path] = None,
-    svg_out: Optional[Path] = None,
-    log1p: bool = True,          # accepted for CLI parity; not used
-    use_ensembl: bool = True,    # accepted for CLI parity; not used
-    id_source: str = "var_names",  # accepted for CLI parity; not used
+    png_out: str,
+    svg_out: str,
     leaf_range: Optional[str] = None,
     leaf_indices: Optional[Sequence[int]] = None,
 ) -> None:
-    """Render and save the cluster dendrogram for `label_key`.
-
-    - Accepts `results_csv` and subsetting flags for CLI parity.
-    - If `clusters`/`leaf_*` select a subset, recompute dendrogram on that subset.
-    - Saves exactly the requested filenames (no directory creation beyond parents).
-    """
+    
     # Read and validate
     adata = sc.read_h5ad(str(h5ad_in))
     if label_key not in adata.obs:
@@ -61,24 +51,23 @@ def dendrogramplot_run(
     # Ensure we have a dendrogram on the full set to derive the leaf order
     dendro_key = f"dendrogram_{label_key}"
     if dendro_key not in adata.uns or "categories_ordered" not in adata.uns.get(dendro_key, {}):
-        sc.tl.dendrogram(adata, groupby=label_key)
+        adata = ns.pp.dendrogram(adata,
+                         cluster_header=label_key,
+                         save = "svg",
+                         output_folder = ".",
+                         outputfilename_suffix = label_key)
+        
     leaves = list(adata.uns[dendro_key]["categories_ordered"])
 
-    # Apply optional leaf slicing and/or explicit cluster filter
-    sliced = _slice_leaves(leaves, leaf_range=leaf_range, leaf_indices=leaf_indices)
-    if clusters:
-        want = set(clusters)
-        selected = [c for c in sliced if c in want]
-    else:
-        selected = sliced
+    # Apply optional leaf slicing
+#    sliced = _slice_leaves(leaves, leaf_range=leaf_range, leaf_indices=leaf_indices)
+#    selected = sliced
 
     # Need at least two categories for a dendrogram plot
-    if len(selected) < 2:
-        raise ValueError("Need at least two clusters to plot a dendrogram after subsetting.")
+#    if len(selected) < 2:
+#        raise ValueError("Need at least two clusters to plot a dendrogram after subsetting.")
 
-    # Subset AnnData to selected categories and enforce that category order
-    adata = adata[adata.obs[label_key].isin(selected)].copy()
-    adata.obs[label_key] = adata.obs[label_key].cat.set_categories(selected, ordered=True)
+#   adata.obs[label_key] = adata.obs[label_key].cat.set_categories(selected, ordered=True)
 
     # Recompute dendrogram on the subset for a correct tree and plot
     sc.tl.dendrogram(adata, groupby=label_key)
@@ -94,5 +83,5 @@ def dendrogramplot_run(
         fig.savefig(str(svg_out), bbox_inches="tight", format="svg")
 
     plt.close(fig)
-    return None
+    return adata
 
