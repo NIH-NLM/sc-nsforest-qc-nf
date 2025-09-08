@@ -11,8 +11,11 @@ def _clean_token(s: str) -> str:
     return s2 or "cluster"
 
 def sanitize_labels_run(
+        *,
         h5ad_in: Path,
-        label_key: str):
+        label_key: str,
+        h5ad_out: Path,
+):
     """
     Clean labels in .obs[label_key] by replacing non [A-Za-z0-9_-] with '_',
     collapsing repeats, trimming ends. Preserve duplicates across cells.
@@ -47,5 +50,8 @@ def sanitize_labels_run(
     adata.obs[label_key] = pd.Categorical(new_col, categories=cats, ordered=False)
     adata.obs[label_key] = adata.obs[label_key].cat.remove_unused_categories()
 
-    return adata
+    # because we are using this as part of a workflow - we save the persisted dendrogram in a new h5ad
+    adata.write_h5ad(str(h5ad_out))
+    
+    return None
 

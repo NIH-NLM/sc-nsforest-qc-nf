@@ -7,10 +7,11 @@ Mode = Literal["exact", "contains", "regex"]
 NApol = Literal["drop", "keep", "match"]
 
 def filter_by_obs_run(
+    *,
     h5ad_in: Path,
+    h5ad_out: Path,
     obs_key: str,
     values: List[str],
-    *,
     mode: Mode = "exact",          # exact | contains | regex
     case_insensitive: bool = True,
     na_policy: NApol = "drop",     # drop | keep | match
@@ -67,6 +68,11 @@ def filter_by_obs_run(
 
     # AnnData expects a NumPy bool array, not Pandas BooleanArray
     final_mask_np = final_mask.to_numpy(dtype=bool)
-    return adata[final_mask_np].copy()
+
+    adata = adata[final_mask_np].copy() 
+    # because we are using this as part of a workflow - we save the persisted dendrogram in a new h5ad
+    adata.write_h5ad(str(h5ad_out))
+    
+    return None
 
 

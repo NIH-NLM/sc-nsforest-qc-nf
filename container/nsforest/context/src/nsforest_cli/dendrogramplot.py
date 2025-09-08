@@ -1,87 +1,85 @@
-# container/nsforest/context/src/nsforest_cli/dendrogramplot.py
+# nsforest_cli/dendrogramplot_run.py
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Optional, List
 
-import nsforest as ns
-import scanpy as sc
 import matplotlib.pyplot as plt
+import scanpy as sc
+import nsforest as ns
+import typer
+from nsforest import ns, nsforesting, utils, NSFOREST_VERSION
 
-
-def _slice_leaves(
-    leaves: list[str],
-    *,
-    leaf_range: Optional[str] = None,
-    leaf_indices: Optional[Sequence[int]] = None,
-) -> list[str]:
-    """Subset dendrogram leaves by indices or by slice string 'start:end' (end-exclusive).
-    If both provided, `leaf_indices` wins.
-    """
-    if leaf_indices:
-        n = len(leaves)
-        idx = [i for i in leaf_indices if -n <= i < n]
-        return [leaves[i] for i in idx]
-    if leaf_range:
-        try:
-            start_s, end_s = leaf_range.split(":", 1)
-            start = int(start_s) if start_s.strip() != "" else None
-            end = int(end_s) if end_s.strip() != "" else None
-            return leaves[slice(start, end)]
-        except Exception:
-            return leaves
-    return leaves
-
+# We expect `ensembl_lookup(ensg_id) -> str | list | dict | None`.
+try:
+    from nsforest_cli.ensembl_lookup import ensembl_lookup  # type: ignore
+except Exception:  # pragma: no cover
+    ensembl_lookup = None  # type: ignore
 
 def dendrogramplot_run(
-    h5ad_in: Path,
-    label_key: str,
-    png_out: str,
-    svg_out: str,
-    leaf_range: Optional[str] = None,
-    leaf_indices: Optional[Sequence[int]] = None,
-) -> None:
-    
-    # Read and validate
-    adata = sc.read_h5ad(str(h5ad_in))
-    if label_key not in adata.obs:
-        raise ValueError(f"obs['{label_key}'] not found in {h5ad_in}")
-    adata.obs[label_key] = adata.obs[label_key].astype("category")
-
-    # Ensure we have a dendrogram on the full set to derive the leaf order
-    dendro_key = f"dendrogram_{label_key}"
-    if dendro_key not in adata.uns or "categories_ordered" not in adata.uns.get(dendro_key, {}):
-        adata = ns.pp.dendrogram(adata,
-                         cluster_header=label_key,
-                         save = "svg",
-                         output_folder = ".",
-                         outputfilename_suffix = label_key)
+        *,
+        h5ad_in:       Path,
+        label_key:     str,
+        h5ad_out:      Path,
+        png_out:       Optional[Path],
+        svg_out:       Optional[Path],
+        leaf_range:    Optional[str],
+        leaf_indices:  Optional[List[int]],):
         
-    leaves = list(adata.uns[dendro_key]["categories_ordered"])
+    """Populate `uns[dendrogram_<label_key>]` and set `var_names` via `ensembl_lookup`.
 
-    # Apply optional leaf slicing
-#    sliced = _slice_leaves(leaves, leaf_range=leaf_range, leaf_indices=leaf_indices)
-#    selected = sliced
+    Rules (tutorial-aligned):
+    - For each ENSG in original `var_names`, call `ensembl_lookup(ENSG)`:
+      - if lookup resolves to exactly one gene symbol → use that as the new var name;
+      - otherwise → keep the original ENSG ID.
+    - Mutates AnnData in-place; optional `h5ad_out` persists the result.
+    """
+    if ensembl_lookup is None:  # pragma: no cover
+        typer.echo("ensembl_lookup function not available; ensure it is importable.", err=True)
+        raise typer.Exit(code=2)
 
-    # Need at least two categories for a dendrogram plot
-#    if len(selected) < 2:
-#        raise ValueError("Need at least two clusters to plot a dendrogram after subsetting.")
+    adata = sc.read_h5ad(str(h5ad_in))
 
-#   adata.obs[label_key] = adata.obs[label_key].cat.set_categories(selected, ordered=True)
+    if label_key not in adata.obs:
+        typer.echo(f"obs['{label_key}'] not found in AnnData.", err=True)
+        raise typer.Exit(code=2)
 
-    # Recompute dendrogram on the subset for a correct tree and plot
-    sc.tl.dendrogram(adata, groupby=label_key)
-    sc.pl.dendrogram(adata, groupby=label_key, show=False)
+    # 1) Resolve display names with ensembl_lookup, fallback to ENSG if not uniquely resolved
+    def _lookup_unique_symbol(ensg: str) -> Optional[str]:
+        try:
+            res = ensembl_lookup(ensg)
+        except Exception:
+            return None
+        if res is None:
+            return None
+        if isinstance(res, str):
+            s = res.strip()
+            return s or None
+        if isinstance(res, (list, tuple, set)):
+            # Unique only if it collapses to a single non-empty symbol
+            vals = [str(x).strip() for x in res if str(x).strip()]
+            uniq = sorted(set(vals))
+            return uniq[0] if len(uniq) == 1 else None
+        if isinstance(res, dict):
+            cand = res.get("gene_symbol") or res.get("symbol") or res.get("name")
+            if isinstance(cand, str):
+                s = cand.strip()
+                return s or None
+            if isinstance(cand, (list, tuple, set)):
+                vals = [str(x).strip() for x in cand if str(x).strip()]
+                uniq = sorted(set(vals))
+                return uniq[0] if len(uniq) == 1 else None
+        return None
 
-    # Save outputs
-    fig = plt.gcf()
-    if png_out:
-        Path(png_out).parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(str(png_out), bbox_inches="tight")
-    if svg_out:
-        Path(svg_out).parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(str(svg_out), bbox_inches="tight", format="svg")
+    original = list(adata.var_names)
+    new_names = [(_lookup_unique_symbol(ensg) or ensg) for ensg in original]
+    adata.var_names = new_names
 
-    plt.close(fig)
-    return adata
+    # 2) Persist dendrogram structure in `uns` (no files written here)
+    ns.pl.dendrogram(adata, cluster_header=label_key, save=True)
+
+    # because we are using this as part of a workflow - we save the persisted dendrogram in a new h5ad
+    adata.write_h5ad(str(h5ad_out))
+
+    return None
 
