@@ -8,7 +8,7 @@ import requests
 ENSEMBL_REST = "https://rest.ensembl.org"
 
 
-def ensg_to_symbol(
+def ensembl_lookup (
     ensg_ids: Iterable[str],
     *,
     sleep_sec: float = 0.05,

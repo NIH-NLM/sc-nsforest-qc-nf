@@ -19,10 +19,53 @@ from .run_nsforest import nsforest_run
 from .eval_markers import eval_markers_run
 from .sanitize import sanitize_labels_run
 from .filter_obs import filter_by_obs_run
+from .symbolize_genes import symbolize_genes_run
+from .build_symbol_map import build_symbol_map_run
 
 app = typer.Typer(add_completion=False)
 app = typer.Typer(no_args_is_help=True)
 
+# -----------------------------------------
+# Batch lookup the gene symbols -
+#  save ENSG as orig - run after all prep,
+#  and nsforest but before plotting,
+#  optional csv file with mapping
+# ----------------------------------------
+from .symbolize_genes import symbolize_genes_run
+@app.command("build-symbol-map")
+def cmd_build_symbol_map(
+    *,
+    gencode_release: int = typer.Option(..., "--gencode-release", help="Gencode release number (e.g. 49)"),
+    out_csv: Path = typer.Option(..., "--out-csv", help="Output CSV path (ensg,symbol)"),
+):
+    """
+    Build ENSG→gene symbol map from Gencode GTF using local curl + unzip.
+    """
+    from .build_symbol_map import build_symbol_map_run
+    build_symbol_map_run(
+        gencode_release=gencode_release,
+        out_csv=out_csv,
+    )
+    
+@app.command("symbolize")
+def cmd_symbolize_genes(
+    *,
+    h5ad_in: Path = typer.Option(..., "--h5ad-in", help="Input .h5ad file", exists=True, readable=True),
+    h5ad_out: Path = typer.Option(..., "--h5ad-out", help="Output .h5ad with gene symbols", dir_okay=False),
+    symbol_map_csv: Path = typer.Option(..., "--symbol-map-csv", help="CSV with ENSG,symbol columns", exists=True),
+    csv_out: Optional[Path] = typer.Option(None, "--csv-out", help="Optional output CSV mapping", dir_okay=False),
+):
+    """
+    Replace adata.var_names with gene symbols using a local ENSG→symbol CSV.
+    Preserves ENSGs in .var['orig_var_names'].
+    """
+    from .symbolize_genes import symbolize_genes_run
+    symbolize_genes_run(
+        h5ad_in=h5ad_in,
+        h5ad_out=h5ad_out,
+        symbol_map_csv=symbol_map_csv,
+        csv_out=csv_out,
+    )
 
 # --------------------------
 # Plotting commands
