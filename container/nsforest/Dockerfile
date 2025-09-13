@@ -46,8 +46,6 @@ RUN pip install /app/
 RUN git clone https://github.com/JCVenterInstitute/NSForest.git /opt/nsforest
 ENV PYTHONPATH="/opt/nsforest/nsforest"
 
-RUN python -c "from nsforest_cli.ensembl_lookup import ensembl_lookup; print('✅ ensembl_lookup import succeeded')"
-
 
 # Default: show CLI help
 CMD ["nsforest-cli", "--help"]

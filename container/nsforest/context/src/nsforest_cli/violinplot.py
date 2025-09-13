@@ -1,63 +1,62 @@
-# container/nsforest/context/src/nsforest_cli/violinplot.py
-from __future__ import annotations
-import ast
-import matplotlib.pyplot as plt
-import pandas as pd
-from pathlib import Path
-import nsforest as ns
-import numpy as np
+# violinplot.py
+
 import scanpy as sc
-from scipy import sparse
-from typing import Dict, List, Optional, Sequence
+import nsforest as ns
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from pathlib import Path
+from nsforest_cli.utils_load_convert_markers import load_and_convert_markers,convert_adata_varnames_with_symbol_map
 
 def violinplot_run(
-        *,
-        h5ad_in: Path,
-        results_csv: Path,
-        label_key: str,
-        png_out: Optional[Path] = None,
-        svg_out: Optional[Path] = None,
-        leaf_range: Optional[str] = None,
-        leaf_indices: Optional[List[int]] = None,
-) -> None:
-    """
-    Render a stacked violin plot replicating the NSForest tutorial behavior.
-    """
+    h5ad_in,
+    results_csv,
+    symbol_map_csv=None,
+    label_key="author_cell_type",
+    svg_out=None,
+    png_out=None,
+    leaf_indices=None,
+    leaf_range=None,
+):
+    # Load h5ad
+    adata = sc.read(h5ad_in)
 
-    # Load AnnData and ensure groupby column is categorical
-    adata = sc.read_h5ad(str(h5ad_in))
+    # Load and convert markers
+    markers_dict = load_and_convert_markers(results_csv, symbol_map_csv)
 
-    # Read NSForest results and align to cluster order
-    df = pd.read_csv(results_csv)
+    # Convert var_names in adata if symbol_map provided
+    if symbol_map_csv is not None:
+        adata = convert_adata_varnames_with_symbol_map (adata, symbol_map_csv)
+        adata.raw = None
 
-    cluster_header = label_key
-    dendrogram = list(adata.uns["dendrogram_" + cluster_header]["categories_ordered"])
+    # Filter markers to those in adata.var_names (NOT raw.var_names)
+    adata_genes = set(adata.var_names)
+    filtered_markers = {
+        k: [g for g in v if g in adata_genes]
+        for k, v in markers_dict.items()
+    }
+    filtered_markers = {k: v for k, v in filtered_markers.items() if v}
 
-    # Prepare to_plot DataFrame
-    to_plot = df.copy()
-    if "clusterName" in to_plot.columns:
-        to_plot["clusterName"] = to_plot["clusterName"].astype("category")
-        to_plot["clusterName"] = to_plot["clusterName"].cat.set_categories(dendrogram)
-        to_plot = to_plot.sort_values("clusterName")
-    if "NSForest_markers" in to_plot.columns:
-        to_plot = to_plot.rename(columns={"NSForest_markers": "markers"})
+    num_total = sum(len(v) for v in markers_dict.values())
+    num_filtered = sum(len(v) for v in filtered_markers.values())
+    print(f"[matrixplot] {num_filtered}/{num_total} markers found in adata.var_names")
 
-    # Prepare markers_dict
-    markers_dict = dict(zip(to_plot["clusterName"], to_plot["markers"]))
+    if not filtered_markers:
+        raise ValueError("No marker genes found in AnnData. Check your symbol map or gene IDs.")
 
-    ad_for_plot = adata
-    save = True  
-
-    # create & set the current figure
+    # Persist dendrogram structure in `uns` (no files written here)
     fig = plt.figure()
-    ax = ns.pp.stackedviolin(
-        ad_for_plot,
-        markers_dict,
-        label_key,
-        dendrogram=dendrogram,
-        save=save,
-        output_folder=".",
-        outputfilename_suffix=".",
+
+    # Plot
+    ax  = ns.pl.stackedviolin (
+        adata,
+        filtered_markers,
+        cluster_header=label_key,
+        show=False,
+        save=True,
+        output_folder = ".",
+        outputfilename_suffix = label_key,
+        use_raw=False,
     )
 
     # capture the figure that was actually drawn on
@@ -74,5 +73,5 @@ def violinplot_run(
         fig.savefig(str(svg_out), bbox_inches="tight", format="svg")
 
     plt.close(fig)
-    return None
 
+    return None

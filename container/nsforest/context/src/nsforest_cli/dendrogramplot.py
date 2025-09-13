@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import scanpy as sc
 import nsforest as ns
 import typer
-from nsforest import as ns
 
 
 def dendrogramplot_run(
@@ -26,16 +25,52 @@ def dendrogramplot_run(
     """
     adata = sc.read_h5ad(str(h5ad_in))
 
+    # Load the mapping file: assumes two columns: 'ensembl_id', 'gene_symbol'
+    symbol_map_df = pd.read_csv("gencode-release-49-ensg-gene-symbol.csv")
+
+    # Create a dict: ensembl_id → gene_symbol
+    symbol_map = dict(zip(symbol_map_df['ensembl_id'], symbol_map_df['gene_symbol']))
+
+    # Store original Ensembl IDs
+    adata.var["orig_names"] = adata.var_names
+
+    # Map var_names (which are currently Ensembl IDs) to gene symbols
+    adata.var_names = adata.var_names.map(symbol_map).fillna(adata.var_names)
+    
     if label_key not in adata.obs:
         typer.echo(f"obs['{label_key}'] not found in AnnData.", err=True)
         raise typer.Exit(code=2)
 
 
     # Persist dendrogram structure in `uns` (no files written here)
-    ns.pp.dendrogram(adata, cluster_header=label_key, save=True)
+    fig = plt.figure()
+
+    ns.pp.dendrogram(adata, cluster_header, save = True, output_folder = output_folder, outputfilename_suffix = cluster_header)
+
+    ax = ns.pp.dendrogram(
+        adata,
+        cluster_header=label_key,
+        save=True,
+        output_folder = ".",
+        outputfilename_suffix=label_key)
 
     # because we are using this as part of a workflow - we save the persisted dendrogram in a new h5ad
     adata.write_h5ad(str(h5ad_out))
+
+    # capture the figure that was actually drawn on
+    if hasattr(ax, "get_figure"):
+        fig = ax.get_figure()
+    elif isinstance(ax, (list, tuple)) and ax and hasattr(ax[0], "get_figure"):
+        fig = ax[0].get_figure()
+    else:
+        fig = plt.gcf()
+
+    if png_out:
+        fig.savefig(str(png_out), bbox_inches="tight")
+    if svg_out:
+        fig.savefig(str(svg_out), bbox_inches="tight", format="svg")
+
+    plt.close(fig)
 
     return None
 

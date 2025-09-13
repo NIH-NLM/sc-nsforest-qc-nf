@@ -78,6 +78,7 @@ def cmd_dotplot(
     h5ad_in:     Path                = typer.Option(..., "--h5ad-in",     exists=True, dir_okay=False, readable=True),
     results_csv: Path                = typer.Option(..., "--results-csv", exists=True, dir_okay=False, readable=True),
     label_key:   str                 = typer.Option(..., "--label-key", "-l"),
+    symbol_map_csv: Optional[Path]   = typer.Option(None, "--symbol-map-csv", help="Optional ENSG→symbol mapping CSV"),
     png_out:     Optional[Path]      = typer.Option(None, "--png-out"),
     svg_out:     Optional[Path]      = typer.Option(None, "--svg-out"),
     leaf_range:  Optional[str]       = typer.Option(None, "--leaf-range",   help="Slice of leaf positions, e.g. '0:10'"),
@@ -90,12 +91,12 @@ def cmd_dotplot(
         h5ad_in=h5ad_in,
         results_csv=results_csv,
         label_key=label_key,
+        symbol_map_csv=symbol_map_csv,
         png_out=png_out,
         svg_out=svg_out,
         leaf_range=leaf_range,
         leaf_indices=leaf_indices,
     )
-
 # ---------- DENDROGRAM ----------
 @app.command("dendrogramplot")
 def cmd_dendrogramplot(
@@ -126,13 +127,15 @@ def cmd_dendrogramplot(
 
 # ---------- MATRIXPLOT  ----------
 @app.command("matrixplot")
+
 def cmd_matrixplot(
     *,
-    h5ad_in:     Path                = typer.Option(...,  "--h5ad-in",  help="required h5ad input file ", exists=True, dir_okay=False, readable=True),
-    label_key:   str                 = typer.Option(...,  "--label-key",help="required cluster label"),
-    results_csv: Path                = typer.Option(...,  "--results-csv",help="required nsforest results csv",  exists=True, dir_okay=False, readable=True),
-    png_out:     Optional[Path]      = typer.Option(None, "--png-out",  help="if provided dendrogram printed as png when subsetting"),
-    svg_out:     Optional[Path]      = typer.Option(None, "--svg-out",  help="if provided dendrogram printed as svg when subsetting"),
+    h5ad_in:     Path                = typer.Option(..., "--h5ad-in",     exists=True, dir_okay=False, readable=True),
+    results_csv: Path                = typer.Option(..., "--results-csv", exists=True, dir_okay=False, readable=True),
+    label_key:   str                 = typer.Option(..., "--label-key", "-l"),
+    symbol_map_csv: Optional[Path]   = typer.Option(None, "--symbol-map-csv", help="Optional ENSG→symbol mapping CSV"),
+    png_out:     Optional[Path]      = typer.Option(None, "--png-out"),
+    svg_out:     Optional[Path]      = typer.Option(None, "--svg-out"),
     leaf_range:  Optional[str]       = typer.Option(None, "--leaf-range",   help="Slice of leaf positions, e.g. '0:10'"),
     leaf_indices:Optional[List[int]] = typer.Option(None, "--leaf-indices", help="Explicit leaf indices, e.g. --leaf-indices 0 3 4"),
 ):
@@ -141,8 +144,9 @@ def cmd_matrixplot(
     """
     matrixplot_run(
         h5ad_in=h5ad_in,
-        label_key=label_key,
         results_csv=results_csv,
+        label_key=label_key,
+        symbol_map_csv=symbol_map_csv,
         png_out=png_out,
         svg_out=svg_out,
         leaf_range=leaf_range,
@@ -153,11 +157,12 @@ def cmd_matrixplot(
 @app.command("violinplot")
 def cmd_violinplot(
     *,
-    h5ad_in:     Path                = typer.Option(...,  "--h5ad-in",  help="required h5ad input file ", exists=True, dir_okay=False, readable=True),
-    label_key:   str                 = typer.Option(...,  "--label-key",help="required cluster label"),
-    results_csv: Path                = typer.Option(...,  "--results-csv",help="required nsforest results csv",  exists=True, dir_okay=False, readable=True),
-    png_out:     Optional[Path]      = typer.Option(None, "--png-out",  help="if provided dendrogram printed as png when subsetting"),
-    svg_out:     Optional[Path]      = typer.Option(None, "--svg-out",  help="if provided dendrogram printed as svg when subsetting"),
+    h5ad_in:     Path                = typer.Option(..., "--h5ad-in",     exists=True, dir_okay=False, readable=True),
+    results_csv: Path                = typer.Option(..., "--results-csv", exists=True, dir_okay=False, readable=True),
+    label_key:   str                 = typer.Option(..., "--label-key", "-l"),
+    symbol_map_csv: Optional[Path]   = typer.Option(None, "--symbol-map-csv", help="Optional ENSG→symbol mapping CSV"),
+    png_out:     Optional[Path]      = typer.Option(None, "--png-out"),
+    svg_out:     Optional[Path]      = typer.Option(None, "--svg-out"),
     leaf_range:  Optional[str]       = typer.Option(None, "--leaf-range",   help="Slice of leaf positions, e.g. '0:10'"),
     leaf_indices:Optional[List[int]] = typer.Option(None, "--leaf-indices", help="Explicit leaf indices, e.g. --leaf-indices 0 3 4"),
 ):
@@ -168,6 +173,7 @@ def cmd_violinplot(
         h5ad_in=h5ad_in,
         results_csv=results_csv,
         label_key=label_key,
+        symbol_map_csv=symbol_map_csv,
         png_out=png_out,
         svg_out=svg_out,
         leaf_range=leaf_range,
