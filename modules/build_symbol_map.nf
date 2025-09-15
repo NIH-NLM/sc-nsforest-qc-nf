@@ -28,7 +28,7 @@ process build_symbol_map_process {
     """
     nsforest-cli build-symbol-map \
     --gencode-release = $params.gencode_release \
-    --output-csv gencode-release-${params.gencode_release}-gene-symbol.csv
+    --out-csv gencode-release-${params.gencode_release}-gene-symbol.csv
     """
 }
 
