@@ -9,7 +9,7 @@ include { run_matrixplot_process }      from './modules/matrixplot.nf'
 include { prep_binary_scores_process }  from './modules/prep_binary_scores.nf' 
 include { prep_medians_process }        from './modules/prep_medians.nf'
 include { run_nsforest_process }        from './modules/run_nsforest.nf'
-include { sanitize_process }            from './modules/sanitize.nf'
+include { sanitize_labels_process }     from './modules/sanitize_labels.nf'
 include { symbolize_genes_process }     from './modules/symbolize_genes.nf'
 include { run_violinplot_process }      from './modules/violinplot.nf'
 
@@ -44,7 +44,7 @@ workflow {
 	  tissue_ch, author_ch, publication_date_ch, publication_ch, cell_count_ch, base_ch ]
       }
 
-      sanitize_output_ch       = sanitize_process (
+      sanitize_output_ch       = sanitize_labels_process (
          csv_rows_ch )
 
       filter_disease_output_ch = filter_condition_process (

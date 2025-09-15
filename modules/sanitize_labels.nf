@@ -1,4 +1,4 @@
-process sanitize_process {
+process sanitize_labels_process {
 
     tag "${h5ad_file.baseName}-${label_key}-${embedding_key}-${organism}-${disease}-${filter},${metric}-${save_scores}-${save_cluster_summary}-${save_annotation}-${tissue}-${author}-${publication_date}-${publication}-${cell_count}"
 
@@ -20,7 +20,7 @@ process sanitize_process {
 
     script:
     """
-    nsforest-cli sanitize \
+    nsforest-cli sanitize-labels \
     --h5ad_in $h5ad_file \
     --label-key $label_key \
     --h5ad_out ${base}-sanitized.h5ad

@@ -1,3 +1,5 @@
+# sanitize_labels.py
+
 from pathlib import Path
 import re
 import scanpy as sc

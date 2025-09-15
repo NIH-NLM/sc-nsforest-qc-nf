@@ -17,7 +17,7 @@ from .prep_medians import prep_medians_run
 from .prep_binary_scores import prep_binary_scores_run
 from .run_nsforest import nsforest_run
 from .eval_markers import eval_markers_run
-from .sanitize import sanitize_labels_run
+from .sanitize_labels import sanitize_labels_run
 from .filter_obs import filter_by_obs_run
 from .symbolize_genes import symbolize_genes_run
 from .build_symbol_map import build_symbol_map_run
