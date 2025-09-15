@@ -21,7 +21,7 @@ process sanitize_labels_process {
     script:
     """
     nsforest-cli sanitize-labels \
-    --h5ad_in $h5ad_file \
+    --h5ad-in $h5ad_file \
     --label-key $label_key \
     --h5ad_out ${base}-sanitized.h5ad
     """
