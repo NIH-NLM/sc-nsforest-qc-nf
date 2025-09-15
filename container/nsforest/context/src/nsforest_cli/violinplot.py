@@ -1,12 +1,12 @@
 # violinplot.py
 
-import scanpy as sc
+
 import nsforest as ns
-import pandas as pd
-import matplotlib.pyplot as plt
+import scanpy as sc
 
 from pathlib import Path
 from nsforest_cli.utils_load_convert_markers import load_and_convert_markers,convert_adata_varnames_with_symbol_map
+from typing import Optional, List
 
 def violinplot_run(
         *,
