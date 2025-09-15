@@ -53,7 +53,7 @@ workflow {
       filter_tissue_output_ch  = filter_tissue_process (
          filter_disease_output_ch )
 
-      symbol_map_csv_ch = build_symbol_map (
+      symbol_map_csv_ch = build_symbol_map_process (
          filter_tissue_output_ch )
 
       symbolize_genes_ch = symbolize_genes_process (
