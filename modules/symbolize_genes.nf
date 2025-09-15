@@ -23,7 +23,7 @@ process symbolize_genes_process {
               path(base_sanitized_disease_h5ad),
               path(base_sanitized_disease_tissue_h5ad),
 	      path(symbol_map_csv),
-	      path(base_sanitized_disease_tissue_symbols_h5ad)
+	      path("${base}-sanitized-${disease}-${tissue}-symbols.h5ad"),
               emit: symbolize_genes_ch
 
     script:
@@ -31,7 +31,7 @@ process symbolize_genes_process {
     nsforest-cli symbolize_genes_run \
     --h5ad-in $base_sanitized_disease_tissue_h5ad \
     --symbol-map-csv $symbol_map_csv \
-    --h5ad-out $base_sanitized_disease_tissue_symbols_h5ad 
+    --h5ad-out ${base}-sanitized-${disease}-${tissue}-symbols.h5ad
     """
 }
 

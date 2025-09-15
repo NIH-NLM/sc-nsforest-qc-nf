@@ -9,13 +9,17 @@ from pathlib import Path
 from nsforest_cli.utils_load_convert_markers import load_and_convert_markers,convert_adata_varnames_with_symbol_map
 
 def dotplot_run(
-    h5ad_in,
-    results_csv,
-    symbol_map_csv=None,
-    label_key,
-    leaf_indices=None,
-    leaf_range=None,
-):
+        *,
+        h5ad_in:        Path,
+        results_csv:    Path,
+        symbol_map_csv: Path,
+        label_key:      str,
+        leaf_indices:   Optional[str],
+        leaf_range:     Optional[List[int]],,):
+    """
+    Plot NSForest dotplot, with gene symbols
+    """
+    
     # Load h5ad
     adata = sc.read(h5ad_in)
 

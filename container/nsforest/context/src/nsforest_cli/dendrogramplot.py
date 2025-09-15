@@ -19,8 +19,10 @@ def dendrogramplot_run(
         leaf_indices:  Optional[List[int]],):
         
     """
-    Plot dendrogramplot   
+    Plot NSForest dendrogramplot   
     """
+
+    # load h5ad
     adata = sc.read_h5ad(str(h5ad_in))
 
     # grab the base-prefix of the h5ad file

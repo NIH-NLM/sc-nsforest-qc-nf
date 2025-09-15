@@ -21,14 +21,14 @@ process build_symbol_map_process {
               path(base_sanitized_h5ad),
               path(base_sanitized_disease_h5ad),
               path(base_sanitized_disease_tissue_h5ad),
-	      path(symbol_map_csv)
+	      path("gencode-release-${params.gencode_release}-gene-symbol.csv"),
               emit: symbol_map_csv_ch
 
     script:
     """
     nsforest-cli symbol_map_run \
-    --gencode_release = $gencode_release \
-    --output-path gencode-release-${gencode_release}-gene-symbol.csv
+    --gencode_release = $params.gencode_release \
+    --output-path gencode-release-${params.gencode_release}-gene-symbol.csv
     """
 }
 

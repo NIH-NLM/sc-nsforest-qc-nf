@@ -24,7 +24,7 @@ process filter_tissue_process {
     script:
     """
     nsforest-cli filter-by-obs \
-    --h5ad-in ${base_sanitized_disease} \
+    --h5ad-in $base_sanitized_disease_h5ad \
     --h5ad-out ${base}-sanitized-${disease}-${tissue}.h5ad \
     --obs-key tissue \
     --value ${tissue} 

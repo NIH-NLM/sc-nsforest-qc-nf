@@ -33,7 +33,7 @@ process prep_binary_scores_process {
     script:
     """
     nsforest-cli prep-binary-scores \
-    --input-path $base_sanitized_disease_tissue_medians_h5ad \
+    --input-path $base_sanitized_disease_tissue_symbols_medians_h5ad \
     --cluster-header $label_key \
     --output-path ${base}-sanitized-${disease}-${tissue}-symbols-binary-scores.h5ad
     """

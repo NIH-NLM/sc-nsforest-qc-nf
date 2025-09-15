@@ -9,13 +9,17 @@ from pathlib import Path
 from nsforest_cli.utils_load_convert_markers import load_and_convert_markers,convert_adata_varnames_with_symbol_map
 
 def violinplot_run(
-    h5ad_in,
-    results_csv,
-    symbol_map_csv=None,
-    label_key="author_cell_type",
-    leaf_indices=None,
-    leaf_range=None,
-):
+        *,
+        h5ad_in:        Path,
+        results_csv:    Path,
+        symbol_map_csv: Path,
+        label_key:      str,
+        leaf_indices:   Optional[str],
+        leaf_range:     Optional[List[int]],,):
+    """
+    Plot NSForest violinplot, with gene symbols
+    """
+    
     # Load h5ad
     adata = sc.read(h5ad_in)
 
@@ -25,8 +29,9 @@ def violinplot_run(
     suffix = "violinplot"
 
     # Final output filename
-    outputfilename_suffix = f"{base_prefix}-{suffix}"    
-    
+    outputfilename_suffix = f"{base_prefix}-{suffix}"
+
+
     # Load and convert markers
     markers_dict = load_and_convert_markers(results_csv, symbol_map_csv)
 
@@ -45,20 +50,19 @@ def violinplot_run(
 
     num_total = sum(len(v) for v in markers_dict.values())
     num_filtered = sum(len(v) for v in filtered_markers.values())
-    print(f"[matrixplot] {num_filtered}/{num_total} markers found in adata.var_names")
+    print(f"[violinplot] {num_filtered}/{num_total} markers found in adata.var_names")
 
     if not filtered_markers:
         raise ValueError("No marker genes found in AnnData. Check your symbol map or gene IDs.")
 
-    # Plot
-    ns.pl.stackedviolin (
+    ns.pl.stackedviolinplot(
         adata,
         filtered_markers,
         cluster_header=label_key,
         show=False,
         save=True,
         output_folder = ".",
-        outputfilename_suffix = label_key,
+        outputfilename_suffix = outputfilename_suffix,
         use_raw=False,
     )
 

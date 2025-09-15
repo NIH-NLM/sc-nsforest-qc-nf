@@ -15,7 +15,7 @@ process filter_condition_process {
               val(filter), val(metric), val(save_scores), val(save_cluster_summary), val(save_annotation),
               val(tissue), val(author), val(publication_date), val(publication), val(cell_count),
               val(base),
-              path($base_sanitized_h5ad),
+              path(base_sanitized_h5ad),
               path("${base}-sanitized-${disease}.h5ad"),
               emit: filter_condition_output_ch
 
