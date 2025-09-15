@@ -15,8 +15,6 @@ def dendrogramplot_run(
         h5ad_in:       Path,
         label_key:     str,
         h5ad_out:      Path,
-        png_out:       Optional[Path],
-        svg_out:       Optional[Path],
         leaf_range:    Optional[str],
         leaf_indices:  Optional[List[int]],):
         
@@ -25,6 +23,14 @@ def dendrogramplot_run(
     """
     adata = sc.read_h5ad(str(h5ad_in))
 
+    # grab the base-prefix of the h5ad file
+    # add the plot type here.
+    base_prefix = h5ad_path.stem  
+    suffix = "dendrogramplot"
+
+    # Final output filename
+    outputfilename_suffix = f"{base_prefix}-{suffix}"
+    
     # Load the mapping file: assumes two columns: 'ensembl_id', 'gene_symbol'
     symbol_map_df = pd.read_csv("gencode-release-49-ensg-gene-symbol.csv")
 
@@ -43,34 +49,15 @@ def dendrogramplot_run(
 
 
     # Persist dendrogram structure in `uns` (no files written here)
-    fig = plt.figure()
-
-    ns.pp.dendrogram(adata, cluster_header, save = True, output_folder = output_folder, outputfilename_suffix = cluster_header)
-
-    ax = ns.pp.dendrogram(
+    ns.pp.dendrogram(
         adata,
         cluster_header=label_key,
         save=True,
         output_folder = ".",
-        outputfilename_suffix=label_key)
+        outputfilename_suffix= outputfilename_suffix)
 
     # because we are using this as part of a workflow - we save the persisted dendrogram in a new h5ad
     adata.write_h5ad(str(h5ad_out))
-
-    # capture the figure that was actually drawn on
-    if hasattr(ax, "get_figure"):
-        fig = ax.get_figure()
-    elif isinstance(ax, (list, tuple)) and ax and hasattr(ax[0], "get_figure"):
-        fig = ax[0].get_figure()
-    else:
-        fig = plt.gcf()
-
-    if png_out:
-        fig.savefig(str(png_out), bbox_inches="tight")
-    if svg_out:
-        fig.savefig(str(svg_out), bbox_inches="tight", format="svg")
-
-    plt.close(fig)
 
     return None
 

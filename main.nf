@@ -1,14 +1,17 @@
 #!/usr/bin/env nextflow
 
+include { build_symbol_map_process }    from './modules/build_symbol_map.nf'
 include { run_dendrogramplot_process }  from './modules/dendrogram.nf'
-include { run_violinplot_process }      from './modules/violinplot.nf'
 include { run_dotplot_process }         from './modules/dotplot.nf'
 include { filter_condition_process }    from './modules/filter_condition.nf'
 include { filter_tissue_process }       from './modules/filter_tissue.nf'
-include { sanitize_process }            from './modules/sanitize.nf'
-include { prep_medians_process }        from './modules/prep_medians.nf'
+include { run_matrixplot_process }      from './modules/matrixplot.nf'
 include { prep_binary_scores_process }  from './modules/prep_binary_scores.nf' 
+include { prep_medians_process }        from './modules/prep_medians.nf'
 include { run_nsforest_process }        from './modules/run_nsforest.nf'
+include { sanitize_process }            from './modules/sanitize.nf'
+include { symbolize_genes_process }     from './modules/symbolize_genes.nf'
+include { run_violinplot_process }      from './modules/violinplot.nf'
 
 workflow {
 

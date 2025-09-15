@@ -15,17 +15,17 @@ process filter_condition_process {
               val(filter), val(metric), val(save_scores), val(save_cluster_summary), val(save_annotation),
               val(tissue), val(author), val(publication_date), val(publication), val(cell_count),
               val(base),
-              path("${base}-sanitized.h5ad"),
+              path($base_sanitized_h5ad),
               path("${base}-sanitized-${disease}.h5ad"),
               emit: filter_condition_output_ch
 
     script:
     """
     nsforest-cli filter-by-obs \
+    --h5ad-in $base_sanitized_h5ad \
+    --h5ad-out ${base}-sanitized-${disease}.h5ad \
     --obs-key disease \
-    --value ${disease} \
-    ${base_sanitized_h5ad} \
-    ${base}-sanitized-${disease}.h5ad
+    --value ${disease} 
     """
 }
 

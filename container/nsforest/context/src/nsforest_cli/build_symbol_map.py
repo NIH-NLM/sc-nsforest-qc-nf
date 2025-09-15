@@ -52,3 +52,4 @@ def build_symbol_map_run(
 
     print(f"[done] Wrote {len(df)} unique ENSG→symbol entries to {out_csv}")
 
+    return None

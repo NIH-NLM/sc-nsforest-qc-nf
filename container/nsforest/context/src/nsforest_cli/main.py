@@ -53,7 +53,6 @@ def cmd_symbolize_genes(
     h5ad_in: Path = typer.Option(..., "--h5ad-in", help="Input .h5ad file", exists=True, readable=True),
     h5ad_out: Path = typer.Option(..., "--h5ad-out", help="Output .h5ad with gene symbols", dir_okay=False),
     symbol_map_csv: Path = typer.Option(..., "--symbol-map-csv", help="CSV with ENSG,symbol columns", exists=True),
-    csv_out: Optional[Path] = typer.Option(None, "--csv-out", help="Optional output CSV mapping", dir_okay=False),
 ):
     """
     Replace adata.var_names with gene symbols using a local ENSG→symbol CSV.
@@ -64,39 +63,12 @@ def cmd_symbolize_genes(
         h5ad_in=h5ad_in,
         h5ad_out=h5ad_out,
         symbol_map_csv=symbol_map_csv,
-        csv_out=csv_out,
     )
 
 # --------------------------
 # Plotting commands
 # --------------------------
 
-# ---------- DOTPLOT ----------
-@app.command("dotplot")
-def cmd_dotplot(
-    *,
-    h5ad_in:     Path                = typer.Option(..., "--h5ad-in",     exists=True, dir_okay=False, readable=True),
-    results_csv: Path                = typer.Option(..., "--results-csv", exists=True, dir_okay=False, readable=True),
-    label_key:   str                 = typer.Option(..., "--label-key", "-l"),
-    symbol_map_csv: Optional[Path]   = typer.Option(None, "--symbol-map-csv", help="Optional ENSG→symbol mapping CSV"),
-    png_out:     Optional[Path]      = typer.Option(None, "--png-out"),
-    svg_out:     Optional[Path]      = typer.Option(None, "--svg-out"),
-    leaf_range:  Optional[str]       = typer.Option(None, "--leaf-range",   help="Slice of leaf positions, e.g. '0:10'"),
-    leaf_indices:Optional[List[int]] = typer.Option(None, "--leaf-indices", help="Explicit leaf indices, e.g. --leaf-indices 0 3 4"),
-):
-    """
-    Display the per-cluster NSForest Markers dotplot (log scaled)
-    """
-    dotplot_run(
-        h5ad_in=h5ad_in,
-        results_csv=results_csv,
-        label_key=label_key,
-        symbol_map_csv=symbol_map_csv,
-        png_out=png_out,
-        svg_out=svg_out,
-        leaf_range=leaf_range,
-        leaf_indices=leaf_indices,
-    )
 # ---------- DENDROGRAM ----------
 @app.command("dendrogramplot")
 def cmd_dendrogramplot(
@@ -104,8 +76,6 @@ def cmd_dendrogramplot(
     h5ad_in:     Path                = typer.Option(...,  "--h5ad-in",  help="required h5ad input file ", exists=True, dir_okay=False, readable=True),
     label_key:   str                 = typer.Option(...,  "--label-key",help="required cluster label"),
     h5ad_out:    Path                = typer.Option(...,  "--h5ad-out", help="required h5ad output file", writable=None, dir_okay=False),
-    png_out:     Optional[Path]      = typer.Option(None, "--png-out",  help="if provided dendrogram printed as png when subsetting"),
-    svg_out:     Optional[Path]      = typer.Option(None, "--svg-out",  help="if provided dendrogram printed as svg when subsetting"),
     leaf_range:  Optional[str]       = typer.Option(None, "--leaf-range",   help="Slice of leaf positions, e.g. '0:10'"),
     leaf_indices:Optional[List[int]] = typer.Option(None, "--leaf-indices", help="Explicit leaf indices, e.g. --leaf-indices 0 3 4"),
 ):
@@ -119,8 +89,29 @@ def cmd_dendrogramplot(
         h5ad_in=h5ad_in,
         label_key=label_key,
         h5ad_out=h5ad_out,
-        png_out=png_out,
-        svg_out=svg_out,
+        leaf_range=leaf_range,
+        leaf_indices=leaf_indices,
+    )
+
+# ---------- DOTPLOT ----------
+@app.command("dotplot")
+def cmd_dotplot(
+    *,
+    h5ad_in:     Path                = typer.Option(..., "--h5ad-in",     exists=True, dir_okay=False, readable=True),
+    results_csv: Path                = typer.Option(..., "--results-csv", exists=True, dir_okay=False, readable=True),
+    label_key:   str                 = typer.Option(..., "--label-key", "-l"),
+    symbol_map_csv: Optional[Path]   = typer.Option(None, "--symbol-map-csv", help="Optional ENSG→symbol mapping CSV"),
+    leaf_range:  Optional[str]       = typer.Option(None, "--leaf-range",   help="Slice of leaf positions, e.g. '0:10'"),
+    leaf_indices:Optional[List[int]] = typer.Option(None, "--leaf-indices", help="Explicit leaf indices, e.g. --leaf-indices 0 3 4"),
+):
+    """
+    Display the per-cluster NSForest Markers dotplot (log scaled)
+    """
+    dotplot_run(
+        h5ad_in=h5ad_in,
+        results_csv=results_csv,
+        label_key=label_key,
+        symbol_map_csv=symbol_map_csv,
         leaf_range=leaf_range,
         leaf_indices=leaf_indices,
     )
@@ -134,8 +125,6 @@ def cmd_matrixplot(
     results_csv: Path                = typer.Option(..., "--results-csv", exists=True, dir_okay=False, readable=True),
     label_key:   str                 = typer.Option(..., "--label-key", "-l"),
     symbol_map_csv: Optional[Path]   = typer.Option(None, "--symbol-map-csv", help="Optional ENSG→symbol mapping CSV"),
-    png_out:     Optional[Path]      = typer.Option(None, "--png-out"),
-    svg_out:     Optional[Path]      = typer.Option(None, "--svg-out"),
     leaf_range:  Optional[str]       = typer.Option(None, "--leaf-range",   help="Slice of leaf positions, e.g. '0:10'"),
     leaf_indices:Optional[List[int]] = typer.Option(None, "--leaf-indices", help="Explicit leaf indices, e.g. --leaf-indices 0 3 4"),
 ):
@@ -147,8 +136,6 @@ def cmd_matrixplot(
         results_csv=results_csv,
         label_key=label_key,
         symbol_map_csv=symbol_map_csv,
-        png_out=png_out,
-        svg_out=svg_out,
         leaf_range=leaf_range,
         leaf_indices=leaf_indices,
     )
@@ -161,8 +148,6 @@ def cmd_violinplot(
     results_csv: Path                = typer.Option(..., "--results-csv", exists=True, dir_okay=False, readable=True),
     label_key:   str                 = typer.Option(..., "--label-key", "-l"),
     symbol_map_csv: Optional[Path]   = typer.Option(None, "--symbol-map-csv", help="Optional ENSG→symbol mapping CSV"),
-    png_out:     Optional[Path]      = typer.Option(None, "--png-out"),
-    svg_out:     Optional[Path]      = typer.Option(None, "--svg-out"),
     leaf_range:  Optional[str]       = typer.Option(None, "--leaf-range",   help="Slice of leaf positions, e.g. '0:10'"),
     leaf_indices:Optional[List[int]] = typer.Option(None, "--leaf-indices", help="Explicit leaf indices, e.g. --leaf-indices 0 3 4"),
 ):
@@ -174,8 +159,6 @@ def cmd_violinplot(
         results_csv=results_csv,
         label_key=label_key,
         symbol_map_csv=symbol_map_csv,
-        png_out=png_out,
-        svg_out=svg_out,
         leaf_range=leaf_range,
         leaf_indices=leaf_indices,
     )
@@ -297,6 +280,7 @@ def cmd_filter_by_obs(
     if not values:
         typer.echo("[error] You must provide at least one --values entry.", err=True)
         raise typer.Exit(code=1)
+
     filter_by_obs_run(
         h5ad_in=h5ad_in,
         h5ad_out=h5ad_out,

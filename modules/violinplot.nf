@@ -12,9 +12,12 @@ process run_violinplot_process {
               path(base_sanitized_h5ad),
               path(base_sanitized_disease_h5ad),
               path(base_sanitized_disease_tissue_h5ad),
+	      path(symbol_map_csv),
+	      path(base_sanitized_disease_tissue_symbols_h5ad),
               path(base_sanitized_disease_tissue_medians_h5ad),
               path(base_sanitized_disease_tissue_binary_scores_h5ad),
-	      path(base_sanitized_disease_tissue_nsforest_results_csv)
+	      path(base_sanitized_disease_tissue_nsforest_results_csv),
+	      path(base_sanitized_disease_tissue_dendrogram_h5ad)
  
     output:
        tuple path(h5ad_file), val(label_key), val(embedding_key), val(organism), val(disease),
@@ -24,21 +27,21 @@ process run_violinplot_process {
               path(base_sanitized_h5ad),
               path(base_sanitized_disease_h5ad),
               path(base_sanitized_disease_tissue_h5ad),
+	      path(symbol_map_csv),
+	      path(base_sanitized_disease_tissue_symbols_h5ad),
               path(base_sanitized_disease_tissue_medians_h5ad),
               path(base_sanitized_disease_tissue_binary_scores_h5ad),
               path(base_sanitized_disease_tissue_nsforest_results_csv),
-              path("${base}-sanitized-${disease}-${tissue}-violinplot.png"),
-              path("${base}-sanitized-${disease}-${tissue}-violinplot.svg"),
+	      path(base_sanitized_disease_tissue_dendrogram_h5ad),
+              path("*.png"),
               emit: violinplot_output_ch
 
     script:
     """
     nsforest-cli violinplot \
     --label-key $label_key \
-    --png-out ${base}-sanitized-${disease}-${tissue}-violinplot.png \
-    --svg-out ${base}-sanitized-${disease}-${tissue}-violinplot.svg \
-    ${base_sanitized_disease_tissue_h5ad} \
-    ${base_sanitized_disease_tissue_nsforest_results_csv} 
+    --symbol-map-csv $symbol_map_csv \
+    --h5ad-in ${base_sanitized_disease_tissue_dendrogram_h5ad} 
     """
 }
 

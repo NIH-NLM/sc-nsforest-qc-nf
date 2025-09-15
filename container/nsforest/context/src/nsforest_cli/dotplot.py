@@ -12,14 +12,21 @@ def dotplot_run(
     h5ad_in,
     results_csv,
     symbol_map_csv=None,
-    label_key="author_cell_type",
-    svg_out=None,
-    png_out=None,
+    label_key,
     leaf_indices=None,
     leaf_range=None,
 ):
     # Load h5ad
     adata = sc.read(h5ad_in)
+
+    # grab the base-prefix of the h5ad file
+    # add the plot type here.
+    base_prefix = h5ad_path.stem  
+    suffix = "dotplot"
+
+    # Final output filename
+    outputfilename_suffix = f"{base_prefix}-{suffix}"
+
 
     # Load and convert markers
     markers_dict = load_and_convert_markers(results_csv, symbol_map_csv)
@@ -44,34 +51,15 @@ def dotplot_run(
     if not filtered_markers:
         raise ValueError("No marker genes found in AnnData. Check your symbol map or gene IDs.")
 
-    # Persist dendrogram structure in `uns` (no files written here)
-    fig = plt.figure()
-
-    # Plot
-    ax  = ns.pl.dotplot(
+    ns.pl.dotplot(
         adata,
         filtered_markers,
         cluster_header=label_key,
         show=False,
         save=True,
         output_folder = ".",
-        outputfilename_suffix = "dotplot",
+        outputfilename_suffix = outputfilename_suffix,
         use_raw=False,
     )
-
-    # capture the figure that was actually drawn on
-    if hasattr(ax, "get_figure"):
-        fig = ax.get_figure()
-    elif isinstance(ax, (list, tuple)) and ax and hasattr(ax[0], "get_figure"):
-        fig = ax[0].get_figure()
-    else:
-        fig = plt.gcf()
-
-    if png_out:
-        fig.savefig(str(png_out), bbox_inches="tight")
-    if svg_out:
-        fig.savefig(str(svg_out), bbox_inches="tight", format="svg")
-
-    plt.close(fig)
 
     return None

@@ -15,7 +15,6 @@ def symbolize_genes_run(
     h5ad_in: Path,
     h5ad_out: Path,
     symbol_map_csv: Path,
-    csv_out: Optional[Path] = None,
 ):
     """
     Use a local ENSG→symbol CSV to update adata.var_names.
@@ -40,12 +39,6 @@ def symbolize_genes_run(
 
     adata.var_names = new_var_names
 
-    if csv_out:
-        pd.DataFrame({
-            "ensg": full_ensgs,
-            "stripped": stripped_ensgs,
-            "symbol": new_var_names,
-        }).to_csv(csv_out, index=False)
-
     adata.write_h5ad(str(h5ad_out))
 
+    return None
