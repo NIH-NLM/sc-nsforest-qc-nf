@@ -14,8 +14,8 @@ def violinplot_run(
         results_csv:    Path,
         symbol_map_csv: Path,
         label_key:      str,
-        leaf_indices:   Optional[str],
-        leaf_range:     Optional[List[int]],,):
+        leaf_range:     Optional[str],
+        leaf_indices:   Optional[List[int]],):
     """
     Plot NSForest violinplot, with gene symbols
     """
