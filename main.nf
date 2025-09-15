@@ -22,6 +22,7 @@ workflow {
         .splitCsv(header: true, sep: ',')
         .map { row ->
             def h5ad_ch                 = file(row.h5ad_file)
+            def base_ch                 = h5ad_ch.getSimpleName().replaceFirst(/\.h5ad$/, '')
             def label_key_ch            = row.label_key
             def embedding_key_ch        = row.embedding_key
             def organism_ch             = row.organism
@@ -40,7 +41,7 @@ workflow {
         // final array for the channel
         [ h5ad_ch, label_key_ch, embedding_key_ch , organism_ch, disease_ch,
 	  filter_ch, metric_ch, save_scores_ch, save_cluster_summary_ch, save_annotation_ch,
-	  tissue_ch, author_ch, publication_date_ch, publication_ch, cell_count_ch ]
+	  tissue_ch, author_ch, publication_date_ch, publication_ch, cell_count_ch, base_ch ]
       }
 
       sanitize_output_ch       = sanitize_process (
@@ -52,8 +53,14 @@ workflow {
       filter_tissue_output_ch  = filter_tissue_process (
          filter_disease_output_ch )
 
-      prep_medians_output_ch   = prep_medians_process (
+      symbol_map_csv_ch = build_symbol_map (
          filter_tissue_output_ch )
+
+      symbolize_genes_ch = symbolize_genes_process (
+          symbol_map_csv_ch )
+
+      prep_medians_output_ch   = prep_medians_process (
+         symbolize_genes_ch )
 
       binary_scores_output_ch = prep_binary_scores_process (
          prep_medians_output_ch )
@@ -64,9 +71,13 @@ workflow {
       run_dendrogramplot_process (
          nsforest_output_ch )
 
-      run_violinplot_process (
-         nsforest_output_ch )
-
       run_dotplot_process (
          nsforest_output_ch )
+
+      run_matrixplot_process (
+         nsforest_output_ch )
+
+     run_violinplot_process (
+         nsforest_output_ch )
+
 }
