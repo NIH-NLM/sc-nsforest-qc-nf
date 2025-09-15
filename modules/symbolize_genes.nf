@@ -28,7 +28,7 @@ process symbolize_genes_process {
 
     script:
     """
-    nsforest-cli symbolize_genes_run \
+    nsforest-cli symbolizen \
     --h5ad-in $base_sanitized_disease_tissue_h5ad \
     --symbol-map-csv $symbol_map_csv \
     --h5ad-out ${base}-sanitized-${disease}-${tissue}-symbols.h5ad
