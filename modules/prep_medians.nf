@@ -21,7 +21,7 @@ process prep_medians_process {
               path(base_sanitized_h5ad),
               path(base_sanitized_disease_h5ad),
               path(base_sanitized_disease_tissue_h5ad),
-              path("${base}-sanitized-${disease}-${tissue}-symbols-medians.h5ad"),
+              path("${base}-sanitized-${disease}-${tissue}-medians.h5ad"),
               emit: prep_medians_output_ch
 
     script:
@@ -29,7 +29,7 @@ process prep_medians_process {
     nsforest-cli prep-medians \
     --h5ad-in=${base_sanitized_disease_tissue_h5ad} \
     --label-key=$label_key \
-    --h5ad-out=${base}-sanitized-${disease}-${tissue}-medians.h5ad
+    --h5ad-out="${base}-sanitized-${disease}-${tissue}-medians.h5ad"
     """
 }
 

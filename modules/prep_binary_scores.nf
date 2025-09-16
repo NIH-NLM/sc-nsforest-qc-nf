@@ -31,7 +31,7 @@ process prep_binary_scores_process {
     nsforest-cli prep-binary-scores \
     --h5ad-in=$base_sanitized_disease_tissue_medians_h5ad \
     --label-key=$label_key \
-    --h5ad-out=${base}-sanitized-${disease}-${tissue}-binary-scores.h5ad
+    --h5ad-out="${base}-sanitized-${disease}-${tissue}-binary-scores.h5ad"
     """
 }
 
