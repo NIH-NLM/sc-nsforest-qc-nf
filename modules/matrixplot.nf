@@ -39,9 +39,10 @@ process run_matrixplot_process {
     script:
     """
     nsforest-cli matrixplot \
+    --h5ad-in=${base_sanitized_disease_tissue_dendrogram_h5ad} \
+    --results-csv=${base_sanitized_disease_tissue_nsforest_results_csv} \
     --label-key=$label_key \
-    --symbol-map-csv=$symbol_map_csv \
-    --h5ad-in=${base_sanitized_disease_tissue_dendrogram_h5ad} 
+    --symbol-map-csv=$symbol_map_csv 
     """
 }
 
