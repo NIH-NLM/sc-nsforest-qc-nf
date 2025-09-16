@@ -42,7 +42,7 @@ process run_violinplot_process {
     --h5ad-in=${base_sanitized_disease_tissue_binary_scores_symbol_dendrogram_h5ad} \
     --results-csv=${base_sanitized_disease_tissue_nsforest_results_csv} \
     --label-key=$label_key \
-    --symbol-map-csv=$symbol_map_csv 
+    --symbol-map-csv=$gencode_release_gene_symbol_csv
     """
 }
 

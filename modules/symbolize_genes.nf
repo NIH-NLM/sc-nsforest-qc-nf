@@ -36,7 +36,7 @@ process symbolize_genes_process {
     """
     nsforest-cli symbolize \
     --h5ad-in=$base_sanitized_disease_tissue_binary_scores_h5ad \
-    --symbol-map-csv=$symbol_map_csv \
+    --symbol-map-csv=$gencode_release_gene_symbol_csv \
     --h5ad-out="${base}-sanitized-${disease}-${tissue}-binary-scores-symbols.h5ad"
     """
 }
