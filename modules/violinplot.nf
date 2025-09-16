@@ -39,9 +39,9 @@ process run_violinplot_process {
     script:
     """
     nsforest-cli violinplot \
-    --label-key $label_key \
-    --symbol-map-csv $symbol_map_csv \
-    --h5ad-in ${base_sanitized_disease_tissue_dendrogram_h5ad} 
+    --label-key=$label_key \
+    --symbol-map-csv=$symbol_map_csv \
+    --h5ad-in=${base_sanitized_disease_tissue_dendrogram_h5ad} 
     """
 }
 

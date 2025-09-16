@@ -35,9 +35,9 @@ process run_nsforest_process {
     script:
     """
     nsforest-cli run-nsforest \
-    --input-path $base_sanitized_disease_tissue_binary_scores_h5ad \
-    --cluster-header $label_key \
-    --output-folder ${base}-sanitized-${disease}-${tissue}-nsforest-results
+    --input-path=$base_sanitized_disease_tissue_binary_scores_h5ad \
+    --cluster-header=$label_key \
+    --output-folder=${base}-sanitized-${disease}-${tissue}-nsforest-results
     """
 }
 

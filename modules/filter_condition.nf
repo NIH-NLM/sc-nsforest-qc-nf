@@ -22,10 +22,10 @@ process filter_condition_process {
     script:
     """
     nsforest-cli filter-by-obs \
-    --h5ad-in $base_sanitized_h5ad \
-    --h5ad-out ${base}-sanitized-${disease}.h5ad \
-    --obs-key disease \
-    --values ${disease} 
+    --h5ad-in=$base_sanitized_h5ad \
+    --h5ad-out=${base}-sanitized-${disease}.h5ad \
+    --obs-key=disease \
+    --values=${disease} 
     """
 }
 

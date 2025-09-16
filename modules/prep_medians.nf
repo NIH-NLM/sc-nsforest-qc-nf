@@ -31,9 +31,9 @@ process prep_medians_process {
     script:
     """
     nsforest-cli prep-medians \
-    --input-path ${base_sanitized_disease_tissue_symbols_h5ad} \
-    --cluster-header $label_key \
-    --output-path ${base}-sanitized-${disease}-${tissue}-symbols-medians.h5ad
+    --input-path=${base_sanitized_disease_tissue_symbols_h5ad} \
+    --cluster-header=$label_key \
+    --output-path=${base}-sanitized-${disease}-${tissue}-symbols-medians.h5ad
     """
 }
 

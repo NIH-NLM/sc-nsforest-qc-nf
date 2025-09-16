@@ -38,9 +38,9 @@ process run_dendrogramplot_process {
     script:
     """
     nsforest-cli dendrogramplot \
-    --h5ad-in $base_sanitized_disease_tissue_binary_scores_h5ad} \
-    --label-key $label_key \
-    --h5ad-out ${base}-sanitized-${disease}-${tissue}-dendrogram.h5ad
+    --h5ad-in=$base_sanitized_disease_tissue_binary_scores_h5ad} \
+    --label-key=$label_key \
+    --h5ad-out=${base}-sanitized-${disease}-${tissue}-dendrogram.h5ad
     """
 }
 
