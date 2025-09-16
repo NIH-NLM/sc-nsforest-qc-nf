@@ -12,6 +12,9 @@ process symbolize_genes_process {
               path(base_sanitized_h5ad),
               path(base_sanitized_disease_h5ad),
               path(base_sanitized_disease_tissue_h5ad),
+              path(base_sanitized_disease_tissue_medians_h5ad),
+              path(base_sanitized_disease_tissue_binary_scores_h5ad),
+	      path(base_sanitized_disease_tissue_nsforest_results_csv),
 	      path(symbol_map_csv)
 
     output:
@@ -22,16 +25,19 @@ process symbolize_genes_process {
               path(base_sanitized_h5ad),
               path(base_sanitized_disease_h5ad),
               path(base_sanitized_disease_tissue_h5ad),
+              path(base_sanitized_disease_tissue_medians_h5ad),
+              path(base_sanitized_disease_tissue_binary_scores_h5ad),
+	      path(base_sanitized_disease_tissue_nsforest_results_csv),
 	      path(symbol_map_csv),
-	      path("${base}-sanitized-${disease}-${tissue}-symbols.h5ad"),
+	      path("${base}-sanitized-${disease}-${tissue}-binary-scores-symbols.h5ad"),
               emit: symbolize_genes_ch
 
     script:
     """
     nsforest-cli symbolize \
-    --h5ad-in=$base_sanitized_disease_tissue_h5ad \
+    --h5ad-in=$base_sanitized_disease_tissue_binary_scores_h5ad \
     --symbol-map-csv=$symbol_map_csv \
-    --h5ad-out=${base}-sanitized-${disease}-${tissue}-symbols.h5ad
+    --h5ad-out=${base}-sanitized-${disease}-${tissue}-binary-scores-symbols.h5ad
     """
 }
 

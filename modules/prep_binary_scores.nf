@@ -12,9 +12,7 @@ process prep_binary_scores_process {
               path(base_sanitized_h5ad),
               path(base_sanitized_disease_h5ad),
               path(base_sanitized_disease_tissue_h5ad),
-	      path(symbol_map_csv),
-	      path(base_sanitized_disease_tissue_symbols_h5ad),	      
-              path(base_sanitized_disease_tissue_symbols_medians_h5ad)
+              path(base_sanitized_disease_tissue_medians_h5ad)
 
      output:
         tuple path(h5ad_file), val(label_key), val(embedding_key), val(organism), val(disease),
@@ -24,18 +22,16 @@ process prep_binary_scores_process {
               path(base_sanitized_h5ad),
               path(base_sanitized_disease_h5ad),
               path(base_sanitized_disease_tissue_h5ad),
-	      path(symbol_map_csv),
-	      path(base_sanitized_disease_tissue_symbols_h5ad),	      
-              path(base_sanitized_disease_tissue_symbols_medians_h5ad),
-              path("${base}-sanitized-${disease}-${tissue}-symbols-binary-scores.h5ad"),
+              path(base_sanitized_disease_tissue_medians_h5ad),
+              path("${base}-sanitized-${disease}-${tissue}-binary-scores.h5ad"),
               emit: prep_binary_scores_output_ch
 
     script:
     """
     nsforest-cli prep-binary-scores \
-    --h5ad-in=$base_sanitized_disease_tissue_symbols_medians_h5ad \
+    --h5ad-in=$base_sanitized_disease_tissue_medians_h5ad \
     --label-key=$label_key \
-    --h5ad-out=${base}-sanitized-${disease}-${tissue}-symbols-binary-scores.h5ad
+    --h5ad-out=${base}-sanitized-${disease}-${tissue}-binary-scores.h5ad
     """
 }
 

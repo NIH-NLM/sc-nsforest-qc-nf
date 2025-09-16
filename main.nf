@@ -53,14 +53,8 @@ workflow {
       filter_tissue_output_ch  = filter_tissue_process (
          filter_disease_output_ch )
 
-      symbol_map_csv_ch = build_symbol_map_process (
-         filter_tissue_output_ch )
-
-      symbolize_genes_ch = symbolize_genes_process (
-          symbol_map_csv_ch )
-
       prep_medians_output_ch   = prep_medians_process (
-         symbolize_genes_ch )
+         filter_tissue_output_ch )
 
       binary_scores_output_ch = prep_binary_scores_process (
          prep_medians_output_ch )
@@ -68,16 +62,22 @@ workflow {
       nsforest_output_ch = run_nsforest_process (
          binary_scores_output_ch )
 
-      run_dendrogramplot_process (
+      symbol_map_csv_ch = build_symbol_map_process (
          nsforest_output_ch )
+
+      symbolize_genes_ch = symbolize_genes_process (
+          symbol_map_csv_ch )
+
+      run_dendrogram_output_ch = run_dendrogramplot_process (
+         symbolize_genes_ch )
 
       run_dotplot_process (
-         nsforest_output_ch )
+         run_dendrogram_output_ch )
 
       run_matrixplot_process (
-         nsforest_output_ch )
+         run_dendrogram_output_ch )
 
      run_violinplot_process (
-         nsforest_output_ch )
+         run_dendrogram_output_ch )
 
 }

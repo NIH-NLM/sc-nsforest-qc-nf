@@ -12,8 +12,6 @@ process run_nsforest_process {
               path(base_sanitized_h5ad),
               path(base_sanitized_disease_h5ad),
               path(base_sanitized_disease_tissue_h5ad),
-	      path(symbol_map_csv),
-	      path(base_sanitized_disease_tissue_symbols_h5ad),
               path(base_sanitized_disease_tissue_medians_h5ad),
               path(base_sanitized_disease_tissue_binary_scores_h5ad)
  
@@ -25,11 +23,9 @@ process run_nsforest_process {
               path(base_sanitized_h5ad),
               path(base_sanitized_disease_h5ad),
               path(base_sanitized_disease_tissue_h5ad),
-	      path(symbol_map_csv),
-	      path(base_sanitized_disease_tissue_symbols_h5ad),
               path(base_sanitized_disease_tissue_medians_h5ad),
               path(base_sanitized_disease_tissue_binary_scores_h5ad),
-	      path("${base}-sanitized-${disease}-${tissue}-nsforest-results*.csv"),
+	      path("${base}-sanitized-${disease}-${tissue}-nsforest-results.csv"),
               emit: run_nsforest_output_ch
 
     script:
