@@ -30,7 +30,7 @@ process run_dendrogramplot_process {
               path(base_sanitized_disease_tissue_binary_scores_h5ad),
 	      path(base_sanitized_disease_tissue_nsforest_results_csv),
 	      path(symbol_map_csv),
-	      path(base_sanitized_disease_tissue_binary_scores_symbols_h5ad)
+	      path(base_sanitized_disease_tissue_binary_scores_symbols_h5ad),
               path("${base}-sanitized-${disease}-${tissue}-binary-scores-symbol-dendrogram.h5ad"),
               path("*.png"),
               emit: run_dendrogram_output_ch
