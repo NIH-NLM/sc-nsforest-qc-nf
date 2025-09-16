@@ -15,7 +15,7 @@ process run_dendrogramplot_process {
               path(base_sanitized_disease_tissue_medians_h5ad),
               path(base_sanitized_disease_tissue_binary_scores_h5ad),
 	      path(base_sanitized_disease_tissue_nsforest_results_csv),
-	      path(symbol_map_csv),
+	      path(gencode_release_gene_symbol_csv),
 	      path(base_sanitized_disease_tissue_binary_scores_symbols_h5ad)
  
     output:
@@ -29,7 +29,7 @@ process run_dendrogramplot_process {
               path(base_sanitized_disease_tissue_medians_h5ad),
               path(base_sanitized_disease_tissue_binary_scores_h5ad),
 	      path(base_sanitized_disease_tissue_nsforest_results_csv),
-	      path(symbol_map_csv),
+	      path(gencode_release_gene_symbol_csv),
 	      path(base_sanitized_disease_tissue_binary_scores_symbols_h5ad),
               path("${base}-sanitized-${disease}-${tissue}-binary-scores-symbol-dendrogram.h5ad"),
               path("*.png"),

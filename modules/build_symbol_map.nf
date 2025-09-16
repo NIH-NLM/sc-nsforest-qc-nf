@@ -13,7 +13,8 @@ process build_symbol_map_process {
               path(base_sanitized_disease_h5ad),
               path(base_sanitized_disease_tissue_h5ad),
               path(base_sanitized_disease_tissue_medians_h5ad),
-              path(base_sanitized_disease_tissue_binary_scores_h5ad)
+              path(base_sanitized_disease_tissue_binary_scores_h5ad),
+	      path("${base}-sanitized-${disease}-${tissue}-nsforest-results.csv")
 
     output:
         tuple path(h5ad_file), val(label_key), val(embedding_key), val(organism), val(disease),
@@ -25,6 +26,7 @@ process build_symbol_map_process {
               path(base_sanitized_disease_tissue_h5ad),
               path(base_sanitized_disease_tissue_medians_h5ad),
               path(base_sanitized_disease_tissue_binary_scores_h5ad),
+	      path("${base}-sanitized-${disease}-${tissue}-nsforest-results.csv"),
 	      path("gencode-release-${params.gencode_release}-gene-symbol.csv"),
               emit: symbol_map_csv_ch
 
