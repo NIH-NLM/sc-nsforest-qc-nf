@@ -31,16 +31,16 @@ process run_dendrogramplot_process {
 	      path(base_sanitized_disease_tissue_nsforest_results_csv),
 	      path(gencode_release_gene_symbol_csv),
 	      path(base_sanitized_disease_tissue_binary_scores_symbols_h5ad),
-              path("${base}-sanitized-${disease}-${tissue}-binary-scores-symbol-dendrogram.h5ad"),
+              path("${base}-sanitized-${disease}-${tissue}-binary-scores-symbols-dendrogram.h5ad"),
               path("*.png"),
               emit: run_dendrogram_output_ch
 
     script:
     """
     nsforest-cli dendrogramplot \
-    --h5ad-in=$base_sanitized_disease_tissue_binary_scores_symbols_h5ad} \
+    --h5ad-in=$base_sanitized_disease_tissue_binary_scores_symbols_h5ad \
     --label-key=$label_key \
-    --h5ad-out=${base}-sanitized-${disease}-${tissue}-binary-scores-symbol-dendrogram.h5ad
+    --h5ad-out=${base}-sanitized-${disease}-${tissue}-binary-scores-symbols-dendrogram.h5ad
     """
 }
 
