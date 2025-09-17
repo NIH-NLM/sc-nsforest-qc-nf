@@ -13,11 +13,12 @@ import typer
 
 def dendrogramplot_run(
         *,
-        h5ad_in:       Path,
-        label_key:     str,
-        h5ad_out:      Path,
-        leaf_range:    Optional[str],
-        leaf_indices:  Optional[List[int]],):
+        h5ad_in:        Path,
+        label_key:      str,
+        symbol_map_csv: Path,
+        h5ad_out:       Path,
+        leaf_range:     Optional[str],
+        leaf_indices:   Optional[List[int]],):
         
     """
     Plot NSForest dendrogramplot   
@@ -35,7 +36,7 @@ def dendrogramplot_run(
     outputfilename_suffix = f"{base_prefix}-{suffix}"
     
     # Load the mapping file: assumes two columns: 'ensembl_id', 'gene_symbol'
-    symbol_map_df = pd.read_csv("gencode-release-49-ensg-gene-symbol.csv")
+    symbol_map_df = pd.read_csv(symbol_map_csv)
 
     # Create a dict: ensembl_id → gene_symbol
     symbol_map = dict(zip(symbol_map_df['ensembl_id'], symbol_map_df['gene_symbol']))

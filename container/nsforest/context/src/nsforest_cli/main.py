@@ -75,6 +75,7 @@ def cmd_dendrogramplot(
     *,
     h5ad_in:     Path                = typer.Option(...,  "--h5ad-in",  help="required h5ad input file ", exists=True, dir_okay=False, readable=True),
     label_key:   str                 = typer.Option(...,  "--label-key",help="required cluster label"),
+    symbol_map_csv: Path             = typer.Option(None, "--symbol-map-csv", help="required ENSG→symbol mapping CSV"),
     h5ad_out:    Path                = typer.Option(...,  "--h5ad-out", help="required h5ad output file", writable=None, dir_okay=False),
     leaf_range:  Optional[str]       = typer.Option(None, "--leaf-range",   help="Slice of leaf positions, e.g. '0:10'"),
     leaf_indices:Optional[List[int]] = typer.Option(None, "--leaf-indices", help="Explicit leaf indices, e.g. --leaf-indices 0 3 4"),
@@ -88,6 +89,7 @@ def cmd_dendrogramplot(
     adata = dendrogramplot_run(
         h5ad_in=h5ad_in,
         label_key=label_key,
+        symbol_map_csv=symbol_map_csv,
         h5ad_out=h5ad_out,
         leaf_range=leaf_range,
         leaf_indices=leaf_indices,

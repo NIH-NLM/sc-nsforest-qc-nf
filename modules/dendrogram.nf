@@ -40,6 +40,7 @@ process run_dendrogramplot_process {
     nsforest-cli dendrogramplot \
     --h5ad-in=$base_sanitized_disease_tissue_binary_scores_symbols_h5ad \
     --label-key=$label_key \
+    --symbol-map-csv=$gencode_release_gene_symbol_csv \
     --h5ad-out=${base}-sanitized-${disease}-${tissue}-binary-scores-symbols-dendrogram.h5ad
     """
 }
