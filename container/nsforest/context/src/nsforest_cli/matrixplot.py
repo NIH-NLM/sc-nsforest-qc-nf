@@ -24,7 +24,7 @@ def matrixplot_run(
 
     # grab the base-prefix of the h5ad file
     # add the plot type here.
-    base_prefix = h5ad_path.stem  
+    base_prefix = h5ad_in.stem  
     suffix = "matrixplot"
 
     # Final output filename
