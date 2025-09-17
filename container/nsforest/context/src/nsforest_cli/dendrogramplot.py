@@ -35,13 +35,13 @@ def dendrogramplot_run(
     # Final output filename
     outputfilename_suffix = f"{base_prefix}-{suffix}"
     
-    # Load the mapping file: assumes two columns: 'ensembl_id', 'gene_symbol'
+    # Load the mapping file: assumes two columns: 'ensg', 'symbol'
     symbol_map_df = pd.read_csv(symbol_map_csv)
 
-    # Create a dict: ensembl_id → gene_symbol
-    symbol_map = dict(zip(symbol_map_df['ensembl_id'], symbol_map_df['gene_symbol']))
+    # Create a dict: ensg → symbol
+    symbol_map = dict(zip(symbol_map_df['ensg'], symbol_map_df['symbol']))
 
-    # Store original Ensembl IDs
+    # Store original ensg idss
     adata.var["orig_names"] = adata.var_names
 
     # Map var_names (which are currently Ensembl IDs) to gene symbols
