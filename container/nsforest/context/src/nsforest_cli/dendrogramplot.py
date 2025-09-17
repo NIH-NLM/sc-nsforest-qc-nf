@@ -1,5 +1,6 @@
 # nsforest_cli/dendrogramplot_run.py
 from __future__ import annotations
+import pandas as pd
 
 from pathlib import Path
 from typing import Optional, List
