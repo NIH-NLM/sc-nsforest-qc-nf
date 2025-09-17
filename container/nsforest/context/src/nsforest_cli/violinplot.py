@@ -55,7 +55,7 @@ def violinplot_run(
     if not filtered_markers:
         raise ValueError("No marker genes found in AnnData. Check your symbol map or gene IDs.")
 
-    ns.pl.stackedviolinplot(
+    ns.pl.stackedviolin(
         adata,
         filtered_markers,
         cluster_header=label_key,
