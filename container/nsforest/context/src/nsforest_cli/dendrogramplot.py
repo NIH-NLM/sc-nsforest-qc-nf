@@ -34,18 +34,30 @@ def dendrogramplot_run(
 
     # Final output filename
     outputfilename_suffix = f"{base_prefix}-{suffix}"
-    
-    # Load the mapping file: assumes two columns: 'ensg', 'symbol'
+
+    # Load and check symbol map CSV
     symbol_map_df = pd.read_csv(symbol_map_csv)
 
-    # Create a dict: ensg → symbol
+    required_columns = {'ensg', 'symbol'}
+    if not required_columns.issubset(symbol_map_df.columns):
+        typer.echo(f"[ERROR] Symbol map must have columns: {required_columns}", err=True)
+        raise typer.Exit(code=2)
+
     symbol_map = dict(zip(symbol_map_df['ensg'], symbol_map_df['symbol']))
 
-    # Store original ensg idss
+    # Backup original var_names
     adata.var["orig_names"] = adata.var_names
 
-    # Map var_names (which are currently Ensembl IDs) to gene symbols
-    adata.var_names = adata.var_names.map(symbol_map).fillna(adata.var_names)
+    # Safe mapping: replace Ensembl with gene symbols if possible
+    adata.var_names = [
+        symbol_map.get(gene_id, gene_id) for gene_id in adata.var_names
+    ]
+
+    # Warn if nothing mapped
+    num_mapped = sum(1 for orig, new in zip(adata.var["orig_names"], adata.var_names) if orig != new)
+
+    if num_mapped == 0:
+        typer.echo("[WARNING] No Ensembl IDs were mapped to gene symbols. Check your symbol map CSV.", err=True)
     
     if label_key not in adata.obs:
         typer.echo(f"obs['{label_key}'] not found in AnnData.", err=True)
