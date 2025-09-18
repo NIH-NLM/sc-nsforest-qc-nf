@@ -1,3 +1,5 @@
+# filter_obs.py
+
 from pathlib import Path
 from typing import List, Literal
 import pandas as pd
@@ -19,15 +21,25 @@ def filter_by_obs_run(
 ):
     """
     Return a new AnnData filtered by a *single* .obs[obs_key].
+    - obs_key: can be None - which means return without filtering - no value required
     - values: one or more strings to match
     - mode:   'exact' equality, 'contains' substring, or 'regex'
     - case_insensitive: lowercases both sides if True
     - na_policy: how to treat NA in obs_key before matching
     - invert: keep rows that do NOT match
     """
+    
+    # If values == ["None"], bypass filtering
+    if not values or (len(values) == 1 and values[0].lower() == "none"):
+        print(f"[filter_obs] Skipping filtering for obs_key='{obs_key}' (values={values})")
+        adata = sc.read_h5ad(str(h5ad_in))
+        adata.write_h5ad(str(h5ad_out))
+        return None
+
     if not values:
         raise ValueError("Provide at least one value to match.")
     adata = sc.read_h5ad(str(h5ad_in))
+
     if obs_key not in adata.obs.columns:
         raise KeyError(f"obs_key '{obs_key}' not in adata.obs")
 
