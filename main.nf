@@ -1,17 +1,18 @@
 #!/usr/bin/env nextflow
 
-include { build_symbol_map_process }    from './modules/build_symbol_map.nf'
-include { run_dendrogramplot_process }  from './modules/dendrogram.nf'
-include { run_dotplot_process }         from './modules/dotplot.nf'
-include { filter_condition_process }    from './modules/filter_condition.nf'
-include { filter_tissue_process }       from './modules/filter_tissue.nf'
-include { run_matrixplot_process }      from './modules/matrixplot.nf'
-include { prep_binary_scores_process }  from './modules/prep_binary_scores.nf' 
-include { prep_medians_process }        from './modules/prep_medians.nf'
-include { run_nsforest_process }        from './modules/run_nsforest.nf'
-include { sanitize_labels_process }     from './modules/sanitize_labels.nf'
-include { symbolize_genes_process }     from './modules/symbolize_genes.nf'
-include { run_violinplot_process }      from './modules/violinplot.nf'
+include { build_symbol_map_process }     from './modules/build_symbol_map.nf'
+include { run_dendrogramplot_process }   from './modules/dendrogram.nf'
+include { run_dotplot_process }          from './modules/dotplot.nf'
+include { filter_condition_process }     from './modules/filter_condition.nf'
+include { filter_tissue_process }        from './modules/filter_tissue.nf'
+include { run_matrixplot_process }       from './modules/matrixplot.nf'
+include { log_nsforest_version_process } from './modules/log_nsforest_version.nf'
+include { prep_binary_scores_process }   from './modules/prep_binary_scores.nf' 
+include { prep_medians_process }         from './modules/prep_medians.nf'
+include { run_nsforest_process }         from './modules/run_nsforest.nf'
+include { sanitize_labels_process }      from './modules/sanitize_labels.nf'
+include { symbolize_genes_process }      from './modules/symbolize_genes.nf'
+include { run_violinplot_process }       from './modules/violinplot.nf'
 
 workflow {
 
@@ -43,6 +44,8 @@ workflow {
 	  filter_ch, metric_ch, save_scores_ch, save_cluster_summary_ch, save_annotation_ch,
 	  tissue_ch, author_ch, publication_date_ch, publication_ch, cell_count_ch, base_ch ]
       }
+
+      log_nsforest_version_process()
 
       sanitize_output_ch       = sanitize_labels_process (
          csv_rows_ch )
