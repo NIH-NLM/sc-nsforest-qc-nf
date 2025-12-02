@@ -11,7 +11,6 @@ process log_nsforest_version_process {
 
     script:
     """
-    cd /opt/nsforest
-    git rev-parse HEAD > nsforest_version.txt || echo 'unknown' > nsforest_version.txt
+    git -C /opt/nsforest rev-parse HEAD > nsforest_version.txt || echo 'unknown' > nsforest_version.txt
     """
 }
