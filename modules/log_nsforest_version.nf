@@ -4,13 +4,10 @@ process log_nsforest_version_process {
 
     tag "log-nsforest-version"
 
+    publishDir "${params.outdir}/metadata", pattern: "nsforest_version.txt", mode: 'copy'
+
     output:
     path "nsforest_version.txt", emit: nsforest_version
-
-    container:
-    'ghcr.io/nih-nlm/nsforest-nf/nsforest:latest'
-
-    publishDir "${params.outdir}/metadata", pattern: "nsforest_version.txt", mode: 'copy'
 
     script:
     """
