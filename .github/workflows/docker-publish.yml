@@ -32,13 +32,13 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
+  
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: ./container/nsforest/
           push: true
-	  no-cache: true
-	  tags: |
+          no-cache: true
+          tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/nsforest:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/nsforest:${{ github.sha }}
