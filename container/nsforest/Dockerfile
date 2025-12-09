@@ -45,7 +45,7 @@ RUN pip install /app/
 # Clone NSForest repo and expose it to Python
 RUN git clone https://github.com/adeslatt/NSForest.git /opt/nsforest && \
     cd /opt/nsforest && \
-    git checkout 9287edcb547c63e292cc229a114ecde407c1ca1d
+    git checkout 6cbe49b6c37f5921db87542d8ee53728370a9dbb
 
 ENV PYTHONPATH="/opt/nsforest/nsforest"
 
