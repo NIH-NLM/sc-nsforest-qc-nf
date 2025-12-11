@@ -43,9 +43,7 @@ RUN python -m pip install --no-cache-dir "plotly==5.22.0"
 RUN pip install /app/
 
 # Clone NSForest repo and expose it to Python
-RUN git clone https://github.com/adeslatt/NSForest.git /opt/nsforest && \
-    cd /opt/nsforest && \
-    git checkout 6cbe49b6c37f5921db87542d8ee53728370a9dbb
+RUN git clone https://github.com/JCVenterInstitute/NSForest.git /opt/nsforest
 
 ENV PYTHONPATH="/opt/nsforest/nsforest"
 
