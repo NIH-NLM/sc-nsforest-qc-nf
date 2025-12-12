@@ -15,16 +15,11 @@ process sanitize_labels_process {
               val(filter), val(metric), val(save_scores), val(save_cluster_summary), val(save_annotation),
               val(tissue), val(author), val(publication_date), val(publication), val(cell_count),
               val(base),
-              path("${base}-sanitized.h5ad"),
+              path("*-sanitized.h5ad"),
               emit: sanitize_output_ch
 
     script:
     """
-    cp $h5ad_file ${base}-sanitized.h5ad
-#    nsforest-cli sanitize-labels \
-#    --h5ad-in=$h5ad_file \
-#    --label-key=$label_key \
-#    --h5ad-out=${base}-sanitized.h5ad
+    cp "$h5ad_file" "${base}-sanitized.h5ad"
     """
 }
-
