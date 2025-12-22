@@ -19,6 +19,7 @@ def validate_h5ad_metadata(csv_path):
             print("File not found")
             continue
 
+        # 1. Data 
         try:
             adata = sc.read_h5ad(h5ad_path)
         except Exception as e:
@@ -27,6 +28,13 @@ def validate_h5ad_metadata(csv_path):
 
         print(f"Shape: {adata.shape}")
 
+        print( adata )
+
+        # 2. Clusters
+        # number of clusters
+        # n_clusters = adata.obs[cluster_header].nunique()
+        # print ( n_clusters )
+        
         print("\n.obs keys:")
         print(adata.obs.columns.tolist())
 
