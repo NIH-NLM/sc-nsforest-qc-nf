@@ -1,70 +1,64 @@
+#!/usr/bin/env python
+
 import pandas as pd
 import scanpy as sc
 import argparse
 import os
 
-def validate_h5ad_metadata(csv_path):
+def validate_h5ad_metadata(csv_path, log_path):
     df = pd.read_csv(csv_path)
 
+    def log(msg):
+        print(msg)
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(msg + "\n")
+
     for idx, row in df.iterrows():
-        print(f"\n=== {row['author']} ({row['publication']}, {row['publication_date']}) ===")
+        log(f"\n=== {row['author']} ({row['publication']}, {row['publication_date']}) ===")
         h5ad_path = row['h5ad_file']
-        print(f"Loading: {h5ad_path}")
+        log(f"Loading: {h5ad_path}")
 
-        # Check for local file
         if h5ad_path.startswith("http"):
-            print("Skipped: Remote .h5ad file detected (not downloaded)")
-            continue
-        if not os.path.exists(h5ad_path):
-            print("File not found")
+            log("Skipped: Remote .h5ad file detected (not downloaded)")
             continue
 
-        # 1. Data 
+        if not os.path.exists(h5ad_path):
+            log("File not found")
+            continue
+
         try:
             adata = sc.read_h5ad(h5ad_path)
         except Exception as e:
-            print(f"Failed to load: {e}")
+            log(f"Failed to load: {e}")
             continue
 
-        print(f"Shape: {adata.shape}")
+        log(f"Shape: {adata.shape}")
+        log(str(adata))
 
-        print( adata )
+        log("\n.obs keys:")
+        log(str(adata.obs.columns.tolist()))
 
-        # 2. Clusters
-        #
-        # number of clusters
-        # n_clusters = adata.obs[cluster_header].nunique()
-        # print ( n_clusters )
-        
-        print("\n.obs keys:")
-        print(adata.obs.columns.tolist())
-
-        print("\n.obsm keys:")
-        print(list(adata.obsm.keys()))
+        log("\n.obsm keys:")
+        log(str(list(adata.obsm.keys())))
 
         label_key = row['label_key']
         embedding_key = row['embedding_key']
 
         if label_key in adata.obs:
-            print(f"Label key '{label_key}' found with {adata.obs[label_key].nunique()} unique values")
+            log(f"Label key '{label_key}' found with {adata.obs[label_key].nunique()} unique values")
         else:
-            print(f"Label key '{label_key}' NOT found")
+            log(f"Label key '{label_key}' NOT found")
 
         if embedding_key in adata.obsm:
-            print(f"Embedding key '{embedding_key}' found")
+            log(f"Embedding key '{embedding_key}' found")
         else:
-            print(f"Embedding key '{embedding_key}' NOT found")
-
-import sys
-import sys
+            log(f"Embedding key '{embedding_key}' NOT found")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--csv"   , help="input csv file for validation")
-    parser.add_argument("--output", help="output txt file for inspections")
+    parser.add_argument("csv", help="CSV with h5ad_file, label_key, and embedding_key columns")
+    parser.add_argument("output", help="Log file to write output to")
     args = parser.parse_args()
 
-    if args.output:
-        sys.stdout = open(args.output, "w")
-
+    validate_h5ad_metadata(args.csv, args.output)
 
