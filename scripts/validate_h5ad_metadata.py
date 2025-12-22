@@ -1,95 +1,103 @@
-#!/usr/bin/env python
-import argparse
+
 import os
+import sys
 import pandas as pd
 import scanpy as sc
-import sys 
+import anndata as ad
+import matplotlib.pyplot as plt
+
+# Insert local NSForest path
 sys.path.insert(0, os.path.abspath("/home/jovyan/session_data/NSForest"))
-import nsforest as ns
-import urllib.request
-import tempfile
+import nsforest.pp as ns
 
-def validate_h5ad_metadata(csv_path, output_log_path):
+def validate_h5ad_metadata(csv_path, output_path=None):
     df = pd.read_csv(csv_path)
+    outputs = []
 
-    with open(output_log_path, 'w') as f_log:
-        for _, row in df.iterrows():
-            try:
-                author = row['author']
-                h5ad_url = row['h5ad_file']
-                label_key = row.get('label_key', None)
-                cluster_header = label_key
+    for idx, row in df.iterrows():
+        author = row.get('author', f'Entry {idx}')
+        h5ad = row.get('h5ad', None)
+        label_key = row.get('label_key', None)
+        cluster_header = label_key
 
-                f_log.write(f"\n=== {author} ===\n")
-                f_log.write(f"Loading: {h5ad_url}\n")
+        if not h5ad or not label_key:
+            outputs.append(f"Skipping {author}: missing h5ad or label_key\n")
+            continue
 
-                if h5ad_url.startswith("http"):
-                    with tempfile.NamedTemporaryFile(suffix=".h5ad") as tmp_file:
-                        urllib.request.urlretrieve(h5ad_url, tmp_file.name)
-                        adata = sc.read_h5ad(tmp_file.name)
-                else:
-                    adata = sc.read_h5ad(h5ad_url)
+        outputs.append(f"\n=== {author} ===")
+        outputs.append(f"Loading: {h5ad}")
 
-                f_log.write(str(adata) + "\n")
+        try:
+            if h5ad.startswith("http"):
+                outputs.append(f"Skipped: Remote .h5ad file detected (not downloaded)")
+                continue
 
-                if label_key and label_key in adata.obs.columns:
-                    f_log.write(f"Overriding cluster_header with label_key: {label_key}\n")
-                    cluster_header = label_key
+            adata = sc.read_h5ad(h5ad)
+            outputs.append("Successfully loaded h5ad")
+            outputs.append(str(adata))
 
-                if cluster_header not in adata.obs.columns:
-                    f_log.write(f"Cluster header '{cluster_header}' not found in obs.\n")
-                    continue
+            if cluster_header not in adata.obs:
+                outputs.append(f"Missing cluster header: {cluster_header}")
+                continue
 
-                n_clusters = len(adata.obs[cluster_header].unique())
-                fig_width = int(n_clusters / 5)
-                fig_height = max([2, int(max([len(z) for z in adata.obs[cluster_header].unique()]) / 30) + 1])
+            output_folder = os.path.dirname(h5ad)
+            filename = os.path.basename(h5ad)
+            outputfilename_prefix = filename.replace(".h5ad", "")
+            outputfilename_suffix = outputfilename_prefix
 
-                output_folder = os.path.dirname(h5ad_url) if not h5ad_url.startswith("http") else "."
-                if not os.path.exists(output_folder):
-                    os.makedirs(output_folder)
+            # Auto-adjust figsize
+            n_clusters = adata.obs[cluster_header].nunique()
+            fig_width = int(n_clusters / 5)
+            fig_height = max([2, int(max([len(z) for z in adata.obs[cluster_header].unique()]) / 30) + 1])
 
-                h5ad_basename = os.path.basename(h5ad_url)
-                outputfilename_prefix = h5ad_basename.replace(".h5ad", "")
-                outputfilename_suffix = ""
+            outputs.append("Running nsforest.pp.dendrogram...")
+            ns.pp.dendrogram(
+                adata,
+                cluster_header,
+                figsize=(fig_width, fig_height),
+                tl_kwargs={"optimal_ordering": True},
+                save="svg",
+                output_folder=output_folder,
+                outputfilename_suffix=outputfilename_suffix,
+            )
 
-                ns.pp.dendrogram(
-                    adata,
-                    cluster_header,
-                    figsize=(fig_width, fig_height),
-                    tl_kwargs={"optimal_ordering": True},
-                    save="svg",
-                    output_folder=output_folder,
-                    outputfilename_suffix=outputfilename_suffix
-                )
+            # Cluster sizes
+            df_cluster_sizes = pd.DataFrame(adata.obs[cluster_header].value_counts())
+            outputs.append("Cluster sizes:")
+            outputs.append(str(df_cluster_sizes))
+            df_cluster_sizes.to_csv(os.path.join(output_folder, outputfilename_prefix + "_cluster_sizes.csv"))
 
-                df_cluster_sizes = pd.DataFrame(adata.obs[cluster_header].value_counts())
-                df_cluster_sizes.to_csv(os.path.join(output_folder, f"{outputfilename_prefix}_cluster_sizes.csv"))
+            # Cluster order
+            cluster_order = [
+                x.strip() for x in adata.uns["dendrogram_" + cluster_header]["categories_ordered"]
+            ]
+            pd.DataFrame({"cluster_order": cluster_order}).to_csv(
+                os.path.join(output_folder, outputfilename_prefix + "_cluster_order.csv"), index=False
+            )
 
-                cluster_order = [x.strip() for x in adata.uns["dendrogram_" + cluster_header]['categories_ordered']]
-                pd.DataFrame({'cluster_order': cluster_order}).to_csv(
-                    os.path.join(output_folder, f"{outputfilename_prefix}_cluster_order.csv"), index=False
-                )
+            # Summary of adata
+            df_normal = pd.DataFrame(
+                {"n_obs": [adata.n_obs], "n_vars": [adata.n_vars], "n_clusters": [n_clusters]}
+            )
+            outputs.append("Data summary:")
+            outputs.append(str(df_normal))
+            df_normal.to_csv(os.path.join(output_folder, outputfilename_prefix + "_summary_normal.csv"), index=False)
 
-                df_normal = pd.DataFrame({
-                    'n_obs': [adata.n_obs],
-                    'n_vars': [adata.n_vars],
-                    'n_clusters': [n_clusters]
-                })
-                df_normal.to_csv(os.path.join(output_folder, f"{outputfilename_prefix}_summary_normal.csv"), index=False)
+        except Exception as e:
+            outputs.append(f"Error processing {author}: {str(e)}")
 
-                f_log.write("Metadata validation and dendrogram completed.\n")
-
-            except Exception as e:
-                f_log.write(f"Error processing {author}: {str(e)}\n")
-
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("csv", help="Input CSV with metadata")
-    parser.add_argument("output", help="Output log file path")
-    args = parser.parse_args()
-    validate_h5ad_metadata(args.csv, args.output)
+    if output_path:
+        with open(output_path, "w") as f:
+            f.write("\n".join(outputs))
+    else:
+        print("\n".join(outputs))
 
 if __name__ == "__main__":
-    main()
+    import argparse
 
+    parser = argparse.ArgumentParser(description="Validate h5ad metadata and extract dendrogram info")
+    parser.add_argument("csv", help="CSV file with h5ad info")
+    parser.add_argument("output", nargs="?", default=None, help="Optional: write output to file")
+    args = parser.parse_args()
+
+    validate_h5ad_metadata(args.csv, args.output)
