@@ -55,8 +55,12 @@ def validate_h5ad_metadata(csv_path):
         else:
             print(f"Embedding key '{embedding_key}' NOT found")
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Validate metadata in h5ad files from a CSV")
-    parser.add_argument("csv", help="CSV file listing h5ad files, label_key, embedding_key, etc.")
+import sys
+    parser.add_argument("--output", help="Optional: write output to file")
     args = parser.parse_args()
+
+    if args.output:
+        sys.stdout = open(args.output, "w")
+
     validate_h5ad_metadata(args.csv)
+
