@@ -31,6 +31,7 @@ def validate_h5ad_metadata(csv_path):
         print( adata )
 
         # 2. Clusters
+        #
         # number of clusters
         # n_clusters = adata.obs[cluster_header].nunique()
         # print ( n_clusters )
