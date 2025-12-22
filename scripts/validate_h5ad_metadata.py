@@ -60,8 +60,8 @@ import sys
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("csv")
-    parser.add_argument("--output", help="Optional: write output to file")
+    parser.add_argument("--csv"   , help="input csv file for validation")
+    parser.add_argument("--output", help="output txt file for inspections")
     args = parser.parse_args()
 
     if args.output:
