@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 import argparse
+import os
 import pandas as pd
 import scanpy as sc
+import sys 
+sys.path.insert(0, os.path.abspath("/home/jovyan/session_data/NSForest"))
 import nsforest as ns
-import os
 import urllib.request
 import tempfile
 
@@ -14,9 +16,9 @@ def validate_h5ad_metadata(csv_path, output_log_path):
         for _, row in df.iterrows():
             try:
                 author = row['author']
-                h5ad_url = row['h5ad']
-                cluster_header = row['cluster_header']
+                h5ad_url = row['h5ad_file']
                 label_key = row.get('label_key', None)
+                cluster_header = label_key
 
                 f_log.write(f"\n=== {author} ===\n")
                 f_log.write(f"Loading: {h5ad_url}\n")
