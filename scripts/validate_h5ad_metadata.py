@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 # Insert local NSForest path
 sys.path.insert(0, os.path.abspath("/home/jovyan/session_data/NSForest"))
-import nsforest.pp as ns
+import nsforest as ns
 
 def validate_h5ad_metadata(csv_path, output_path=None):
     df = pd.read_csv(csv_path)

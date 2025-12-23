@@ -13,6 +13,7 @@ mamba create -n "$ENV_NAME" -c conda-forge \
   numpy=1.26.4 \
   anndata \
   pandas \
+  plotly \
   zarr \
   h5py \
   matplotlib -y
