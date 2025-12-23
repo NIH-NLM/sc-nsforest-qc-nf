@@ -33,8 +33,11 @@ def validate_h5ad_metadata(csv_path, output_path=None):
                 continue
 
             adata = sc.read_h5ad(h5ad)
-            outputs.append("Successfully loaded h5ad")
-            outputs.append(str(adata))
+
+            # Print and save adata summary
+            adata_summary = str(adata)
+            print(adata_summary)
+            output.append(f"\n{adata_summary}\n")
 
             if cluster_header not in adata.obs:
                 outputs.append(f"Missing cluster header: {cluster_header}")
@@ -45,43 +48,68 @@ def validate_h5ad_metadata(csv_path, output_path=None):
             outputfilename_prefix = filename.replace(".h5ad", "")
             outputfilename_suffix = outputfilename_prefix
 
-            # Auto-adjust figsize
+            # Print and save number of clusters
             n_clusters = adata.obs[cluster_header].nunique()
-            fig_width = int(n_clusters / 5)
-            fig_height = max([2, int(max([len(z) for z in adata.obs[cluster_header].unique()]) / 30) + 1])
+            print(f"Number of clusters: {n_clusters}")
+            output.append(f"Number of clusters: {n_clusters}\n")
 
-            outputs.append("Running nsforest.pp.dendrogram...")
+            ## auto-adjust figsize
+            fig_width = int(n_clusters/5)
+            fig_height = max([2, int(max([len(z) for z in adata.obs[cluster_header].unique()]) / 30) + 1])            f
+
+            ## dendrogram and save svg
             ns.pp.dendrogram(
                 adata,
                 cluster_header,
-                figsize=(fig_width, fig_height),
-                tl_kwargs={"optimal_ordering": True},
-                save="svg",
-                output_folder=output_folder,
-                outputfilename_suffix=outputfilename_suffix,
+                figsize = (fig_width, fig_height),
+                tl_kwargs = {'optimal_ordering': True},
+                save = "svg",
+                output_folder = output_folder,
+                outputfilename_suffix = outputfilename_suffix
             )
 
-            # Cluster sizes
+            # cluster sizes
             df_cluster_sizes = pd.DataFrame(adata.obs[cluster_header].value_counts())
-            outputs.append("Cluster sizes:")
+            print(str(df_cluster_sizes)
             outputs.append(str(df_cluster_sizes))
-            df_cluster_sizes.to_csv(os.path.join(output_folder, outputfilename_prefix + "_cluster_sizes.csv"))
 
-            # Cluster order
+            # save 
+            df_cluster_sizes.to_csv(
+                os.path.join(
+                    output_folder,
+                    outputfilename_prefix + "_cluster_sizes.csv"
+                )
+            )
+
+            # cluster order
             cluster_order = [
                 x.strip() for x in adata.uns["dendrogram_" + cluster_header]["categories_ordered"]
             ]
+
+            # save
             pd.DataFrame({"cluster_order": cluster_order}).to_csv(
-                os.path.join(output_folder, outputfilename_prefix + "_cluster_order.csv"), index=False
+                os.path.join(
+                    output_folder,
+                    outputfilename_prefix + "_cluster_order.csv"),
+                index=False
             )
 
-            # Summary of adata
+            # summary statistics of data (normal cells)
             df_normal = pd.DataFrame(
-                {"n_obs": [adata.n_obs], "n_vars": [adata.n_vars], "n_clusters": [n_clusters]}
+                {"n_obs": [adata.n_obs],
+                 "n_vars": [adata.n_vars],
+                 "n_clusters": [n_clusters]}
             )
-            outputs.append("Data summary:")
+            print(str(df_normal))            
             outputs.append(str(df_normal))
-            df_normal.to_csv(os.path.join(output_folder, outputfilename_prefix + "_summary_normal.csv"), index=False)
+
+            # save
+            df_normal.to_csv(
+                os.path.join(
+                    output_folder, outputfilename_prefix + "_summary_normal.csv"
+                ),
+                index=False
+            )
 
         except Exception as e:
             outputs.append(f"Error processing {author}: {str(e)}")
