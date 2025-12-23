@@ -1,0 +1,2 @@
+h5ad_file,label_key,embedding_key,organism,disease,filter_normal,metric,save_scores,save_cluster_summary,save_annotation,tissue,author,publication_date,publication,cell_count
+/Users/adeslatt/Scitechcon Dropbox/Anne DeslattesMays/projects/nsforest-nf/data/adata_normal_n3566.h5ad,subclass.full,X_umap,Homo_sapiens,normal,True,euclidean,True,True,True,kidney,Lake,2023,Nature,304652
