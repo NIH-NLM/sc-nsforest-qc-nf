@@ -16,7 +16,7 @@ def validate_h5ad_metadata(csv_path, output_path=None):
 
     for idx, row in df.iterrows():
         author = row.get('author', f'Entry {idx}')
-        h5ad = row.get('h5ad', None)
+        h5ad = row.get('h5ad_file', None)
         label_key = row.get('label_key', None)
         cluster_header = label_key
 
