@@ -103,7 +103,7 @@ def validate_and_run_nsforest(csv_path, output_path=None):
             adata_summary = str(adata)
             print("pre-filtering summary")
             print(adata_summary)
-            output.append(f"\n{adata_summary}\n")
+            outputs.append(f"\n{adata_summary}\n")
 
             if cluster_header not in adata.obs:
                 outputs.append(f"Missing cluster header: {cluster_header}")
@@ -111,16 +111,18 @@ def validate_and_run_nsforest(csv_path, output_path=None):
 
             # Filter for only normal samples
             adata_filtered = filter_adata(adata, obs_key="disease", values=["normal"])
+            outputs.append(f"Original cells: {adata.shape[0]}")
+            outputs.append(f"Filtered cells: {adata_filtered.shape[0]}")
 
             # Then filter by tissue if needed
-            adata_filtered = filter_adata(adata_filtered, obs_key="tissue", values=organ)
+            #adata_filtered = filter_adata(adata_filtered, obs_key="tissue", values=organ)
 
             adata = adata_filtered
             
             # Print and save adata summary after filtering
             adata_summary = str(adata)
             print(adata_summary)
-            output.append(f"\n{adata_summary}\n")
+            outputs.append(f"\n{adata_summary}\n")
 
             if cluster_header not in adata.obs:
                 outputs.append(f"Missing cluster header: {cluster_header}")
@@ -135,7 +137,7 @@ def validate_and_run_nsforest(csv_path, output_path=None):
             # number of clusters
             n_clusters = adata.obs[cluster_header].nunique()
             print(f"Number of clusters: {n_clusters}")
-            output.append(f"Number of clusters: {n_clusters}\n")
+            outputs.append(f"Number of clusters: {n_clusters}\n")
 
             ## auto-adjust figsize
             fig_width = int(n_clusters/5)
