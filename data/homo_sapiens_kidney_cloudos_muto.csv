@@ -1,0 +1,2 @@
+h5ad_file,label_key,embedding_key,organism,disease,filter_normal,metric,save_scores,save_cluster_summary,save_annotation,tissue,author,publication_date,publication,cell_count
+kidney_Muto_2021_ff2e21de-0848-4346-8f8b-4e1741ec4b39.h5ad,author_cell_type,X_umap,Homo sapiens,normal,TRUE,euclidean,TRUE,TRUE,TRUE,cortex of kidney,Muto,2021,Nat Commun,19985

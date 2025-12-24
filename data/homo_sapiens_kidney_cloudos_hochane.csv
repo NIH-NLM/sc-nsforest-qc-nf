@@ -1,0 +1,2 @@
+h5ad_file,label_key,embedding_key,organism,disease,filter_normal,metric,save_scores,save_cluster_summary,save_annotation,tissue,author,publication_date,publication,cell_count
+kidney_Hochane_2019_b0503d37-f734-4b5c-b3b0-35c877e0c636.h5ad,knn_cell_type,X_tsneMNN,Homo sapiens,normal,TRUE,euclidean,TRUE,TRUE,TRUE,kidney,Hochane,2019,PLoS Biol,17962

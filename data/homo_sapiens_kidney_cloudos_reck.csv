@@ -1,0 +1,2 @@
+h5ad_file,label_key,embedding_key,organism,disease,filter_normal,metric,save_scores,save_cluster_summary,save_annotation,tissue,author,publication_date,publication,cell_count
+kidney_Reck_2025_70ae5e5d-5a40-4ab7-b8dd-becc5dffd4ba.h5ad,celltype_l2,X_umap,Homo sapiens,normal,TRUE,euclidean,TRUE,TRUE,TRUE,kidney,Reck,2025,Nat Commun,46957

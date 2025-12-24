@@ -1,0 +1,2 @@
+h5ad_file,label_key,embedding_key,organism,disease,filter_normal,metric,save_scores,save_cluster_summary,save_annotation,tissue,author,publication_date,publication,cell_count
+kidney_Lake_2023_25b62707-5933-415b-8000-3369ec4af23f.h5ad,subclass.full,X_umap,Homo sapiens,normal,TRUE,euclidean,TRUE,TRUE,TRUE,cortex of kidney,Lake,2023,Nature,304652

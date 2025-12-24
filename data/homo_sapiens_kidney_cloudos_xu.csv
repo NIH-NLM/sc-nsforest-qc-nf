@@ -1,0 +1,2 @@
+h5ad_file,label_key,embedding_key,organism,disease,filter_normal,metric,save_scores,save_cluster_summary,save_annotation,tissue,author,publication_date,publication,cell_count
+kidney_Xu_2023_26d15fe5-5e25-4649-bdf1-07814871ffd1.h5ad,Curated_annotation,X_umap,Homo sapiens,normal,TRUE,euclidean,TRUE,TRUE,TRUE,cortex of kidney,Xu,2023,Cell,194504

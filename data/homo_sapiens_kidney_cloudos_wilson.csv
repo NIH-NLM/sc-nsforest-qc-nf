@@ -1,0 +1,2 @@
+h5ad_file,label_key,embedding_key,organism,disease,filter_normal,metric,save_scores,save_cluster_summary,save_annotation,tissue,author,publication_date,publication,cell_count
+kidney_Wilson_2022_46d8d92b-32e0-4ca5-9907-4dbf519c7fc3.h5ad,author_cell_type,X_umap,Homo sapiens,normal,TRUE,euclidean,TRUE,TRUE,TRUE,cortex of kidney,Wilson,2022,Nat Commun,39176
