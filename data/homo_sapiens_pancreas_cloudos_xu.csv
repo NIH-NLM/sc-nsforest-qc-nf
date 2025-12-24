@@ -1,0 +1,8 @@
+h5ad_file,label_key,embedding_key,organism,disease,filter_normal,metric,save_scores,save_cluster_summary,save_annotation,tissue,author,publication_date,publication,cell_count
+pancreas_Xu_2023_72e6a74d-8804-4305-81d7-a12b93f2ac0d.h5ad,Curated_annotation,X_umap,Homo_sapiens,normal,True,euclidean,True,True,True,pancreas,Xu,2023,Cell,121916
+pancreas_Tritschler_2022_00d88707-e33a-4c2a-821a-cdc32a98d050.h5ad,louvain_anno_fine,X_umap,Homo_sapiens,normal,True,euclidean,True,True,True,pancreas,Tritschler,2022,Molecular Metabolism,26474
+pancreas_Fasolino_2022_111d6e7d-d3d2-48fd-907a-4d3f8c77ee93.h5ad,cell_label,X_umap,Homo_sapiens,normal,True,euclidean,True,True,True,pancreas,Fasolino,2022,Nat Metabolism,69645
+pancreas_TSConsortium_2022_4be7951a-4ae7-4a81-86f1-e2649b304d1c.h5ad,free_annotation,X_umap_scvi_full_donorassay,Homo_sapiens,normal,True,euclidean,True,True,True,pancreas,TSConsortium,2022,Science,14140
+pancreas_Enge_2017_635a80e4-c8fc-4324-980f-4019e84aa067.h5ad,inferred_cell_type,X_tsne,Homo_sapiens,normal,True,euclidean,True,True,True,pancreas,Enge,2017,Cell,2544
+pancreas_Muraro_2016_e4218427-f7ce-4506-a8fd-40607a652149.h5ad,cellular_classification,X_tsne,Homo_sapiens,normal,True,euclidean,True,True,True,pancreas,Muraro,2016,Cell Systems,2126
+pancreas_Han_2020_74c3403a-451c-4a62-84e0-d8a8e45c7ea7.h5ad,author_cell_type,X_umap,Homo_sapiens,normal,True,euclidean,True,True,True,pancreas,Han,2020,Nature,599926

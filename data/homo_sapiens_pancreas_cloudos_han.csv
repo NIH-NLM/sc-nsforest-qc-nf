@@ -1,0 +1,2 @@
+h5ad_file,label_key,embedding_key,organism,disease,filter_normal,metric,save_scores,save_cluster_summary,save_annotation,tissue,author,publication_date,publication,cell_count
+pancreas_Han_2020_74c3403a-451c-4a62-84e0-d8a8e45c7ea7.h5ad,author_cell_type,X_umap,Homo_sapiens,normal,True,euclidean,True,True,True,pancreas,Han,2020,Nature,599926

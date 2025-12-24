@@ -1,0 +1,2 @@
+h5ad_file,label_key,embedding_key,organism,disease,filter_normal,metric,save_scores,save_cluster_summary,save_annotation,tissue,author,publication_date,publication,cell_count
+pancreas_Fasolino_2022_111d6e7d-d3d2-48fd-907a-4d3f8c77ee93.h5ad,cell_label,X_umap,Homo_sapiens,normal,True,euclidean,True,True,True,pancreas,Fasolino,2022,Nat Metabolism,69645

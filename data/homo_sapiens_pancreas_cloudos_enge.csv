@@ -1,0 +1,2 @@
+h5ad_file,label_key,embedding_key,organism,disease,filter_normal,metric,save_scores,save_cluster_summary,save_annotation,tissue,author,publication_date,publication,cell_count
+pancreas_Enge_2017_635a80e4-c8fc-4324-980f-4019e84aa067.h5ad,inferred_cell_type,X_tsne,Homo_sapiens,normal,True,euclidean,True,True,True,pancreas,Enge,2017,Cell,2544

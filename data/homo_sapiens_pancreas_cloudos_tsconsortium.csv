@@ -1,0 +1,2 @@
+h5ad_file,label_key,embedding_key,organism,disease,filter_normal,metric,save_scores,save_cluster_summary,save_annotation,tissue,author,publication_date,publication,cell_count
+pancreas_TSConsortium_2022_4be7951a-4ae7-4a81-86f1-e2649b304d1c.h5ad,free_annotation,X_umap_scvi_full_donorassay,Homo_sapiens,normal,True,euclidean,True,True,True,pancreas,TSConsortium,2022,Science,14140

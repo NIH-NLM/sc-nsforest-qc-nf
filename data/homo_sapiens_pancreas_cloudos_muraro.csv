@@ -1,0 +1,2 @@
+h5ad_file,label_key,embedding_key,organism,disease,filter_normal,metric,save_scores,save_cluster_summary,save_annotation,tissue,author,publication_date,publication,cell_count
+pancreas_Muraro_2016_e4218427-f7ce-4506-a8fd-40607a652149.h5ad,cellular_classification,X_tsne,Homo_sapiens,normal,True,euclidean,True,True,True,pancreas,Muraro,2016,Cell Systems,2126

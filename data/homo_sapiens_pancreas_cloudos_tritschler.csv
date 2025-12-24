@@ -1,0 +1,2 @@
+h5ad_file,label_key,embedding_key,organism,disease,filter_normal,metric,save_scores,save_cluster_summary,save_annotation,tissue,author,publication_date,publication,cell_count
+pancreas_Tritschler_2022_00d88707-e33a-4c2a-821a-cdc32a98d050.h5ad,louvain_anno_fine,X_umap,Homo_sapiens,normal,True,euclidean,True,True,True,pancreas,Tritschler,2022,Molecular Metabolism,26474
