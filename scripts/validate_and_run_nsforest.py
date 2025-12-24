@@ -129,7 +129,7 @@ def validate_and_run_nsforest(csv_path, output_path=None):
                 outputs.append(f"Missing cluster header: {cluster_header}")
                 continue
 
-            output_folder = os.path.dirname(h5ad)
+#            output_folder = os.path.dirname(h5ad)
             filename = os.path.basename(h5ad)
             outputfilename_prefix = filename.replace(".h5ad", "")
             outputfilename_suffix = outputfilename_prefix
@@ -243,7 +243,7 @@ def validate_and_run_nsforest(csv_path, output_path=None):
             plt.show()
 
             # run NSForest()
-            results = nsforesting.NSForest(
+            results = ns.nsforesting.NSForest(
                 adata_prep,
                 cluster_header,
                 save = True,
