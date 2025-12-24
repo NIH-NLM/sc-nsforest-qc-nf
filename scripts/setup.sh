@@ -1,23 +1,12 @@
-#!/usr/bin/env bash
-
-set -euo pipefail
-
-ENV_NAME="nsforest-test"
-
-echo "Creating environment: $ENV_NAME"
-
-mamba create -n "$ENV_NAME" -c conda-forge \
-  python=3.10 \
-  scanpy \
-  dask=2024.1.0 \
-  numpy=1.26.4 \
-  anndata \
-  pandas \
-  plotly \
-  zarr \
-  h5py \
-  matplotlib -y
-
-echo
-echo "To activate the environment, run:"
-echo "conda activate $ENV_NAME"
+!/usr/bin/env bash
+mamba install dask -y
+mamba install scanpy -y
+mamba install numpy -y
+mamba install anndata -y
+mamba install pandas -y
+mamba install plotly -y
+mamba install zarr -y
+mamba install h5py -y
+mamba install gh -y
+mamba install matplotlib -y
+mamba install numpy.compat -y 

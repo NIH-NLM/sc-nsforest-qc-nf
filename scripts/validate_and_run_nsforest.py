@@ -77,7 +77,7 @@ def validate_and_run_nsforest(csv_path, output_path=None):
         h5ad      = row.get('h5ad_file', None)
         label_key = row.get('label_key', None)
 
-        output_folder = "outputs_" + organ + "_" + author + "_" + year + "/"
+        output_folder = f"outputs_{organ}_{author}_{year}/"
 
         cluster_header = label_key
         outputfilename_suffix = cluster_header
@@ -154,7 +154,7 @@ def validate_and_run_nsforest(csv_path, output_path=None):
 
             # cluster sizes
             df_cluster_sizes = pd.DataFrame(adata.obs[cluster_header].value_counts())
-            print(str(df_cluster_sizes)
+            print(str(df_cluster_sizes))
             outputs.append(str(df_cluster_sizes))
 
             # save 
