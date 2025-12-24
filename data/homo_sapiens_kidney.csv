@@ -1,0 +1,10 @@
+h5ad_file,label_key,embedding_key,organism,disease,filter_normal,metric,save_scores,save_cluster_summary,save_annotation,tissue,author,publication_date,publication,cell_count
+https://datasets.cellxgene.cziscience.com/46d8d92b-32e0-4ca5-9907-4dbf519c7fc3.h5ad,author_cell_type,X_umap,Homo sapiens,normal,TRUE,euclidean,TRUE,TRUE,TRUE,cortex of kidney,Wilson,2022,Nat Commun,39176
+https://datasets.cellxgene.cziscience.com/b0503d37-f734-4b5c-b3b0-35c877e0c636.h5ad,knn_cell_type,X_tsneMNN,Homo sapiens,normal,TRUE,euclidean,TRUE,TRUE,TRUE,kidney,Hochane,2019,PLoS Biol,17962
+https://datasets.cellxgene.cziscience.com/26d15fe5-5e25-4649-bdf1-07814871ffd1.h5ad,Curated_annotation,X_umap,Homo sapiens,normal,TRUE,euclidean,TRUE,TRUE,TRUE,cortex of kidney,Xu,2023,Cell,194504
+https://datasets.cellxgene.cziscience.com/25b62707-5933-415b-8000-3369ec4af23f.h5ad,subclass.full,X_umap,Homo sapiens,normal,TRUE,euclidean,TRUE,TRUE,TRUE,cortex of kidney,Lake,2023,Nature,304652
+https://datasets.cellxgene.cziscience.com/6b3b10eb-11e7-4589-af2e-591d7401cfaa.h5ad,author_cell_type,X_umap,Homo sapiens,normal,TRUE,euclidean,TRUE,TRUE,TRUE,cortex of kidney,McEvoy,2022,Nat Commun,27675
+https://datasets.cellxgene.cziscience.com/70ae5e5d-5a40-4ab7-b8dd-becc5dffd4ba.h5ad,celltype_l2,X_umap,Homo sapiens,normal,TRUE,euclidean,TRUE,TRUE,TRUE,kidney,Reck,2025,Nat Commun,46957
+https://datasets.cellxgene.cziscience.com/b2699b7c-947c-4d88-8759-e5c05e57f337.h5ad,author_cell_type,X_umap,Homo sapiens,normal,TRUE,euclidean,TRUE,TRUE,TRUE,cortex of kidney,Young,2018,Science,40268
+https://datasets.cellxgene.cziscience.com/ff2e21de-0848-4346-8f8b-4e1741ec4b39.h5ad,author_cell_type,X_umap,Homo sapiens,normal,TRUE,euclidean,TRUE,TRUE,TRUE,cortex of kidney,Muto,2021,Nat Commun,19985
+https://datasets.cellxgene.cziscience.com/65ca6e36-73b0-4c88-b0f3-7b23b48844ad.h5ad,free_annotation,X_scvi_full_donorassay,Homo sapiens,normal,TRUE,euclidean,TRUE,TRUE,TRUE,cortex of kidney,TSConsortium,2022,Science,11376
