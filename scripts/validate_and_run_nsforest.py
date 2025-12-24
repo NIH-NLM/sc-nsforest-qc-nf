@@ -139,7 +139,7 @@ def validate_and_run_nsforest(csv_path, output_path=None):
 
             ## auto-adjust figsize
             fig_width = int(n_clusters/5)
-            fig_height = max([2, int(max([len(z) for z in adata.obs[cluster_header].unique()]) / 30) + 1])            f
+            fig_height = max([2, int(max([len(z) for z in adata.obs[cluster_header].unique()]) / 30) + 1])
 
             ## dendrogram and save svg
             ns.pp.dendrogram(
