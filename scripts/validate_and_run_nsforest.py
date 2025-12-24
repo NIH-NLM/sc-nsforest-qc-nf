@@ -165,7 +165,7 @@ def validate_and_run_nsforest(csv_path, output_path=None):
                 )
             )
 
-            # cluster order
+             # cluster order
             cluster_order = [
                 x.strip() for x in adata.uns["dendrogram_" + cluster_header]["categories_ordered"]
             ]
@@ -299,9 +299,9 @@ def validate_and_run_nsforest(csv_path, output_path=None):
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Validate h5ad metadata and extract dendrogram info")
+    parser = argparse.ArgumentParser(description="Validate h5ad and run nsforest")
     parser.add_argument("csv", help="CSV file with h5ad info")
     parser.add_argument("output", nargs="?", default=None, help="Optional: write output to file")
     args = parser.parse_args()
 
-    validate_h5ad_metadata(args.csv, args.output)
+    validate_and_run_nsforest(args.csv, args.output)
