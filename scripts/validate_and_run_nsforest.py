@@ -78,6 +78,7 @@ def validate_and_run_nsforest(csv_path, output_path=None):
         label_key = row.get('label_key', None)
 
         output_folder = f"outputs_{organ}_{author}_{year}/"
+        os.makedirs(output_folder, exist_ok=True)
 
         cluster_header = label_key
         outputfilename_suffix = cluster_header
