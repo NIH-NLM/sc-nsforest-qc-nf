@@ -1,4 +1,3 @@
-!/mnt/libraries/envs/cloudos/bin/bash
 mamba install emacs -y
 mamba install dask -y
 mamba install anndata -y
