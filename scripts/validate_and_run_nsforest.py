@@ -1,17 +1,4 @@
-
-import os
-import sys
-import pandas as pd
-import scanpy as sc
 import anndata as ad
-import matplotlib.pyplot as plt
-
-# Insert local NSForest path
-sys.path.insert(0, os.path.abspath("/home/jovyan/session_data/NSForest"))
-import nsforest as ns
-
-import pandas as pd
-import numpy as np
 from anndata import AnnData
 
 def filter_adata(
@@ -23,6 +10,19 @@ def filter_adata(
     case_insensitive: bool = True,
     invert: bool = False
 ) -> AnnData:
+    import os
+    import sys
+    import pandas as pd
+    import scanpy as sc
+    import anndata as ad
+    import matplotlib.pyplot as plt
+    # Insert local NSForest path
+    sys.path.insert(0, os.path.abspath("/home/jovyan/session_data/NSForest"))
+    import nsforest as ns
+    import pandas as pd
+    import numpy as np
+    from anndata import AnnData
+    
     if obs_key not in adata.obs.columns:
         raise KeyError(f"obs_key '{obs_key}' not in adata.obs")
 
@@ -65,6 +65,19 @@ def filter_adata(
     return adata[final_mask_np].copy()
 
 def validate_and_run_nsforest(csv_path, output_path=None):
+    import os
+    import sys
+    import pandas as pd
+    import scanpy as sc
+    import anndata as ad
+    import matplotlib.pyplot as plt
+    # Insert local NSForest path
+    sys.path.insert(0, os.path.abspath("/home/jovyan/session_data/NSForest"))
+    import nsforest as ns
+    import pandas as pd
+    import numpy as np
+    from anndata import AnnData
+    
     df = pd.read_csv(csv_path)
     outputs = []
 
@@ -113,12 +126,14 @@ def validate_and_run_nsforest(csv_path, output_path=None):
             # Filter for only normal samples
             adata_filtered = filter_adata(adata, obs_key="disease", values=["normal"])
             outputs.append(f"Original cells: {adata.shape[0]}")
-            outputs.append(f"Filtered cells: {adata_filtered.shape[0]}")
+            outputs.append(f"Filtered normal cells: {adata_filtered.shape[0]}")
 
-            # Then filter by tissue if needed
-            #adata_filtered = filter_adata(adata_filtered, obs_key="tissue", values=organ)
+            # Then filter by tissue
+            adata_filtered_tissue = filter_adata(adata_filtered, obs_key="tissue", values=[str(organ)])
+            outputs.append(f"Normal cells: {adata_filtered.shape[0]}")
+            outputs.append(f"Filtered tissue cells: {adata_filtered_tissue.shape[0]}")
 
-            adata = adata_filtered
+            adata = adata_filtered_tissue
             
             # Print and save adata summary after filtering
             adata_summary = str(adata)
@@ -282,13 +297,13 @@ def validate_and_run_nsforest(csv_path, output_path=None):
             ns.pl.dotplot(adata, markers_dict, cluster_header, dendrogram = True, use_raw = False, standard_scale = 'var',
                           save = "svg", output_folder = output_folder, outputfilename_suffix = outputfilename_prefix + "_scaled")
             ns.pl.stackedviolin(adata, markers_dict, cluster_header, dendrogram = True, use_raw = False,
-                          save = "svg", output_folder = output_folder, outputfilename_suffix = outputfilename_prefix)
+                                save = "svg", output_folder = output_folder, outputfilename_suffix = outputfilename_prefix)
             ns.pl.stackedviolin(adata, markers_dict, cluster_header, dendrogram = True, use_raw = False, standard_scale = 'var',
-                    save = "svg", output_folder = output_folder, outputfilename_suffix = outputfilename_prefix + "_scaled")
+                                save = "svg", output_folder = output_folder, outputfilename_suffix = outputfilename_prefix + "_scaled")
             ns.pl.matrixplot(adata, markers_dict, cluster_header, dendrogram = True, use_raw = False,
-                 save = "svg", output_folder = output_folder, outputfilename_suffix = outputfilename_prefix)
+                             save = "svg", output_folder = output_folder, outputfilename_suffix = outputfilename_prefix)
             ns.pl.matrixplot(adata, markers_dict, cluster_header, dendrogram = True, use_raw = False, standard_scale = 'var',
-                 save = "svg", output_folder = output_folder, outputfilename_suffix = outputfilename_prefix + "_scaled")
+                             save = "svg", output_folder = output_folder, outputfilename_suffix = outputfilename_prefix + "_scaled")
             
         except Exception as e:
             outputs.append(f"Error processing {author}: {str(e)}")
