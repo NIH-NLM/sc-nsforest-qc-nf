@@ -98,7 +98,7 @@ umap-learn==0.5.3
 unicodedata2==15.0.0
 urllib3>=1.26.18  # 
 wcwidth==0.2.13
-wheel==0.42.0
+wheel==0.46.2
 zenodo_get==1.6.0
 zipp>=3.19.1
 git+https://github.com/JCVenterInstitute/NSForest.git
