@@ -1,35 +1,84 @@
+/**
+ * NSForest Prepare Medians Module
+ *
+ * Computes median gene expression for individual clusters. Nextflow automatically
+ * parallelizes this process - creating one job per cluster from cluster_stats output.
+ *
+ * Corresponds to DEMO_NS-forest_workflow.ipynb: Section 3
+ *
+ * Nextflow Parallelization Strategy:
+ * ----------------------------------
+ * This process demonstrates Nextflow's dataflow parallelization model:
+ *
+ * 1. SCATTER (Automatic):
+ *    - cluster_stats outputs: CSV with N clusters
+ *    - Nextflow reads CSV and creates N parallel channels
+ *    - Each channel contains: [organ, author, year, cluster_header, h5ad, cluster_name]
+ *    - prep_medians_process runs N times in parallel (one per cluster)
+ *
+ * 2. PARALLEL EXECUTION (Automatic):
+ *    - All N instances run concurrently (resource permitting)
+ *    - Each computes median for its assigned cluster only
+ *    - No coordination needed - pure dataflow
+ *
+ * 3. GATHER (Automatic):
+ *    - Nextflow collects all N partial CSV outputs
+ *    - groupTuple() groups by dataset (organ, author, year, cluster_header)
+ *    - collectFile() merges partial CSVs into complete median matrix
+ *
+ * No Python or Bash merge scripts needed - Nextflow handles everything through
+ * its dataflow operators.
+ *
+ * Input:
+ * ------
+ * @param tuple Cluster-specific job information:
+ *   - organ: Organ/tissue
+ *   - first_author: First author surname
+ *   - year: Publication year
+ *   - author_cell_type: Cluster column name
+ *   - h5ad: Path to h5ad file
+ *   - cluster: Single cluster name to process
+ *
+ * Output:
+ * -------
+ * @return tuple: Partial median matrix for this cluster
+ *   - organ: Organ/tissue
+ *   - first_author: First author surname
+ *   - year: Publication year
+ *   - author_cell_type: Cluster column name
+ *   - partial_csv: Partial median matrix (one row = this cluster)
+ *
+ * Output Files:
+ * -------------
+ * {cluster_header}_medians_partial.csv:
+ *   - Rows: Single cluster
+ *   - Columns: All genes (Ensembl IDs)
+ *   - Values: Median expression values
+ *
+ * These partial files are automatically merged in the workflow to create
+ * the complete median matrix with all clusters.
+ */
 process prep_medians_process {
-
-    tag "${h5ad_file}-${label_key}-${embedding_key}-${organism}-${disease}-${filter},${metric}-${save_scores}-${save_cluster_summary}-${save_annotation}-${tissue}-${author}-${publication_date}-${publication}-${cell_count}"
-
-    publishDir "${params.outdir}/intermediate", mode: 'copy'
-
+    tag "${organ}_${first_author}_${year}_${cluster}"
+    label 'nsforest'
+    
     input:
-        tuple path(h5ad_file), val(label_key), val(embedding_key), val(organism), val(disease),
-              val(filter), val(metric), val(save_scores), val(save_cluster_summary), val(save_annotation),
-              val(tissue), val(author), val(publication_date), val(publication), val(cell_count),
-              val(base),
-              path(base_sanitized_h5ad),
-              path(base_sanitized_disease_h5ad),
-              path(base_sanitized_disease_tissue_h5ad)
-
+    tuple val(organ), val(first_author), val(year), val(author_cell_type), 
+          path(h5ad), val(cluster)
+    
     output:
-        tuple path(h5ad_file), val(label_key), val(embedding_key), val(organism), val(disease),
-              val(filter), val(metric), val(save_scores), val(save_cluster_summary), val(save_annotation),
-              val(tissue), val(author), val(publication_date), val(publication), val(cell_count),
-              val(base),
-              path(base_sanitized_h5ad),
-              path(base_sanitized_disease_h5ad),
-              path(base_sanitized_disease_tissue_h5ad),
-              path("${base}-sanitized-${disease}-${tissue}-medians.h5ad"),
-              emit: prep_medians_output_ch
-
+    tuple val(organ), val(first_author), val(year), val(author_cell_type),
+          path("outputs_${organ}_${first_author}_${year}/${author_cell_type}_medians_partial.csv"),
+          emit: partial
+    
     script:
     """
     nsforest-cli prep-medians \
-    --h5ad-in=${base_sanitized_disease_tissue_h5ad} \
-    --label-key=$label_key \
-    --h5ad-out="${base}-sanitized-${disease}-${tissue}-medians.h5ad"
+        --h5ad-path ${h5ad} \
+        --cluster-header ${author_cell_type} \
+        --organ ${organ} \
+        --first-author ${first_author} \
+        --year ${year} \
+        --cluster-list ${cluster}
     """
 }
-

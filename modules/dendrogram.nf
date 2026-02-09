@@ -1,47 +1,57 @@
-process run_dendrogramplot_process {
-
-    tag "${h5ad_file}-${label_key}-${embedding_key}-${organism}-${disease}-${filter},${metric}-${save_scores}-${save_cluster_summary}-${save_annotation}-${tissue}-${author}-${publication_date}-${publication}-${cell_count}"
-
-    publishDir "${params.outdir}", mode: 'copy'
+/**
+ * NSForest Dendrogram Generation Module
+ *
+ * Generates hierarchical clustering dendrogram showing relationships between
+ * cell type clusters based on median gene expression profiles.
+ *
+ * Corresponds to DEMO_NS-forest_workflow.ipynb: Section 1
+ *
+ * @input tuple: Dataset metadata and h5ad file
+ *   - author_cell_type: Cluster column name in AnnData.obs
+ *   - embedding: Embedding key (e.g., X_umap, X_tsne)
+ *   - first_author: First author surname
+ *   - year: Publication year
+ *   - h5ad: Path to h5ad file
+ *   - disease: Disease state
+ *   - filter: Filter normal cells flag
+ *   - tissue: Tissue type
+ * @input val organ: Organ/tissue from parameters
+ *
+ * @output tuple: Results including all output files
+ *   - organ: Organ/tissue
+ *   - first_author: First author surname
+ *   - year: Publication year
+ *   - author_cell_type: Cluster column name
+ *   - h5ad: Original h5ad file (passed through)
+ *   - files: All generated CSV, HTML, and SVG files
+ *
+ * @output files:
+ *   - {cluster_header}_cluster_medians_for_dendrogram.csv: Median expression per cluster
+ *   - {cluster_header}_linkage_matrix.csv: Hierarchical clustering linkage matrix
+ *   - {cluster_header}_dendrogram.html: Interactive dendrogram visualization
+ *   - {cluster_header}_dendrogram.svg: Static dendrogram for publication
+ */
+process dendrogram_process {
+    tag "${organ}_${first_author}_${year}"
+    label 'nsforest'
+    publishDir "${params.outdir}/${organ}_${first_author}_${year}", mode: params.publish_mode
     
     input:
-       tuple path(h5ad_file), val(label_key), val(embedding_key), val(organism), val(disease),
-              val(filter), val(metric), val(save_scores), val(save_cluster_summary), val(save_annotation),
-              val(tissue), val(author), val(publication_date), val(publication), val(cell_count),
-              val(base),
-              path(base_sanitized_h5ad),
-              path(base_sanitized_disease_h5ad),
-              path(base_sanitized_disease_tissue_h5ad),
-              path(base_sanitized_disease_tissue_medians_h5ad),
-              path(base_sanitized_disease_tissue_binary_scores_h5ad),
-	      path(base_sanitized_disease_tissue_nsforest_results_csv),
-	      path(gencode_release_gene_symbol_csv),
-	      path(base_sanitized_disease_tissue_binary_scores_symbols_h5ad)
- 
+    tuple val(author_cell_type), val(embedding), val(first_author), val(year), 
+          path(h5ad), val(disease), val(filter), val(tissue)
+    val organ
+    
     output:
-       tuple path(h5ad_file), val(label_key), val(embedding_key), val(organism), val(disease),
-              val(filter), val(metric), val(save_scores), val(save_cluster_summary), val(save_annotation),
-              val(tissue), val(author), val(publication_date), val(publication), val(cell_count),
-              val(base),
-              path(base_sanitized_h5ad),
-              path(base_sanitized_disease_h5ad),
-              path(base_sanitized_disease_tissue_h5ad),
-              path(base_sanitized_disease_tissue_medians_h5ad),
-              path(base_sanitized_disease_tissue_binary_scores_h5ad),
-	      path(base_sanitized_disease_tissue_nsforest_results_csv),
-	      path(gencode_release_gene_symbol_csv),
-	      path(base_sanitized_disease_tissue_binary_scores_symbols_h5ad),
-              path("${base}-sanitized-${disease}-${tissue}-binary-scores-symbols-dendrogram.h5ad"),
-              path("*.png"),
-              emit: run_dendrogram_output_ch
-
+    tuple val(organ), val(first_author), val(year), val(author_cell_type), path(h5ad),
+          path("outputs_${organ}_${first_author}_${year}/${author_cell_type}_*.{csv,html,svg}")
+    
     script:
     """
-    nsforest-cli dendrogramplot \
-    --h5ad-in=$base_sanitized_disease_tissue_binary_scores_symbols_h5ad \
-    --label-key=$label_key \
-    --symbol-map-csv=$gencode_release_gene_symbol_csv \
-    --h5ad-out=${base}-sanitized-${disease}-${tissue}-binary-scores-symbols-dendrogram.h5ad
+    nsforest-cli dendrogram \
+        --h5ad-path ${h5ad} \
+        --cluster-header ${author_cell_type} \
+        --organ ${organ} \
+        --first-author ${first_author} \
+        --year ${year}
     """
 }
-

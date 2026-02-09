@@ -1,0 +1,54 @@
+#!/usr/bin/env nextflow
+
+nextflow.enable.dsl=2
+
+include { dendrogram_process } from './modules/nsforest/dendrogram.nf'
+include { cluster_stats_process } from './modules/nsforest/cluster_stats.nf'
+include { prep_medians_process } from './modules/nsforest/prep_medians.nf'
+
+params.datasets_csv = null
+params.organ = 'kidney'
+params.tissue = 'kidney'
+params.outdir = './test_results'
+params.publish_mode = 'copy'
+
+workflow test {
+    
+    // Read CSV and create meta map
+    csv_rows_ch = Channel
+        .fromPath(params.datasets_csv)
+        .splitCsv(header: true, sep: ',')
+        .map { row ->
+            def meta = [
+                organ: params.organ,
+                first_author: row.first_author,
+                year: row.year,
+                author_cell_type: row.author_cell_type,
+                embedding: row.embedding,
+                disease: row.disease,
+                filter: row.filter_normal,
+                tissue: params.tissue
+            ]
+            tuple(meta, file(row.h5ad_file))
+        }
+    
+    // Step 1: Dendrogram
+    dendrogram_output_ch = dendrogram_process(csv_rows_ch)
+    
+    // Step 2: Cluster stats
+    cluster_stats_output_ch = cluster_stats_process(csv_rows_ch)
+    
+    // Step 3: SCATTER - Read clusters from stats CSV
+    scattered_clusters_ch = cluster_stats_output_ch
+        .flatMap { meta, h5ad, stats_csv ->
+            stats_csv.splitCsv(header: true).collect { row ->
+                tuple(meta, h5ad, row.cluster)
+            }
+        }
+    
+    // PROCESS: Prep medians in parallel (one per cluster)
+    prep_medians_output_ch = prep_medians_process(scattered_clusters_ch)
+    
+    // GATHER: Group by meta (dataset)
+    gathered_medians_ch = prep_medians_output_ch.groupTuple()
+}
