@@ -37,6 +37,7 @@ COPY context/setup.py .
 RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel
 RUN python -m pip install --no-cache-dir -r /app/requirements.txt
 RUN python -m pip install --no-cache-dir "plotly==5.22.0"
+RUN python -m pip install --no-cache-dir "kaleido==0.2.1"
 RUN python -m pip install --no-cache-dir /app/
 
 ENV PYTHONPATH="/opt/nsforest/nsforest"

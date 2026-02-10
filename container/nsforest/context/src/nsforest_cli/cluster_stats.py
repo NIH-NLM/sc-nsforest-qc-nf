@@ -7,7 +7,7 @@ Corresponds to DEMO_NS-forest_workflow.ipynb: Section 2 - Cluster statistics
 import numpy as np
 import pandas as pd
 
-from common_utils import (
+from .common_utils import (
     create_output_dir,
     get_output_prefix,
     load_h5ad,

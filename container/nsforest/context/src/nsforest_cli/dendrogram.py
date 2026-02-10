@@ -11,7 +11,7 @@ import plotly.io as pio
 from scipy.cluster.hierarchy import linkage, dendrogram
 from scipy.spatial.distance import pdist
 
-from common_utils import (
+from .common_utils import (
     create_output_dir,
     get_output_prefix,
     load_h5ad,
@@ -68,11 +68,13 @@ def plot_dendrogram_plotly(dendro, cluster_labels, output_prefix):
     """Create interactive dendrogram using Plotly."""
     logger.info("Creating interactive dendrogram plot...")
     
+    # Convert to numpy arrays (dendro returns lists)
     icoord = np.array(dendro['icoord'])
     dcoord = np.array(dendro['dcoord'])
     
     fig = go.Figure()
     
+    # Add lines for dendrogram
     for i in range(len(icoord)):
         fig.add_trace(go.Scatter(
             x=icoord[i],
@@ -83,12 +85,15 @@ def plot_dendrogram_plotly(dendro, cluster_labels, output_prefix):
             showlegend=False
         ))
     
+    # Generate tick positions (center of each cluster group)
+    tick_positions = np.arange(5.0, len(dendro['ivl']) * 10 + 5, 10)
+    
     fig.update_layout(
         title="Hierarchical Clustering Dendrogram",
         xaxis=dict(
             title="Cluster",
             tickmode='array',
-            tickvals=dendro['icoord'][:, 1],
+            tickvals=tick_positions,
             ticktext=dendro['ivl'],
             tickangle=-90
         ),
