@@ -2,9 +2,11 @@
 
 nextflow.enable.dsl=2
 
-include { dendrogram_process }    from '../modules/nsforest/dendrogram.nf'
-include { cluster_stats_process } from '../modules/nsforest/cluster_stats.nf'
-include { prep_medians_process }  from '../modules/nsforest/prep_medians.nf'
+include { dendrogram_process }          from '../modules/nsforest/dendrogram.nf'
+include { cluster_stats_process }       from '../modules/nsforest/cluster_stats.nf'
+include { prep_medians_process }        from '../modules/nsforest/prep_medians.nf'
+include { merge_medians_process }       from '../modules/nsforest/merge_medians.nf'
+include { prep_binary_scores_process }  from '../modules/nsforest/prep_binary_scores.nf'
 
 // Default to test data location
 params.datasets_csv = "${projectDir}/../cell-kn/data/test/kidney/cellxgene-harvester/cellxgene-harvester.csv"
@@ -73,10 +75,15 @@ workflow {
   // PROCESS: Prep medians in parallel (one per cluster)
   prep_medians_output_ch = prep_medians_process(scattered_clusters_ch)
   
-  // GATHER: Group by meta (dataset)
+  // Step 4: GATHER: Group by meta (dataset)
   gathered_medians_ch = prep_medians_output_ch.groupTuple()
+  merged_medians_ch = merge_medians_process(gathered_medians_ch)
   
-  gathered_medians_ch.view { meta, partial_csvs ->
-      "Gathered medians for ${meta.organ}_${meta.first_author}_${meta.year}: ${partial_csvs.size()} partial files"
+  // Step 5: Binary scores
+  binary_scores_ch = prep_binary_scores_process(merged_medians_ch)
+  
+  // Debug output
+  binary_scores_ch.view { meta, scores_csv ->
+      "Binary scores: ${scores_csv}"
   }
 }

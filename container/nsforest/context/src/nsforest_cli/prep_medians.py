@@ -127,13 +127,16 @@ def run_prep_medians(h5ad_path, cluster_header, organ, first_author, year, clust
     # Compute median expression
     median_df = compute_medians(adata, cluster_header, cluster_list)
 
-    # Save median matrix - ALWAYS use same filename
-    output_file = f"{output_prefix}_medians.csv"
+    # Save median matrix with UNIQUE filename per cluster
+    if cluster_list is not None and len(cluster_list) == 1:
+        # Single cluster - add cluster name to filename for uniqueness
+        cluster_safe = cluster_list[0].replace(' ', '_').replace('/', '-')
+        output_file = f"{output_prefix}_medians_{cluster_safe}.csv"
+        logger.info(f"Note: Partial file for cluster: {cluster_list[0]}")
+    else:
+        # Multiple clusters or all clusters - use standard name
+        output_file = f"{output_prefix}_medians.csv"
+    
     median_df.to_csv(output_file)
     logger.info(f"Saved median matrix: {output_file}")
-    
-    if cluster_list is not None:
-        logger.info(f"Note: This is a partial matrix for cluster(s): {cluster_list}")
-        logger.info("Nextflow will merge all partial files into complete matrix")
-    
     logger.info("Median preparation complete!")
