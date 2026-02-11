@@ -16,47 +16,38 @@ from .common_utils import (
 
 
 def create_stats_before_filter(adata, cluster_header, output_folder, outputfilename_prefix):
-    """
-    Create dendrogram and stats BEFORE filtering.
-    
-    Outputs with '_before_filter' suffix.
-    """
+    """Create dendrogram and stats BEFORE filtering."""
     logger.info("Creating BEFORE FILTER statistics...")
     
     n_clusters = adata.obs[cluster_header].nunique()
     logger.info(f"Before filter - Total cells: {adata.n_obs}, Clusters: {n_clusters}")
     
-    # Auto-adjust figsize
     fig_width = int(n_clusters / 5)
     fig_height = max([2, int(max([len(z) for z in adata.obs[cluster_header].unique()]) / 30) + 1])
     
-    # Dendrogram
     ns.pp.dendrogram(
-        adata, 
-        cluster_header, 
-        figsize=(fig_width, fig_height),
-        tl_kwargs={'optimal_ordering': True},
-        save="svg",
+        adata, cluster_header, figsize=(fig_width, fig_height),
+        tl_kwargs={'optimal_ordering': True}, save="svg",
         output_folder=output_folder,
         outputfilename_suffix=outputfilename_prefix + "_before_filter"
     )
     
-    # Cluster sizes
-    df_cluster_sizes = pd.DataFrame(adata.obs[cluster_header].value_counts())
-    df_cluster_sizes.to_csv(output_folder + "/" + outputfilename_prefix + "_cluster_sizes_before_filter.csv")
+    # Save cluster sizes with proper column names
+    cluster_counts = adata.obs[cluster_header].value_counts()
+    df_cluster_sizes = pd.DataFrame({
+        'cluster': cluster_counts.index.tolist(),
+        'count': cluster_counts.values
+    })
+    df_cluster_sizes.to_csv(output_folder + "/" + outputfilename_prefix + "_cluster_sizes_before_filter.csv", index=False)
     
-    # Cluster order
     cluster_order = [x.strip() for x in adata.uns["dendrogram_" + cluster_header]['categories_ordered']]
     pd.DataFrame({'cluster_order': cluster_order}).to_csv(
         output_folder + "/" + outputfilename_prefix + "_cluster_order_before_filter.csv", 
         index=False
     )
     
-    # Summary
     df_summary = pd.DataFrame({
-        'n_obs': [adata.n_obs], 
-        'n_vars': [adata.n_vars], 
-        'n_clusters': [n_clusters]
+        'n_obs': [adata.n_obs], 'n_vars': [adata.n_vars], 'n_clusters': [n_clusters]
     })
     df_summary.to_csv(output_folder + "/" + outputfilename_prefix + "_summary_before_filter.csv", index=False)
     
@@ -64,23 +55,7 @@ def create_stats_before_filter(adata, cluster_header, output_folder, outputfilen
 
 
 def filter_by_disease(adata, disease_column='disease', filter_normal=False):
-    """
-    Filter cells by disease status.
-    
-    Parameters
-    ----------
-    adata : AnnData
-        Annotated data matrix
-    disease_column : str
-        Column name in adata.obs containing disease info
-    filter_normal : bool
-        If True, keep only cells where disease = 'normal'
-        
-    Returns
-    -------
-    AnnData
-        Filtered adata
-    """
+    """Filter cells by disease status."""
     if not filter_normal:
         logger.info("Filter normal = False, keeping all disease states")
         return adata
@@ -92,7 +67,6 @@ def filter_by_disease(adata, disease_column='disease', filter_normal=False):
     
     logger.info(f"Filtering to normal cells only (disease column: {disease_column})")
     
-    # Keep cells where disease contains 'normal' (case-insensitive)
     mask = adata.obs[disease_column].str.lower().str.contains('normal', na=False)
     n_before = adata.n_obs
     adata_filtered = adata[mask].copy()
@@ -104,23 +78,7 @@ def filter_by_disease(adata, disease_column='disease', filter_normal=False):
 
 
 def filter_by_tissue(adata, tissue_column='tissue', target_tissue=None):
-    """
-    Filter cells by tissue.
-    
-    Parameters
-    ----------
-    adata : AnnData
-        Annotated data matrix
-    tissue_column : str
-        Column name in adata.obs containing tissue info
-    target_tissue : str
-        Tissue to keep (e.g., 'kidney')
-        
-    Returns
-    -------
-    AnnData
-        Filtered adata
-    """
+    """Filter cells by tissue."""
     if target_tissue is None:
         logger.info("No tissue filter specified, keeping all tissues")
         return adata
@@ -132,7 +90,6 @@ def filter_by_tissue(adata, tissue_column='tissue', target_tissue=None):
     
     logger.info(f"Filtering to tissue: {target_tissue} (tissue column: {tissue_column})")
     
-    # Keep cells where tissue contains target_tissue (case-insensitive)
     mask = adata.obs[tissue_column].str.lower().str.contains(target_tissue.lower(), na=False)
     n_before = adata.n_obs
     adata_filtered = adata[mask].copy()
@@ -144,23 +101,7 @@ def filter_by_tissue(adata, tissue_column='tissue', target_tissue=None):
 
 
 def filter_by_min_cluster_size(adata, cluster_header, min_size=5):
-    """
-    Remove clusters with fewer than min_size cells.
-    
-    Parameters
-    ----------
-    adata : AnnData
-        Annotated data matrix
-    cluster_header : str
-        Column name for clusters
-    min_size : int
-        Minimum number of cells required per cluster
-        
-    Returns
-    -------
-    AnnData
-        Filtered adata
-    """
+    """Remove clusters with fewer than min_size cells."""
     logger.info(f"Filtering clusters with < {min_size} cells")
     
     cluster_counts = adata.obs[cluster_header].value_counts()
@@ -176,7 +117,6 @@ def filter_by_min_cluster_size(adata, cluster_header, min_size=5):
         for cluster, count in small_clusters.items():
             logger.info(f"  - {cluster}: {count} cells")
     
-    # Filter
     mask = adata.obs[cluster_header].isin(clusters_to_keep)
     n_cells_before = adata.n_obs
     adata_filtered = adata[mask].copy()
@@ -198,88 +138,59 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, year,
     1. Filter by disease (if filter_normal=True, keep only 'normal' cells)
     2. Filter by tissue (if specified)
     3. Remove clusters with < min_cluster_size cells
-    
-    Creates:
-    BEFORE filtering:
-    - dendrogram_before_filter.svg
-    - cluster_sizes_before_filter.csv
-    - cluster_order_before_filter.csv
-    - summary_before_filter.csv
-    
-    AFTER filtering:
-    - dendrogram.svg
-    - cluster_sizes.csv
-    - cluster_order.csv
-    - summary_normal.csv
-    - adata_filtered.h5ad
     """
     log_section("NSForest: Filter AnnData")
     
     output_folder = create_output_dir(organ, first_author, year) + "/"
     outputfilename_prefix = cluster_header
     
-    # Load original data
     logger.info(f"Loading: {h5ad_path}")
     adata = load_h5ad(h5ad_path, cluster_header)
     logger.info(f"Original data: {adata.n_obs} cells, {adata.n_vars} genes, "
                 f"{adata.obs[cluster_header].nunique()} clusters")
     
-    # Create BEFORE stats
     create_stats_before_filter(adata, cluster_header, output_folder, outputfilename_prefix)
     
-    # Apply filters
     logger.info("\n=== Applying Filters ===")
     
-    # 1. Disease filter
     adata_filtered = filter_by_disease(adata, disease_column, filter_normal)
-    
-    # 2. Tissue filter
     adata_filtered = filter_by_tissue(adata_filtered, tissue_column, tissue)
-    
-    # 3. Min cluster size filter
     adata_filtered = filter_by_min_cluster_size(adata_filtered, cluster_header, min_cluster_size)
     
     logger.info(f"\nFinal filtered data: {adata_filtered.n_obs} cells, {adata_filtered.n_vars} genes, "
                 f"{adata_filtered.obs[cluster_header].nunique()} clusters")
     
-    # Create AFTER stats (same as dendrogram module)
     logger.info("\n=== Creating AFTER FILTER statistics ===")
     
     n_clusters = adata_filtered.obs[cluster_header].nunique()
     fig_width = int(n_clusters / 5)
     fig_height = max([2, int(max([len(z) for z in adata_filtered.obs[cluster_header].unique()]) / 30) + 1])
     
-    # Dendrogram
     ns.pp.dendrogram(
-        adata_filtered, 
-        cluster_header, 
-        figsize=(fig_width, fig_height),
-        tl_kwargs={'optimal_ordering': True},
-        save="svg",
-        output_folder=output_folder,
-        outputfilename_suffix=outputfilename_prefix
+        adata_filtered, cluster_header, figsize=(fig_width, fig_height),
+        tl_kwargs={'optimal_ordering': True}, save="svg",
+        output_folder=output_folder, outputfilename_suffix=outputfilename_prefix
     )
     
-    # Cluster sizes
-    df_cluster_sizes = pd.DataFrame(adata_filtered.obs[cluster_header].value_counts())
-    df_cluster_sizes.to_csv(output_folder + outputfilename_prefix + "_cluster_sizes.csv")
+    # Save cluster sizes with proper column names
+    cluster_counts = adata_filtered.obs[cluster_header].value_counts()
+    df_cluster_sizes = pd.DataFrame({
+        'cluster': cluster_counts.index.tolist(),
+        'count': cluster_counts.values
+    })
+    df_cluster_sizes.to_csv(output_folder + outputfilename_prefix + "_cluster_sizes.csv", index=False)
     
-    # Cluster order
     cluster_order = [x.strip() for x in adata_filtered.uns["dendrogram_" + cluster_header]['categories_ordered']]
     pd.DataFrame({'cluster_order': cluster_order}).to_csv(
         output_folder + outputfilename_prefix + "_cluster_order.csv", 
         index=False
     )
     
-    # Summary
     df_normal = pd.DataFrame({
-        'n_obs': [adata_filtered.n_obs], 
-        'n_vars': [adata_filtered.n_vars], 
-        'n_clusters': [n_clusters]
+        'n_obs': [adata_filtered.n_obs], 'n_vars': [adata_filtered.n_vars], 'n_clusters': [n_clusters]
     })
     df_normal.to_csv(output_folder + outputfilename_prefix + "_summary_normal.csv", index=False)
     
-    # Save filtered h5ad
     filtered_h5ad_path = output_folder + "adata_filtered.h5ad"
     adata_filtered.write_h5ad(filtered_h5ad_path)
     logger.info(f"Saved filtered h5ad: {filtered_h5ad_path}")

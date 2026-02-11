@@ -39,7 +39,7 @@ def run_prep_binary_scores(h5ad_path, cluster_header, organ, first_author, year,
     logger.info(f"Saved: adata_prep.h5ad")
     
     # Extract binary scores from varm
-    df_binary_scores = adata_prep.varm['binary_scores_' + cluster_header]
+    df_binary_scores = adata_prep.varm['binary_scores_' + cluster_header].T
     
     # Filter to specific cluster(s) if requested
     if cluster_list is not None:

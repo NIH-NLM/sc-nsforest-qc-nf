@@ -43,7 +43,7 @@ def run_prep_medians(h5ad_path, cluster_header, organ, first_author, year, clust
     logger.info(f"Saved: adata_prep.h5ad")
     
     # Extract median matrix from varm
-    df_medians = adata_prep.varm['medians_' + cluster_header]
+    df_medians = adata_prep.varm['medians_' + cluster_header].T
     
     # Filter to specific cluster(s) if requested
     if cluster_list is not None:
