@@ -47,18 +47,6 @@ workflow {
         error "Missing required parameter: --embedding (e.g., X_umap)"
     }
     
-    // Create meta map
-    def meta = [
-        organ           : params.organ,
-        tissue          : params.organ,  // Assume same
-        author_cell_type: params.author_cell_type,
-        embedding       : params.embedding,
-        first_author    : params.first_author,
-        year            : params.year,
-        disease         : null,
-        filter          : null
-    ]
-    
     // Locate input files from NSForest results
     def results_dir = file(params.nsforest_results_dir)
     def adata_filtered = file("${results_dir}/adata_filtered.h5ad")
@@ -84,8 +72,38 @@ workflow {
     ========================================
     """.stripIndent()
     
-    // Create input channels
-    adata_ch = Channel.value(tuple(meta, adata_filtered))
+    // Create input channels with meta map
+    adata_ch = Channel.value(
+        tuple(
+            [
+                organ           : params.organ,
+                tissue          : params.organ,
+                author_cell_type: params.author_cell_type,
+                embedding       : params.embedding,
+                first_author    : params.first_author,
+                year            : params.year,
+                disease         : null,
+                filter          : null
+            ],
+            adata_filtered
+        )
+    )
+    
+    nsforest_ch = Channel.value(
+        tuple(
+            [
+                organ           : params.organ,
+                tissue          : params.organ,
+                author_cell_type: params.author_cell_type,
+                embedding       : params.embedding,
+                first_author    : params.first_author,
+                year            : params.year,
+                disease         : null,
+                filter          : null
+            ],
+            nsforest_results
+        )
+    )
     
     // ========================================================================
     // SCSILHOUETTE WORKFLOW
@@ -94,7 +112,7 @@ workflow {
     // Step 1: Compute silhouette scores
     silhouette_output_ch = compute_silhouette_process(adata_ch)
     
-    silhouette_output_ch.results.view { meta, scores, summary, annotation ->
+    silhouette_output_ch.results.view { m, scores, summary, annotation ->
         "Step 1 - Computed silhouette scores: ${scores}"
     }
     
@@ -103,22 +121,22 @@ workflow {
     
     // Step 3: Distribution plots
     distribution_input_ch = silhouette_output_ch.results
-        .map { meta, scores, summary, annotation ->
-            tuple(meta, scores, summary, annotation)
+        .map { m, scores, summary, annotation ->
+            tuple(m, scores, summary, annotation)
         }
     
     viz_distribution_process(distribution_input_ch)
     
     // Step 4: Summary visualization with NSForest F-scores
-    nsforest_ch = Channel.value(tuple(meta, nsforest_results))
-    
     summary_input_ch = silhouette_output_ch.results
-        .map { meta, scores, summary, annotation ->
-            tuple(meta, scores, summary, annotation)
+        .map { m, scores, summary, annotation ->
+            tuple(m, scores, summary, annotation)
         }
-        .combine(nsforest_ch, by: 0)
+        .join(
+            nsforest_ch.map { m, nsforest -> tuple(m, nsforest) }
+        )
     
-    summary_input_ch.view { meta, scores, summary, annotation, nsforest ->
+    summary_input_ch.view { m, scores, summary, annotation, nsforest ->
         "Step 4 - Creating integrated summary with NSForest results"
     }
     
