@@ -4,6 +4,7 @@ Create NSForest visualization plots.
 Generates boxplots, scatter plots, and expression plots with gene symbol mapping.
 """
 
+import ast
 import pandas as pd
 import nsforest as ns
 
@@ -59,6 +60,10 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, year)
     results = pd.read_csv(results_csv)
     logger.info(f"Results shape: {results.shape}")
     
+    # CRITICAL: Parse NSForest_markers from string to list
+    logger.info("Parsing NSForest_markers from CSV string format...")
+    results['NSForest_markers'] = results['NSForest_markers'].apply(ast.literal_eval)
+
     # Load gene mapping
     ensg_to_symbol = load_gene_mapping()
     

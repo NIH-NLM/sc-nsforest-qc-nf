@@ -12,7 +12,7 @@ process merge_binary_scores_process {
         pattern: "outputs_*/**"
     
     input:
-    tuple val(meta), path(partial_csvs)
+    tuple val(meta), path(adata_preps, stageAs: 'adata_prep_*.h5ad'), path(partial_csvs)
     
     output:
     tuple val(meta),
@@ -23,6 +23,7 @@ process merge_binary_scores_process {
     script:
     """
     # Take first adata_prep (all identical after prep_binary_scores)
+    mkdir -p outputs_${meta.organ}_${meta.first_author}_${meta.year}
     cp ${adata_preps[0]} outputs_${meta.organ}_${meta.first_author}_${meta.year}/adata_prep.h5ad
 
     nsforest-cli merge-binary-scores \
