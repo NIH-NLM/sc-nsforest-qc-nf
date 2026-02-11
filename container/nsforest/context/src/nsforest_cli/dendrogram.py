@@ -1,144 +1,80 @@
 """
-Generate hierarchical clustering dendrogram.
+Generate dendrogram and cluster statistics using NSForest.
 
-Corresponds to DEMO_NS-forest_workflow.ipynb: Section 1 - Dendrogram generation
 """
 
-import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
-import plotly.io as pio
-from scipy.cluster.hierarchy import linkage, dendrogram
-from scipy.spatial.distance import pdist
+import nsforest as ns
 
 from .common_utils import (
     create_output_dir,
-    get_output_prefix,
     load_h5ad,
     log_section,
     logger
 )
 
 
-def compute_cluster_medians(adata, cluster_header):
-    """Compute median expression for each cluster."""
-    logger.info("Computing cluster medians for dendrogram...")
+def run_dendrogram(h5ad_path, cluster_header, organ, first_author, year):
+    """
     
-    clusters = adata.obs[cluster_header].unique()
-    n_clusters = len(clusters)
-    logger.info(f"Computing medians for {n_clusters} clusters")
+    Creates:
+    1. dendrogram.svg - hierarchical clustering visualization
+    2. cluster_sizes.csv - cell counts per cluster
+    3. cluster_order.csv - ordered cluster list from dendrogram
+    4. summary_normal.csv - dataset statistics (n_obs, n_vars, n_clusters)
     
-    median_dict = {}
-    for cluster in clusters:
-        cluster_mask = adata.obs[cluster_header] == cluster
-        cluster_cells = adata[cluster_mask]
-        
-        if hasattr(adata, 'X') and adata.X is not None:
-            median_expr = np.median(
-                cluster_cells.X.toarray() if hasattr(cluster_cells.X, 'toarray') else cluster_cells.X,
-                axis=0
-            )
-        else:
-            logger.warning("No X matrix found, using raw counts")
-            median_expr = np.median(
-                cluster_cells.raw.X.toarray() if hasattr(cluster_cells.raw.X, 'toarray') else cluster_cells.raw.X,
-                axis=0
-            )
-        
-        median_dict[cluster] = median_expr.flatten()
+    All outputs required for downstream FRMatch analysis.
+    """
+    log_section("NSForest: Section 2 - Clusters")
     
-    median_df = pd.DataFrame(median_dict, index=adata.var_names).T
-    logger.info(f"Median matrix shape: {median_df.shape}")
-    
-    return median_df
-
-
-def generate_dendrogram(median_df, method='ward', metric='euclidean'):
-    """Generate hierarchical clustering dendrogram."""
-    logger.info(f"Computing hierarchical clustering (method={method}, metric={metric})")
-    
-    distances = pdist(median_df.values, metric=metric)
-    linkage_matrix = linkage(distances, method=method)
-    dendro = dendrogram(linkage_matrix, labels=median_df.index.tolist(), no_plot=True)
-    
-    return linkage_matrix, dendro
-
-
-def plot_dendrogram_plotly(dendro, cluster_labels, output_prefix):
-    """Create interactive dendrogram using Plotly."""
-    logger.info("Creating interactive dendrogram plot...")
-    
-    # Convert to numpy arrays (dendro returns lists)
-    icoord = np.array(dendro['icoord'])
-    dcoord = np.array(dendro['dcoord'])
-    
-    fig = go.Figure()
-    
-    # Add lines for dendrogram
-    for i in range(len(icoord)):
-        fig.add_trace(go.Scatter(
-            x=icoord[i],
-            y=dcoord[i],
-            mode='lines',
-            line=dict(color='black', width=1),
-            hoverinfo='skip',
-            showlegend=False
-        ))
-    
-    # Generate tick positions (center of each cluster group)
-    tick_positions = np.arange(5.0, len(dendro['ivl']) * 10 + 5, 10)
-    
-    fig.update_layout(
-        title="Hierarchical Clustering Dendrogram",
-        xaxis=dict(
-            title="Cluster",
-            tickmode='array',
-            tickvals=tick_positions,
-            ticktext=dendro['ivl'],
-            tickangle=-90
-        ),
-        yaxis=dict(title="Distance"),
-        width=1400,
-        height=600,
-        showlegend=False,
-        margin=dict(b=150)
-    )
-    
-    html_path = f"{output_prefix}_dendrogram.html"
-    svg_path = f"{output_prefix}_dendrogram.svg"
-    
-    pio.write_html(fig, html_path)
-    fig.write_image(svg_path)
-    
-    logger.info(f"Saved: {html_path}")
-    logger.info(f"Saved: {svg_path}")
-
-
-def run_dendrogram(h5ad_path, cluster_header, organ, first_author, year,
-                   method='ward', metric='euclidean'):
-    """Main function to generate dendrogram."""
-    log_section("NSForest: Dendrogram Generation")
-    
-    output_dir = create_output_dir(organ, first_author, year)
-    output_prefix = get_output_prefix(output_dir, cluster_header)
+    # Match DEMO variable names exactly
+    output_folder = create_output_dir(organ, first_author, year) + "/"
+    outputfilename_suffix = cluster_header
+    outputfilename_prefix = cluster_header
     
     adata = load_h5ad(h5ad_path, cluster_header)
-    median_df = compute_cluster_medians(adata, cluster_header)
     
-    median_path = f"{output_prefix}_cluster_medians_for_dendrogram"
-    median_df.to_csv(f"{median_path}.csv")
-    logger.info(f"Saved: {median_path}.csv")
+    # Number of clusters 
+    n_clusters = adata.obs[cluster_header].nunique()
+    logger.info(f"Number of clusters: {n_clusters}")
     
-    linkage_matrix, dendro = generate_dendrogram(median_df, method=method, metric=metric)
+    # Auto-adjust figsize 
+    fig_width = int(n_clusters / 5)
+    fig_height = max([2, int(max([len(z) for z in adata.obs[cluster_header].unique()]) / 30) + 1])
     
-    linkage_df = pd.DataFrame(
-        linkage_matrix,
-        columns=['cluster1', 'cluster2', 'distance', 'n_items']
+    # Dendrogram and save svg 
+    logger.info("Creating dendrogram...")
+    ns.pp.dendrogram(
+        adata, 
+        cluster_header, 
+        figsize=(fig_width, fig_height),
+        tl_kwargs={'optimal_ordering': True},
+        save="svg",
+        output_folder=output_folder,
+        outputfilename_suffix=outputfilename_suffix
     )
-    linkage_path = f"{output_prefix}_linkage_matrix.csv"
-    linkage_df.to_csv(linkage_path, index=False)
-    logger.info(f"Saved: {linkage_path}")
+    logger.info(f"Saved: {outputfilename_suffix}_dendrogram.svg")
     
-    plot_dendrogram_plotly(dendro, median_df.index.tolist(), output_prefix)
+    # Cluster sizes 
+    df_cluster_sizes = pd.DataFrame(adata.obs[cluster_header].value_counts())
+    df_cluster_sizes.to_csv(output_folder + outputfilename_prefix + "_cluster_sizes.csv")
+    logger.info(f"Saved: {outputfilename_prefix}_cluster_sizes.csv")
     
-    logger.info("Dendrogram generation complete!")
+    # Cluster order 
+    cluster_order = [x.strip() for x in adata.uns["dendrogram_" + cluster_header]['categories_ordered']]
+    pd.DataFrame({'cluster_order': cluster_order}).to_csv(
+        output_folder + outputfilename_prefix + "_cluster_order.csv", 
+        index=False
+    )
+    logger.info(f"Saved: {outputfilename_prefix}_cluster_order.csv")
+    
+    # Summary statistics 
+    df_normal = pd.DataFrame({
+        'n_obs': [adata.n_obs], 
+        'n_vars': [adata.n_vars], 
+        'n_clusters': [n_clusters]
+    })
+    df_normal.to_csv(output_folder + outputfilename_prefix + "_summary_normal.csv", index=False)
+    logger.info(f"Saved: {outputfilename_prefix}_summary_normal.csv")
+    
+    logger.info("Section 2 complete!")
