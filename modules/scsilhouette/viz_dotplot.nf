@@ -11,6 +11,8 @@ process viz_dotplot_process {
         mode: params.publish_mode,
         pattern: "outputs_*/**"
     
+    shell '/bin/sh'
+    
     input:
     tuple val(meta), path(h5ad)
     
@@ -21,7 +23,8 @@ process viz_dotplot_process {
     
     script:
     """
-    scsilhouette viz-dotplot \
+    docker run ghcr.io/nih-nlm/scsilhouette:1.0 \
+    viz-dotplot \
         --h5ad-path ${h5ad} \
         --embedding-key ${meta.embedding} \
         --cluster-header ${meta.author_cell_type} \

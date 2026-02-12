@@ -11,6 +11,8 @@ process compute_silhouette_process {
         mode: params.publish_mode,
         pattern: "outputs_*/**"
     
+    shell '/bin/sh'
+    
     input:
     tuple val(meta), path(h5ad)
     
@@ -23,7 +25,8 @@ process compute_silhouette_process {
     
     script:
     """
-    scsilhouette compute-silhouette \
+    docker run ghcr.io/nih-nlm/scsilhouette:1.0 \
+        compute-silhouette \
         --h5ad-path ${h5ad} \
         --cluster-header ${meta.author_cell_type} \
         --embedding-key ${meta.embedding} \

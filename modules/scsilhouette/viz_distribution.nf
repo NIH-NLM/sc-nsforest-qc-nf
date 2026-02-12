@@ -11,6 +11,8 @@ process viz_distribution_process {
         mode: params.publish_mode,
         pattern: "outputs_*/**"
     
+    shell '/bin/sh'
+    
     input:
     tuple val(meta), 
           path(silhouette_scores),
@@ -24,7 +26,8 @@ process viz_distribution_process {
     
     script:
     """
-    scsilhouette viz-distribution \
+    docker run ghcr.io/nih-nlm/scsilhouette:1.0 \
+    viz-distribution \
         --cluster-summary-path ${cluster_summary} \
         --cluster-header ${meta.author_cell_type} \
         --organ ${meta.organ} \

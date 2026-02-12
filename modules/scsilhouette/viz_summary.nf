@@ -11,6 +11,8 @@ process viz_summary_process {
         mode: params.publish_mode,
         pattern: "outputs_*/**"
     
+    shell '/bin/sh'
+    
     input:
     tuple val(meta), 
           path(silhouette_scores), 
@@ -26,7 +28,8 @@ process viz_summary_process {
     script:
     def fscore_flag = nsforest_results.name != 'NO_FILE' ? "--fscore-path ${nsforest_results}" : ""
     """
-    scsilhouette viz-summary \
+    docker run ghcr.io/nih-nlm/scsilhouette:1.0 \
+    viz-summary \
         --silhouette-score-path ${silhouette_scores} \
         --cluster-header ${meta.author_cell_type} \
         --organ ${meta.organ} \
