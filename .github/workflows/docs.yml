@@ -3,8 +3,6 @@ name: Build and Deploy Sphinx Documentation
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 permissions:
   contents: read
@@ -23,45 +21,61 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Sphinx requirements
-        shell: bash -l {0}
-        run: |
-          pip install -r docs/requirements.txt
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
-      - name: Install any missing packages (optional)
-        shell: bash -l {0}
+      - name: Install dependencies
         run: |
-          python -m pip install myst-parser sphinx
+          pip install sphinx myst-parser sphinx-rtd-theme
 
-      - name: Build HTML docs with Sphinx
-        shell: bash -l {0}
+      - name: Ensure docs directories exist
         run: |
-          sphinx-apidoc -f --separate -o docs/source/ modules/
-          make -C docs html
+          mkdir -p docs/source/_static docs/source/_templates
 
-      - name: Upload artifact for GitHub Pages
+      - name: Create README symlink
+        run: |
+          ln -sf ../../../README.md docs/source/README.md
+
+      - name: Build HTML docs
+        run: |
+          cd docs && make html
+
+      - name: Verify build succeeded
+        run: |
+          if [ ! -f docs/build/html/index.html ]; then
+            echo "ERROR: Build failed - index.html not found"
+            exit 1
+          fi
+          echo "✓ Build succeeded - index.html exists"
+
+      - name: Create .nojekyll file
+        run: |
+          touch docs/build/html/.nojekyll
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/build/html
+          path: 'docs/build/html'
 
-  # Deploy job
   deploy:
-    # Add a dependency to the build job
     needs: build
 
-    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
     permissions:
-      pages: write      # to deploy to Pages
-      id-token: write   # to verify the deployment originates from an appropriate source
+      pages: write
+      id-token: write
 
-    # Deploy to the github-pages environment
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
-    # Specify runner + deployment step
     runs-on: ubuntu-latest
+
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4 # or specific "vX.X.X" version tag for this action
+        uses: actions/deploy-pages@v4
