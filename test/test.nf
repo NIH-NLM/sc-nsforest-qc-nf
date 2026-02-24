@@ -35,9 +35,6 @@ workflow {
     if (!params.organ) {
         error "Missing required parameter: --organ"
     }
-    if (!params.tissue) {
-        error "Missing required parameter: --tissue"
-    }
     
     // Read CSV and create input channel with meta map
     csv_rows_ch = Channel
@@ -52,7 +49,6 @@ workflow {
             
             def meta = [
                 organ           : params.organ,
-                tissue          : params.tissue,
                 author_cell_type: row.author_cell_type,
                 embedding       : row.embedding,
                 first_author    : row.first_author,
