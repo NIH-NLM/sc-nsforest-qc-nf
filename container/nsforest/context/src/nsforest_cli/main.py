@@ -17,21 +17,49 @@ def filter_adata_command(
     organ: str = typer.Option(..., help="Organ/tissue"),
     first_author: str = typer.Option(..., help="First author"),
     year: str = typer.Option(..., help="Publication year"),
-    filter_normal: bool = typer.Option(False, help="Filter to normal cells only"),
-    tissue: str = typer.Option(None, help="Target tissue to filter"),
-    disease_column: str = typer.Option("disease", help="Disease column name in adata.obs"),
-    tissue_column: str = typer.Option("tissue", help="Tissue column name in adata.obs"),
+    filter_normal: bool = typer.Option(False, help="Filter to normal adult cells only"),
+    uberon: Path = typer.Option(None, help="UBERON JSON from cellxgene-harvester resolve-uberon"),
+    disease: Path = typer.Option(None, help="Disease JSON from cellxgene-harvester resolve-disease"),
+    hsapdv: Path = typer.Option(None, help="HsapDv JSON from cellxgene-harvester resolve-hsapdv --min-age N"),
     min_cluster_size: int = typer.Option(5, help="Minimum cells per cluster"),
 ):
     """
-    Filter adata by disease, tissue, and minimum cluster size.
-    
+    Filter adata by tissue, disease, age, and minimum cluster size.
+
+    All filtering uses ontology term ID columns (no text matching):
+      --uberon  → tissue_ontology_term_id   IN UBERON obo_ids
+      --disease → disease_ontology_term_id  IN PATO/MONDO obo_ids
+      --hsapdv  → development_stage_ontology_term_id IN HsapDv obo_ids
+                  (age threshold encoded in the JSON at resolve time)
+
     Creates before/after dendrograms and statistics.
     Outputs filtered h5ad file.
+
+    Example:
+        nsforest filter-adata \\
+            --h5ad-path adata.h5ad \\
+            --cluster-header cell_type \\
+            --organ kidney \\
+            --first-author Lake \\
+            --year 2023 \\
+            --filter-normal \\
+            --uberon data/uberon_kidney.json \\
+            --disease data/disease_normal.json \\
+            --hsapdv data/hsapdv_adult_15.json
     """
     from .filter_adata import run_filter_adata
-    run_filter_adata(h5ad_path, cluster_header, organ, first_author, year,
-                     filter_normal, tissue, disease_column, tissue_column, min_cluster_size)
+    run_filter_adata(
+        h5ad_path      = h5ad_path,
+        cluster_header = cluster_header,
+        organ          = organ,
+        first_author   = first_author,
+        year           = year,
+        filter_normal  = filter_normal,
+        uberon_json    = str(uberon)  if uberon  else None,
+        disease_json   = str(disease) if disease else None,
+        hsapdv_json    = str(hsapdv)  if hsapdv  else None,
+        min_cluster_size = min_cluster_size,
+    )
 
 
 @app.command("dendrogram")
