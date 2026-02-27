@@ -4,6 +4,10 @@ Create NSForest visualization plots.
 Generates boxplots, scatter plots, and expression plots with gene symbol mapping.
 """
 
+# Force non-interactive backend - required for headless Nextflow execution.
+import matplotlib
+matplotlib.use("Agg")
+
 import ast
 import pandas as pd
 import nsforest as ns

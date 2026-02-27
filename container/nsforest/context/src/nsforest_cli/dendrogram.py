@@ -1,7 +1,11 @@
 """
 Generate dendrogram and cluster statistics using NSForest.
-
 """
+
+# Force non-interactive backend before any other imports that might trigger a display.
+# Required for headless execution in Nextflow / Docker containers.
+import matplotlib
+matplotlib.use("Agg")
 
 import pandas as pd
 import nsforest as ns
@@ -38,16 +42,11 @@ def run_dendrogram(h5ad_path, cluster_header, organ, first_author, year):
     n_clusters = adata.obs[cluster_header].nunique()
     logger.info(f"Number of clusters: {n_clusters}")
     
-    # Auto-adjust figsize 
-    fig_width = int(n_clusters / 5)
-    fig_height = max([2, int(max([len(z) for z in adata.obs[cluster_header].unique()]) / 30) + 1])
-    
     # Dendrogram and save svg 
     logger.info("Creating dendrogram...")
     ns.pp.dendrogram(
         adata, 
         cluster_header, 
-        figsize=(fig_width, fig_height),
         tl_kwargs={'optimal_ordering': True},
         save="svg",
         output_folder=output_folder,

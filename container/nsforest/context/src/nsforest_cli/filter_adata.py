@@ -6,8 +6,14 @@ Creates before/after dendrograms and cluster statistics to show filtering effect
 All filtering uses ontology term ID columns only - no text matching:
   - Tissue  : tissue_ontology_term_id   IN  UBERON obo_ids  (uberon_json)
   - Disease : disease_ontology_term_id  IN  PATO/MONDO obo_ids  (disease_json)
-  - Age     : development_stage_ontology_term_id resolved via HsapDv ages (hsapdv_json)
+  - Age     : development_stage_ontology_term_id IN HsapDv obo_ids (hsapdv_json)
+              Age threshold is encoded in the JSON at resolve time.
 """
+
+# Force non-interactive backend before any other imports that might trigger a display.
+# Required for headless execution in Nextflow / Docker containers.
+import matplotlib
+matplotlib.use("Agg")
 
 import json
 import pandas as pd
@@ -37,6 +43,16 @@ def load_obo_ids(json_path: str, label: str) -> set:
     return obo_ids
 
 
+
+def load_obo_labels(json_path: str) -> dict:
+    """Load obo_id -> label mapping from any resolve JSON file.
+
+    Used to annotate log output with human-readable labels alongside term IDs.
+    """
+    with open(json_path) as f:
+        data = json.load(f)
+    return {t["obo_id"]: t["label"] for t in data["terms"] if t.get("obo_id")}
+
 # =============================================================================
 # Before-filter statistics
 # =============================================================================
@@ -48,11 +64,8 @@ def create_stats_before_filter(adata, cluster_header, output_folder, outputfilen
     n_clusters = adata.obs[cluster_header].nunique()
     logger.info(f"Before filter - Total cells: {adata.n_obs}, Clusters: {n_clusters}")
 
-    fig_width  = int(n_clusters / 5)
-    fig_height = max([2, int(max([len(z) for z in adata.obs[cluster_header].unique()]) / 30) + 1])
-
     ns.pp.dendrogram(
-        adata, cluster_header, figsize=(fig_width, fig_height),
+        adata, cluster_header,
         tl_kwargs={"optimal_ordering": True}, save="svg",
         output_folder=output_folder,
         outputfilename_suffix=outputfilename_prefix + "_before_filter"
@@ -184,25 +197,28 @@ def filter_by_age(adata, hsapdv_json=None, filter_normal=False):
             "Ensure the h5ad file originates from CellxGene."
         )
 
-    obo_ids  = load_obo_ids(hsapdv_json, "HsapDv")
-    mask     = adata.obs[id_col].isin(obo_ids)
-    n_before = adata.n_obs
+    obo_ids    = load_obo_ids(hsapdv_json, "HsapDv")
+    obo_labels = load_obo_labels(hsapdv_json)
+    mask       = adata.obs[id_col].isin(obo_ids)
+    n_before   = adata.n_obs
 
-    # Log every term ID present in the data with its kept/excluded status and cell count
-    all_counts = adata.obs[id_col].value_counts()
+    # Log every term ID present in the data with its label, kept/excluded status and cell count
+    all_counts     = adata.obs[id_col].value_counts()
     kept_terms     = [(tid, cnt) for tid, cnt in all_counts.items() if tid in obo_ids]
     excluded_terms = [(tid, cnt) for tid, cnt in all_counts.items() if tid not in obo_ids]
 
     logger.info(f"  Kept     ({len(kept_terms)} terms, "
-                f"{sum(c for _,c in kept_terms):,} cells):")
+                f"{sum(c for _, c in kept_terms):,} cells):")
     for term_id, count in kept_terms:
-        logger.info(f"    KEPT     {term_id}: {count:,} cells")
+        label = obo_labels.get(term_id, "unknown label")
+        logger.info(f"    KEPT     {term_id}  {label}: {count:,} cells")
 
     if excluded_terms:
         logger.info(f"  Excluded ({len(excluded_terms)} terms, "
-                    f"{sum(c for _,c in excluded_terms):,} cells):")
+                    f"{sum(c for _, c in excluded_terms):,} cells):")
         for term_id, count in excluded_terms:
-            logger.info(f"    EXCLUDED {term_id}: {count:,} cells")
+            label = obo_labels.get(term_id, "unknown label — not in HsapDv JSON")
+            logger.info(f"    EXCLUDED {term_id}  {label}: {count:,} cells")
     else:
         logger.info("  No cells excluded by age filter")
 
@@ -303,11 +319,9 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, year,
     logger.info("\n=== Creating AFTER FILTER statistics ===")
 
     n_clusters = adata.obs[cluster_header].nunique()
-    fig_width  = int(n_clusters / 5)
-    fig_height = max([2, int(max([len(z) for z in adata.obs[cluster_header].unique()]) / 30) + 1])
 
     ns.pp.dendrogram(
-        adata, cluster_header, figsize=(fig_width, fig_height),
+        adata, cluster_header,
         tl_kwargs={"optimal_ordering": True}, save="svg",
         output_folder=output_folder, outputfilename_suffix=outputfilename_prefix
     )

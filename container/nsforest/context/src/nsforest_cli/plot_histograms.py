@@ -4,6 +4,10 @@ Plot histograms of non-zero median and binary score values.
 Creates two SVG histograms showing the distribution of non-zero values.
 """
 
+# Force non-interactive backend - required for headless Nextflow execution.
+import matplotlib
+matplotlib.use("Agg")
+
 import pandas as pd
 import matplotlib.pyplot as plt
 
