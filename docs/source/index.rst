@@ -1,75 +1,103 @@
-sc-nsforest-qc-nf Documentation
-================================
+scsilhouette Documentation
+==========================
 
-Nextflow pipeline for NSForest marker gene discovery and silhouette score
-quality control of single-cell RNA-seq data.
+Silhouette score analysis for single-cell clustering quality control.
+
+`scsilhouette` computes silhouette scores to assess clustering quality in
+single-cell RNA-seq data and provides integrated visualizations with NSForest
+marker discovery results.  It is used as the scsilhouette component of the
+`sc-nsforest-qc-nf <https://github.com/NIH-NLM/sc-nsforest-qc-nf>`_
+Nextflow workflow.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Python API
 
-   README
+   modules
 
-Workflow Overview
------------------
+.. toctree::
+   :maxdepth: 2
+   :caption: Nextflow Workflow
 
-``sc-nsforest-qc-nf`` runs two analysis packages in sequence:
+   nextflow/index
 
-- `NSForest <https://github.com/JCVenterInstitute/NSForest>`_ — marker gene
-  discovery by the J. Craig Venter Institute. NSForest is called via
-  ``nsforest-cli``, a workflow-internal command-line wrapper bundled inside
-  the ``ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest`` container.
+.. toctree::
+   :maxdepth: 1
+   :caption: More
 
-- `scsilhouette <https://nih-nlm.github.io/scsilhouette/>`_ — silhouette score
-  quality control developed by NIH-NLM. See the
-  `scsilhouette documentation <https://nih-nlm.github.io/scsilhouette/>`_ for
-  full API reference.
+   changelog
 
-Quick Start
------------
+Installation
+------------
+
+.. code-block:: bash
+
+   pip install scsilhouette
+
+Quick Start — standalone
+------------------------
+
+.. code-block:: bash
+
+   scsilhouette compute-silhouette \
+       --h5ad-path data.h5ad \
+       --cluster-header "cell_type" \
+       --embedding-key "X_umap" \
+       --organ "kidney" \
+       --first-author "Lake" \
+       --year "2023"
+
+Quick Start — with ontology filtering
+--------------------------------------
+
+Generate the three JSON files once using
+`cellxgene-harvester <https://github.com/NIH-NLM/cellxgene-harvester>`_:
+
+.. code-block:: bash
+
+   cellxgene-harvester resolve-uberon  kidney  > data/uberon_kidney.json
+   cellxgene-harvester resolve-disease normal  > data/disease_normal.json
+   cellxgene-harvester resolve-hsapdv  --min-age 15 > data/hsapdv_adult_15.json
+
+Then run with filtering:
+
+.. code-block:: bash
+
+   scsilhouette compute-silhouette \
+       --h5ad-path data.h5ad \
+       --cluster-header "cell_type" \
+       --embedding-key "X_umap" \
+       --organ "kidney" \
+       --first-author "Lake" \
+       --year "2023" \
+       --filter-normal \
+       --uberon  data/uberon_kidney.json \
+       --disease data/disease_normal.json \
+       --hsapdv  data/hsapdv_adult_15.json
+
+Quick Start — Nextflow workflow
+--------------------------------
 
 .. code-block:: bash
 
    nextflow run main.nf \
-       --datasets_csv homo_sapiens_kidney_harvester_final.csv \
-       --organ kidney \
-       --uberon_json uberon_kidney.json \
-       --outdir results/kidney
+       --datasets_csv data/homo_sapiens_kidney_harvester_final.csv \
+       --organ        kidney \
+       --uberon_json  data/uberon_kidney.json \
+       --disease_json data/disease_normal.json \
+       --hsapdv_json  data/hsapdv_adult_15.json \
+       --github_token "$(cat ~/.github_token)" \
+       -c             configs/macamd64.config
 
-Parameters
-----------
+.. warning::
 
-.. list-table::
-   :header-rows: 1
-   :widths: 25 15 60
-
-   * - Parameter
-     - Default
-     - Description
-   * - ``--datasets_csv``
-     - required
-     - Path to ``homo_sapiens_{organ}_harvester_final.csv``
-   * - ``--organ``
-     - required
-     - Organ label (e.g. ``kidney``, ``heart``) — used in output directory naming
-   * - ``--uberon_json``
-     - required
-     - Path to ``uberon_{organ}.json`` from cellxgene-harvester resolve-uberon
-   * - ``--min_age``
-     - ``15``
-     - Minimum donor age in years for adult cell filtering
-   * - ``--min_cluster_size``
-     - ``5``
-     - Minimum cells per cluster — smaller clusters dropped and logged
-   * - ``--outdir``
-     - ``./results``
-     - Output directory
-   * - ``--publish_mode``
-     - ``copy``
-     - Nextflow ``publishDir`` mode
+   Pass ``--github_token`` via ``-params-file params.json`` or an environment
+   variable — never hardcode it in a config file or on the command line where
+   it may appear in shell history.  See the README for full details.
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
+* :ref:`modindex`
 * :ref:`search`

@@ -22,17 +22,22 @@ include { viz_dotplot_process }                    from './modules/scsilhouette/
 include { viz_distribution_process }               from './modules/scsilhouette/viz_distribution.nf'
 include { compute_summary_stats_process }          from './modules/scsilhouette/compute_summary_stats.nf'
 
+// publish
+include { publish_results_process }                from './modules/publish/publish_results.nf'
+
 // ---------------------------------------------------------------------------
 // Parameters
 // ---------------------------------------------------------------------------
 
-params.datasets_csv  = null    // Path to homo_sapiens_{organ}_harvester_final.csv
-params.organ         = null    // e.g. "heart" — used for output directory naming
-params.uberon_json   = null    // Path to uberon_{organ}.json from cellxgene-harvester resolve-uberon
-params.min_age       = 15      // Minimum donor age in years for adult cell filtering
-params.min_cluster_size = 5    // Minimum cells per cluster — smaller clusters dropped and logged
-params.outdir        = './results'
-params.publish_mode  = 'copy'
+params.datasets_csv     = null    // Path to homo_sapiens_{organ}_harvester_final.csv
+params.organ            = null    // e.g. "heart" — used for output directory naming
+params.uberon_json      = null    // Path to uberon_{organ}.json from cellxgene-harvester resolve-uberon
+params.disease_json     = null    // Path to disease_normal.json from cellxgene-harvester resolve-disease
+params.hsapdv_json      = null    // Path to hsapdv_adult_15.json from cellxgene-harvester resolve-hsapdv --min-age N
+params.min_cluster_size = 5       // Minimum cells per cluster — smaller clusters dropped and logged
+params.outdir           = './results'
+params.publish_mode     = 'copy'
+params.github_token     = null    // GitHub PAT — pass via --github_token or params JSON. Never hardcode.
 
 // ---------------------------------------------------------------------------
 // Workflow
@@ -59,12 +64,29 @@ workflow {
         exit 1
     }
 
+    if (!params.disease_json) {
+        log.error "ERROR: --disease_json is required (disease_normal.json from cellxgene-harvester resolve-disease)"
+        exit 1
+    }
+
+    if (!params.hsapdv_json) {
+        log.error "ERROR: --hsapdv_json is required (hsapdv_adult_N.json from cellxgene-harvester resolve-hsapdv --min-age N)"
+        exit 1
+    }
+
+    if (!params.github_token) {
+        log.error "ERROR: --github_token is required for publishing results to cell-kn"
+        exit 1
+    }
+
     // -----------------------------------------------------------------------
     // Stage the uberon JSON as a Nextflow file channel.
     // One file, shared across all parallel h5ad jobs.
     // -----------------------------------------------------------------------
 
-    uberon_ch = Channel.fromPath(params.uberon_json, checkIfExists: true)
+    uberon_ch  = Channel.fromPath(params.uberon_json,  checkIfExists: true)
+    disease_ch = Channel.fromPath(params.disease_json, checkIfExists: true)
+    hsapdv_ch  = Channel.fromPath(params.hsapdv_json,  checkIfExists: true)
 
     // -----------------------------------------------------------------------
     // Read the harvester CSV and build the meta map for each dataset row.
@@ -84,12 +106,14 @@ workflow {
         .splitCsv(header: true, sep: ',')
         .filter { row ->
             def ref = row.reference?.trim().toLowerCase()
-            if (ref in ['question', 'merge']) {
-                log.info "Skipping ${row.first_author} ${row.year} — reference='${row.reference}'"
+            // Rows explicitly marked for exclusion — silently skip
+            if (ref in ['exclude', 'delete', 'merge', 'question']) {
+                log.info "Skipping \${row.first_author} \${row.year} — reference='\${row.reference}'"
                 return false
             }
+            // Only process rows with a recognised reference value
             if (!(ref in ['yes', 'no', 'unk'])) {
-                log.warn "Skipping ${row.first_author} ${row.year} — unrecognised reference value '${row.reference}'"
+                log.warn "Skipping \${row.first_author} \${row.year} — unrecognised reference value '\${row.reference}'"
                 return false
             }
             return true
@@ -114,8 +138,11 @@ workflow {
     // stages it into every parallel filter job's work directory.
     // -----------------------------------------------------------------------
 
-    filter_input_ch = csv_rows_ch.combine(uberon_ch)
-    // Channel shape: (meta, h5ad, uberon_json)
+    filter_input_ch = csv_rows_ch
+        .combine(uberon_ch)
+        .combine(disease_ch)
+        .combine(hsapdv_ch)
+    // Channel shape: (meta, h5ad, uberon_json, disease_json, hsapdv_json)
 
     filter_output_ch = filter_adata_process(filter_input_ch)
     // Emits: (meta, adata_filtered.h5ad, [stats/svg files])
@@ -245,15 +272,15 @@ workflow {
     // Step 10: Compute silhouette scores
     //
     // Uses the filtered h5ad (already tissue/disease/age filtered by step 0).
-    // The uberon_json and min_age are passed through so the python code can
-    // record filter parameters in annotation.json for provenance.
-    // filter-normal flag re-applies the same filter on top of the already
-    // filtered h5ad — this is intentional for datasets where filter_adata
-    // was skipped or to guarantee consistency.
+    // The uberon_json, disease_json and hsapdv_json are passed through so the
+    // python code can record filter parameters in annotation.json for provenance.
     // -----------------------------------------------------------------------
 
-    silhouette_input_ch = filtered_h5ad_ch.combine(uberon_ch)
-    // Channel shape: (meta, adata_filtered.h5ad, uberon_json)
+    silhouette_input_ch = filtered_h5ad_ch
+        .combine(uberon_ch)
+        .combine(disease_ch)
+        .combine(hsapdv_ch)
+    // Channel shape: (meta, adata_filtered.h5ad, uberon_json, disease_json, hsapdv_json)
 
     silhouette_output_ch = compute_silhouette_process(silhouette_input_ch)
     // Emits: (meta, silhouette_scores.csv, cluster_summary.csv, annotation.json)
@@ -310,5 +337,27 @@ workflow {
                   nsforest_csv ?: file('NO_FILE'))
         }
 
-    compute_summary_stats_process(summary_stats_input_ch)
+    compute_summary_stats_output_ch = compute_summary_stats_process(summary_stats_input_ch)
+
+    // -----------------------------------------------------------------------
+    // Step 13: Publish to cell-kn
+    //
+    // Fires once after ALL datasets complete (or fail).
+    // .collect() on each terminal channel acts as the completion gate:
+    //   - plots_process          = last NSForest step
+    //   - compute_summary_stats  = last scsilhouette step
+    //
+    // Signals are dataset label strings — their values are not used, only
+    // their presence in the collected list tells Nextflow "all rows done".
+    // -----------------------------------------------------------------------
+
+    nsforest_done_ch = plots_process.out.plots
+        .map { meta, files -> "${meta.organ}_${meta.first_author}_${meta.year}" }
+        .collect()
+
+    silhouette_done_ch = compute_summary_stats_output_ch.summary
+        .map { meta, csv -> "${meta.organ}_${meta.first_author}_${meta.year}" }
+        .collect()
+
+    publish_results_process(params.organ, nsforest_done_ch, silhouette_done_ch)
 }
