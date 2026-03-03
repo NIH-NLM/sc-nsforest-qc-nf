@@ -1,6 +1,5 @@
 process download_h5ad_process {
     tag "${meta.first_author}_${meta.year}"
-    label 'download'
 
     errorStrategy { task.attempt <= 3 ? 'retry' : 'fail' }
     maxRetries 3
@@ -14,6 +13,6 @@ process download_h5ad_process {
     script:
     """
     echo "Downloading: ${url}"
-    curl "${url}" > "${meta.first_author}_${meta.year}.h5ad"
+    curl -fL "${url}" > "${meta.first_author}_${meta.year}.h5ad"
     """
 }
