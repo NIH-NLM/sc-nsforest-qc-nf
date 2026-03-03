@@ -16,7 +16,7 @@ include { merge_nsforest_results_process }         from './modules/nsforest/merg
 include { plots_process }                          from './modules/nsforest/plots.nf'
 
 // scsilhouette processes
-include { compute_silhouette_process }             from './modules/scsilhouette/compute_scsilhouette.nf'
+include { compute_silhouette_process }             from './modules/scsilhouette/compute_silhouette.nf'
 include { viz_summary_process }                    from './modules/scsilhouette/viz_summary.nf'
 include { viz_dotplot_process }                    from './modules/scsilhouette/viz_dotplot.nf'
 include { viz_distribution_process }               from './modules/scsilhouette/viz_distribution.nf'
