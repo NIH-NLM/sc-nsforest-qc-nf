@@ -82,9 +82,6 @@ workflow {
         .combine(hsapdv_ch)
 
     )
-    filter_output_ch = filter_adata_process(
-        downloaded_ch.h5ad.combine(uberon_ch)
-    )
 
     // Step 1: Dendrogram
     dendrogram_process(
