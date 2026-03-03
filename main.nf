@@ -2,7 +2,7 @@
 
 nextflow.enable.dsl=2
 
-// NSForest processes
+include { download_h5ad_process }                  from './modules/nsforest/download_h5ad.nf'
 include { filter_adata_process }                   from './modules/nsforest/filter_adata.nf'
 include { dendrogram_process }                     from './modules/nsforest/dendrogram.nf'
 include { cluster_stats_process }                  from './modules/nsforest/cluster_stats.nf'
@@ -14,20 +14,12 @@ include { plot_histograms_process }                from './modules/nsforest/plot
 include { run_nsforest_process }                   from './modules/nsforest/run_nsforest.nf'
 include { merge_nsforest_results_process }         from './modules/nsforest/merge_nsforest_results.nf'
 include { plots_process }                          from './modules/nsforest/plots.nf'
-
-// scsilhouette processes
 include { compute_silhouette_process }             from './modules/scsilhouette/compute_silhouette.nf'
 include { viz_summary_process }                    from './modules/scsilhouette/viz_summary.nf'
 include { viz_dotplot_process }                    from './modules/scsilhouette/viz_dotplot.nf'
 include { viz_distribution_process }               from './modules/scsilhouette/viz_distribution.nf'
 include { compute_summary_stats_process }          from './modules/scsilhouette/compute_summary_stats.nf'
-
-// publish
 // include { publish_results_process }             from './modules/publish/publish_results.nf'
-
-// ---------------------------------------------------------------------------
-// Parameters
-// ---------------------------------------------------------------------------
 
 params.datasets_csv     = null
 params.organ            = null
@@ -37,11 +29,6 @@ params.hsapdv_json      = null
 params.min_cluster_size = 5
 params.outdir           = './results'
 params.publish_mode     = 'copy'
-// params.github_token  = null
-
-// ---------------------------------------------------------------------------
-// Workflow
-// ---------------------------------------------------------------------------
 
 workflow {
 
@@ -51,7 +38,6 @@ workflow {
     if (!params.disease_json) { log.error "ERROR: --disease_json is required";  exit 1 }
     if (!params.hsapdv_json)  { log.error "ERROR: --hsapdv_json is required";   exit 1 }
 
-    // FIX 1: Channel.value broadcasts to every consumer (not consumed once like fromPath)
     uberon_ch  = Channel.value(file(params.uberon_json))
     disease_ch = Channel.value(file(params.disease_json))
     hsapdv_ch  = Channel.value(file(params.hsapdv_json))
@@ -82,30 +68,28 @@ workflow {
                 disease:          row.disease,
                 filter:           row.filter_normal
             ]
-            tuple(meta, file(row.h5ad_url))
+            tuple(meta, row.h5ad_url)
         }
 
-    // Step 0: Filter
-    // filter_adata expects: (meta, h5ad, uberon_json)
-    filter_output_ch = filter_adata_process(csv_rows_ch.combine(uberon_ch))
+    // Step 0a: Download h5ad from CellxGene URL
+    downloaded_ch = download_h5ad_process(csv_rows_ch)
 
-    // FIX 4: Re-derive h5ad from named emit at each use — named emits are
-    // multicast in DSL2. The old filtered_h5ad_ch was a queue channel reused
-    // 5 times; each subscriber after the first received nothing.
+    // Step 0b: Filter
+    filter_output_ch = filter_adata_process(
+        downloaded_ch.h5ad.combine(uberon_ch)
+    )
 
     // Step 1: Dendrogram
     dendrogram_process(
         filter_output_ch.results.map { meta, h5ad, stats -> tuple(meta, h5ad) }
     )
 
-    // Step 2: Cluster stats  (emit: stats)
+    // Step 2: Cluster stats
     cluster_stats_output_ch = cluster_stats_process(
         filter_output_ch.results.map { meta, h5ad, stats -> tuple(meta, h5ad) }
     )
 
     // Step 3: Scatter by cluster
-    // FIX 4: access via .stats named emit; named emits are multicast so
-    // cluster_stats_output_ch.stats can be accessed multiple times below
     scattered_clusters_ch = cluster_stats_output_ch.stats
         .flatMap { meta, h5ad, stats_csv ->
             stats_csv.splitCsv(header: true).collect { row ->
@@ -113,18 +97,15 @@ workflow {
             }
         }
 
-    // Step 4: Prep medians  (emit: partial)
+    // Step 4: Prep medians
     prep_medians_output_ch = prep_medians_process(scattered_clusters_ch)
 
-    // FIX 2: .partial.groupTuple() — named emit must be accessed before groupTuple
     // Step 5: Gather medians
     merged_medians_ch = merge_medians_process(
         prep_medians_output_ch.partial.groupTuple()
     )
-    // emit: complete -> (meta, adata_prep.h5ad, medians.{csv,pkl})
 
     // Step 6: Prep binary scores
-    // FIX 3: combine(by:0) needs (meta, value) on right side so meta is the key
     binary_scores_input_ch = merged_medians_ch.complete
         .map { meta, adata_prep, medians -> tuple(meta, adata_prep) }
         .combine(
@@ -139,31 +120,29 @@ workflow {
 
     prep_binary_scores_output_ch = prep_binary_scores_process(binary_scores_input_ch)
 
-    // FIX 2: .partial.groupTuple()
     merged_binary_ch = merge_binary_scores_process(
         prep_binary_scores_output_ch.partial.groupTuple()
     )
-    // emit: complete -> (meta, adata_prep.h5ad, binary_scores.{csv,pkl})
 
     // Step 7: Plot histograms
-    histograms_input_ch = merged_medians_ch.complete
-        .map { meta, adata_prep, medians_files ->
-            def medians_csv = medians_files instanceof List
-                ? medians_files.find { it.name.endsWith('.csv') } : medians_files
-            tuple(meta, medians_csv)
-        }
-        .join(
-            merged_binary_ch.complete.map { meta, adata_prep, binary_files ->
-                def binary_csv = binary_files instanceof List
-                    ? binary_files.find { it.name.endsWith('.csv') } : binary_files
-                tuple(meta, binary_csv)
+    plot_histograms_process(
+        merged_medians_ch.complete
+            .map { meta, adata_prep, medians_files ->
+                def medians_csv = medians_files instanceof List
+                    ? medians_files.find { it.name.endsWith('.csv') } : medians_files
+                tuple(meta, medians_csv)
             }
-        )
-        .map { meta, medians_csv, binary_csv -> tuple(meta, medians_csv, binary_csv) }
+            .join(
+                merged_binary_ch.complete.map { meta, adata_prep, binary_files ->
+                    def binary_csv = binary_files instanceof List
+                        ? binary_files.find { it.name.endsWith('.csv') } : binary_files
+                    tuple(meta, binary_csv)
+                }
+            )
+            .map { meta, medians_csv, binary_csv -> tuple(meta, medians_csv, binary_csv) }
+    )
 
-    plot_histograms_process(histograms_input_ch)
-
-    // Step 8: Run NSForest  (FIX 2 + 3 same as steps 5/6)
+    // Step 8: Run NSForest
     nsforest_input_ch = merged_binary_ch.complete
         .map { meta, adata_prep, binary -> tuple(meta, adata_prep) }
         .combine(
@@ -178,13 +157,11 @@ workflow {
 
     nsforest_output_ch = run_nsforest_process(nsforest_input_ch)
 
-    // FIX 2: .partial.groupTuple()
     merged_nsforest_ch = merge_nsforest_results_process(
         nsforest_output_ch.partial.groupTuple()
     )
-    // emit: complete -> (meta, results.{csv,pkl})
 
-    // Step 9: Plots  (FIX 4: re-derive h5ad)
+    // Step 9: Plots
     plots_process(
         filter_output_ch.results
             .map { meta, h5ad, stats -> tuple(meta, h5ad) }
@@ -198,15 +175,12 @@ workflow {
             .map { meta, h5ad, results_csv -> tuple(meta, h5ad, results_csv) }
     )
 
-    // Step 10: Compute silhouette scores
-    // compute_silhouette expects: (meta, h5ad, uberon_json)  — 3-tuple
-    // FIX 1 + 4: Channel.value uberon_ch; re-derive h5ad from named emit
+    // Step 10: Compute silhouette
     silhouette_output_ch = compute_silhouette_process(
         filter_output_ch.results
             .map { meta, h5ad, stats -> tuple(meta, h5ad) }
             .combine(uberon_ch)
     )
-    // emit: results -> (meta, scores.csv, cluster_summary.csv, annotation.json)
 
     // Step 11a: viz_summary
     viz_summary_process(
@@ -231,7 +205,7 @@ workflow {
         }
     )
 
-    // Step 11c: viz_dotplot  (FIX 4: re-derive h5ad)
+    // Step 11c: viz_dotplot
     viz_dotplot_process(
         filter_output_ch.results.map { meta, h5ad, stats -> tuple(meta, h5ad) }
     )
