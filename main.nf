@@ -5,7 +5,6 @@ nextflow.enable.dsl=2
 include { download_h5ad_process }                  from './modules/nsforest/download_h5ad.nf'
 include { filter_adata_process }                   from './modules/nsforest/filter_adata.nf'
 include { dendrogram_process }                     from './modules/nsforest/dendrogram.nf'
-include { cluster_stats_process }                  from './modules/nsforest/cluster_stats.nf'
 include { prep_medians_process }                   from './modules/nsforest/prep_medians.nf'
 include { merge_medians_process }                  from './modules/nsforest/merge_medians.nf'
 include { prep_binary_scores_process }             from './modules/nsforest/prep_binary_scores.nf'
@@ -83,21 +82,16 @@ workflow {
 
     )
 
-    // Step 1: Dendrogram
-    dendrogram_process(
+    // Step 1: Dendrogram — also drives scatter
+    dendrogram_output_ch = dendrogram_process(
         filter_output_ch.results.map { meta, h5ad, stats -> tuple(meta, h5ad) }
     )
 
-    // Step 2: Cluster stats
-    cluster_stats_output_ch = cluster_stats_process(
-        filter_output_ch.results.map { meta, h5ad, stats -> tuple(meta, h5ad) }
-    )
-
-    // Step 3: Scatter by cluster
-    scattered_clusters_ch = cluster_stats_output_ch.stats
-        .flatMap { meta, h5ad, stats_csv ->
-            stats_csv.splitCsv(header: true).collect { row ->
-                tuple(meta, h5ad, row.cluster)
+    // Step 3: Scatter by cluster_order
+    scattered_clusters_ch = dendrogram_output_ch.stats
+        .flatMap { meta, h5ad, cluster_order_csv ->
+            cluster_order_csv.splitCsv(header: true).collect { row ->
+                tuple(meta, h5ad, row.cluster_order)
             }
         }
 
@@ -109,16 +103,16 @@ workflow {
         prep_medians_output_ch.partial.groupTuple()
     )
 
-    // Step 6: Prep binary scores
+    // Step 6: binary scores
     binary_scores_input_ch = merged_medians_ch.complete
         .map { meta, adata_prep, medians -> tuple(meta, adata_prep) }
         .combine(
-            cluster_stats_output_ch.stats.map { meta, h5ad, stats -> tuple(meta, stats) },
+            dendrogram_output_ch.stats.map { meta, h5ad, cluster_order_csv -> tuple(meta, cluster_order_csv) },
             by: 0
         )
-        .flatMap { meta, adata_prep, stats_csv ->
-            stats_csv.splitCsv(header: true).collect { row ->
-                tuple(meta, adata_prep, row.cluster)
+        .flatMap { meta, adata_prep, cluster_order_csv ->
+            cluster_order_csv.splitCsv(header: true).collect { row ->
+                tuple(meta, adata_prep, row.cluster_order)
             }
         }
 
@@ -145,17 +139,16 @@ workflow {
             )
             .map { meta, medians_csv, binary_csv -> tuple(meta, medians_csv, binary_csv) }
     )
-
-    // Step 8: Run NSForest
+    // Step 8: nsforest
     nsforest_input_ch = merged_binary_ch.complete
         .map { meta, adata_prep, binary -> tuple(meta, adata_prep) }
         .combine(
-            cluster_stats_output_ch.stats.map { meta, h5ad, stats -> tuple(meta, stats) },
+            dendrogram_output_ch.stats.map { meta, h5ad, cluster_order_csv -> tuple(meta, cluster_order_csv) },
             by: 0
         )
-        .flatMap { meta, adata_prep, stats_csv ->
-            stats_csv.splitCsv(header: true).collect { row ->
-                tuple(meta, adata_prep, row.cluster)
+        .flatMap { meta, adata_prep, cluster_order_csv ->
+            cluster_order_csv.splitCsv(header: true).collect { row ->
+                tuple(meta, adata_prep, row.cluster_order)
             }
         }
 
