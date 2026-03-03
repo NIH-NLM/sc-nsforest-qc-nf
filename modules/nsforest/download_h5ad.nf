@@ -14,8 +14,6 @@ process download_h5ad_process {
     script:
     """
     echo "Downloading: ${url}"
-    wget --quiet --tries=3 --timeout=300 --retry-connrefused \
-        -O "${meta.first_author}_${meta.year}.h5ad" \
-        "${url}"
+    curl "${url}" > "${meta.first_author}_${meta.year}.h5ad"
     """
 }
