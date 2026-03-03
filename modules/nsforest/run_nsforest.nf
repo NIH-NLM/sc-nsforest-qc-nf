@@ -13,7 +13,7 @@ process run_nsforest_process {
     
     output:
     tuple val(meta), 
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/${meta.author_cell_type}_results_*.csv"),
+          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/${meta.author_cell_type}_results*.csv"),
           emit: partial
     
     script:
