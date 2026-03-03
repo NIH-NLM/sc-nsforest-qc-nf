@@ -217,21 +217,6 @@ workflow {
         filter_output_ch.results.map { meta, h5ad, stats -> tuple(meta, h5ad) }
     )
 
-    // Step 12: Summary statistics
-    compute_summary_stats_process(
-        silhouette_output_ch.results
-            .join(
-                merged_nsforest_ch.complete.map { meta, results_files ->
-                    def results_csv = results_files instanceof List
-                        ? results_files.find { it.name.endsWith('.csv') } : results_files
-                    tuple(meta, results_csv)
-                },
-                remainder: true
-            )
-            .map { meta, scores, summary, annotation, nsforest_csv ->
-                tuple(meta, scores, summary, annotation, nsforest_csv ?: file('NO_FILE'))
-            }
-    )
 
 //    publish_results_process(params.organ, nsforest_done_ch, silhouette_done_ch)
 }
