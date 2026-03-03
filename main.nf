@@ -17,9 +17,9 @@ include { compute_silhouette_process }             from './modules/scsilhouette/
 include { viz_summary_process }                    from './modules/scsilhouette/viz_summary.nf'
 include { viz_dotplot_process }                    from './modules/scsilhouette/viz_dotplot.nf'
 include { viz_distribution_process }               from './modules/scsilhouette/viz_distribution.nf'
-include { compute_summary_stats_process }          from './modules/scsilhouette/compute_summary_stats.nf'
 // include { publish_results_process }             from './modules/publish/publish_results.nf'
 
+params.batch_size       = 10
 params.datasets_csv     = null
 params.organ            = null
 params.uberon_json      = null
@@ -87,14 +87,18 @@ workflow {
         filter_output_ch.results.map { meta, h5ad, stats -> tuple(meta, h5ad) }
     )
 
-    // Step 3: Scatter by cluster_order
+    // Step 3: Scatter by cluster_order — batched to reduce AWS job overhead
+    def batchSize = params.batch_size ?: 10
     scattered_clusters_ch = dendrogram_output_ch.stats
         .flatMap { meta, h5ad, cluster_order_csv ->
-            cluster_order_csv.splitCsv(header: true).collect { row ->
-                tuple(meta, h5ad, row.cluster_order)
+            def clusters = cluster_order_csv
+                .splitCsv(header: true)
+                .collect { it.cluster_order }
+            clusters.collate(batchSize).collect { batch ->
+                tuple(meta, h5ad, batch.join(','))
             }
         }
-
+	
     // Step 4: Prep medians
     prep_medians_output_ch = prep_medians_process(scattered_clusters_ch)
 
@@ -103,7 +107,7 @@ workflow {
         prep_medians_output_ch.partial.groupTuple()
     )
 
-    // Step 6: binary scores
+    // Step 6: binary scores — batched
     binary_scores_input_ch = merged_medians_ch.complete
         .map { meta, adata_prep, medians -> tuple(meta, adata_prep) }
         .combine(
@@ -111,8 +115,11 @@ workflow {
             by: 0
         )
         .flatMap { meta, adata_prep, cluster_order_csv ->
-            cluster_order_csv.splitCsv(header: true).collect { row ->
-                tuple(meta, adata_prep, row.cluster_order)
+            def clusters = cluster_order_csv
+                .splitCsv(header: true)
+                .collect { it.cluster_order }
+            clusters.collate(batchSize).collect { batch ->
+                tuple(meta, adata_prep, batch.join(','))
             }
         }
 
@@ -139,7 +146,7 @@ workflow {
             )
             .map { meta, medians_csv, binary_csv -> tuple(meta, medians_csv, binary_csv) }
     )
-    // Step 8: nsforest
+    // Step 8: nsforest — batched
     nsforest_input_ch = merged_binary_ch.complete
         .map { meta, adata_prep, binary -> tuple(meta, adata_prep) }
         .combine(
@@ -147,11 +154,14 @@ workflow {
             by: 0
         )
         .flatMap { meta, adata_prep, cluster_order_csv ->
-            cluster_order_csv.splitCsv(header: true).collect { row ->
-                tuple(meta, adata_prep, row.cluster_order)
+            def clusters = cluster_order_csv
+                .splitCsv(header: true)
+                .collect { it.cluster_order }
+            clusters.collate(batchSize).collect { batch ->
+                tuple(meta, adata_prep, batch.join(','))
             }
         }
-
+	
     nsforest_output_ch = run_nsforest_process(nsforest_input_ch)
 
     merged_nsforest_ch = merge_nsforest_results_process(
@@ -172,11 +182,11 @@ workflow {
             .map { meta, h5ad, results_csv -> tuple(meta, h5ad, results_csv) }
     )
 
-    // Step 10: Compute silhouette
+    // Step 10: Compute silhouette — h5ad already filtered, no uberon needed
+    // waits for nsforest to complete via join
     silhouette_output_ch = compute_silhouette_process(
         filter_output_ch.results
             .map { meta, h5ad, stats -> tuple(meta, h5ad) }
-            .combine(uberon_ch)
     )
 
     // Step 11a: viz_summary
