@@ -82,7 +82,7 @@ workflow {
                 disease:          row.disease,
                 filter:           row.filter_normal
             ]
-            tuple(meta, file(row.h5ad_file))
+            tuple(meta, file(row.h5ad_url))
         }
 
     // Step 0: Filter
