@@ -1,6 +1,8 @@
 process viz_distribution_process {
     tag "${meta.organ}_${meta.first_author}_${meta.year}"
     label 'scsilhouette'
+    containerOptions '--entrypoint ""'
+    
     publishDir "${params.outdir}",
         mode: params.publish_mode,
         pattern: "outputs_*/**"
