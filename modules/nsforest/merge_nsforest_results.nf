@@ -1,24 +1,18 @@
-/**
- * Merge NSForest Results Module
- *
- * Combines partial NSForest results from parallel run_nsforest jobs.
- * Saves csv + pkl.
- */
 process merge_nsforest_results_process {
     tag "${meta.organ}_${meta.first_author}_${meta.year}"
     label 'nsforest'
-    publishDir "${params.outdir}", 
+    publishDir "${params.outdir}",
         mode: params.publish_mode,
         pattern: "outputs_*/**"
-    
+
     input:
-    tuple val(meta), path(partial_csvs)
-    
+    tuple val(meta), path(partial_csvs, stageAs: "partial_??.csv")
+
     output:
     tuple val(meta),
           path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/${meta.author_cell_type}_results.{csv,pkl}"),
           emit: complete
-    
+
     script:
     """
     nsforest-cli merge-nsforest-results \
