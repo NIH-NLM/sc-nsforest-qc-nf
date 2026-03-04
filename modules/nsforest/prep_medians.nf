@@ -1,22 +1,16 @@
-/**
- * Prep Medians Module (Parallelized by Cluster)
- *
- * Corresponds to DEMO_NS-forest_workflow.py: Section 3
- * Uses ns.pp.prep_medians() to compute median expression per cluster.
- */
 process prep_medians_process {
-    tag "${meta.organ}_${meta.first_author}_${meta.year}_${cluster}"
+    tag "${meta.organ}_${meta.first_author}_${meta.year}"
     label 'nsforest'
-    
+
     input:
-    tuple val(meta), path(h5ad), val(cluster)
-    
+    tuple val(meta), path(h5ad)
+
     output:
-    tuple val(meta), 
+    tuple val(meta),
           path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/adata_prep.h5ad"),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/${meta.author_cell_type}_medians*.csv"),
-          emit: partial
-    
+          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/${meta.author_cell_type}_medians.csv"),
+          emit: complete
+
     script:
     """
     nsforest-cli prep-medians \
@@ -24,7 +18,6 @@ process prep_medians_process {
         --cluster-header ${meta.author_cell_type} \
         --organ ${meta.organ} \
         --first-author ${meta.first_author} \
-        --year ${meta.year} \
-        --cluster-list "${cluster}"
+        --year ${meta.year}
     """
 }
