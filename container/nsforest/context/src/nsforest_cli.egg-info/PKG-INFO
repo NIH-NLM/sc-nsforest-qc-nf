@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: nsforest-cli
+Version: 1.0.0
+Requires-Dist: typer[all]
+Requires-Dist: scanpy
+Requires-Dist: numpy
+Requires-Dist: pandas
+Requires-Dist: scipy
+Requires-Dist: plotly
+Requires-Dist: kaleido
+Dynamic: requires-dist

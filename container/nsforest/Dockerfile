@@ -41,7 +41,7 @@ RUN python -m pip install --no-cache-dir "kaleido==0.2.1"
 RUN python -m pip install --no-cache-dir /app/
 
 # Bake gene mapping at build time — avoids runtime network dependency
-RUN curl -fL https://raw.githubusercontent.com/NIH-NLM/cell-kn/main/data/biomart/gene_mapping.csv \
+RUN curl -fL https://raw.githubusercontent.com/NIH-NLM/cell-kn/main/data/prod/biomart/gene_mapping.csv \
     -o /app/gene_mapping.csv
 
 ENV PYTHONPATH="/opt/nsforest/nsforest"
