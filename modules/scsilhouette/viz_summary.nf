@@ -36,7 +36,7 @@ process viz_summary_process {
         --organ ${meta.organ} \
         --first-author ${meta.first_author} \
         --year ${meta.year} \
-        --embedding ${meta.embedding} \
+        --embedding-key ${meta.embedding} \
         ${doi_flag} \
         ${collection_flag} \
         ${dataset_flag} \
