@@ -74,7 +74,8 @@ process publish_results_process {
     for src_dir in "${outdir}"/outputs_\${NF_ORGAN}_*/; do
         [ -d "\$src_dir" ] || continue
         ls "\$src_dir"/*_results.csv 2>/dev/null || continue
-        dataset_label=\$(basename "\$src_dir" | sed 's/^outputs_//')
+        dataset_label=\$(basename "\$src_dir")
+        dataset_label=\${dataset_label#outputs_}
         prod_dir="data/prod/\${NF_ORGAN}"
         dest="\${prod_dir}/nsforest/\${dataset_label}"
         mkdir -p "\$dest"
@@ -92,7 +93,8 @@ process publish_results_process {
     for src_dir in "${outdir}"/outputs_\${NF_ORGAN}_*/; do
         [ -d "\$src_dir" ] || continue
         ls "\$src_dir"/*_silhouette_scores.csv 2>/dev/null || continue
-        dataset_label=\$(basename "\$src_dir" | sed 's/^outputs_//')
+        dataset_label=\$(basename "\$src_dir")
+        dataset_label=\${dataset_label#outputs_}
         prod_dir="data/prod/\${NF_ORGAN}"
         dest="\${prod_dir}/scsilhouette/\${dataset_label}"
         mkdir -p "\$dest"
