@@ -12,7 +12,7 @@ process compute_silhouette_process {
 
     output:
     tuple val(meta),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.{csv,svg,html,json}"),
+          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.{csv,svg,html,json}",optional: true),
           emit: results
 
     script:

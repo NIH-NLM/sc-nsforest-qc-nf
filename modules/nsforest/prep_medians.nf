@@ -8,7 +8,7 @@ process prep_medians_process {
     output:
     tuple val(meta),
           path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/adata_prep.h5ad"),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.{csv,svg,html,pkl}"),
+          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.{csv,svg,html,pkl}",optional: true),
           emit: complete
 
     script:

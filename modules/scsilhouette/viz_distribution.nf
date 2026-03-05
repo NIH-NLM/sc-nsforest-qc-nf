@@ -15,7 +15,7 @@ process viz_distribution_process {
 
     output:
     tuple val(meta),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.{csv,svg,html,json,pkl}"),
+          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.{csv,svg,html,json,pkl}", optional: true),
           emit: plots
 
     script:

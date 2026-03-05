@@ -16,7 +16,7 @@ process plots_process {
     
     output:
     tuple val(meta),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.{html,svg}"),
+          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.{html,svg}",optional: true),
           emit: plots
     
     script:

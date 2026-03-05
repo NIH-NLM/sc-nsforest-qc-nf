@@ -12,7 +12,7 @@ process viz_dotplot_process {
 
     output:
     tuple val(meta),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*_dotplot_*.{html,svg}"),
+          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*_dotplot_*.{html,svg}", optional: true),
           emit: plots
 
     script:
