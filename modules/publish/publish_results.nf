@@ -80,10 +80,10 @@ process publish_results_process {
         prod_dir="data/prod/\${NF_ORGAN}"
         dest="\${prod_dir}/nsforest/\${dataset_label}"
         mkdir -p "\$dest"
-        find "\$src_dir" -maxdepth 1 -type f ! -name "*.h5ad" \
-            -exec cp -p {} "\$dest/" \;
-        echo "  + \$dataset_label"
-        n_nsforest=\$(( n_nsforest + 1 ))
+        for f in "\$src_dir"*; do
+            case "\$f" in *.h5ad) continue;; esac
+            [ -f "\$f" ] && cp -p "\$f" "\$dest/"
+        done
     done
     echo "  total: \$n_nsforest"
 
@@ -99,9 +99,10 @@ process publish_results_process {
         prod_dir="data/prod/\${NF_ORGAN}"
         dest="\${prod_dir}/scsilhouette/\${dataset_label}"
         mkdir -p "\$dest"
-        find "\$src_dir" -maxdepth 1 -type f ! -name "*.h5ad" \
-            -exec cp -p {} "\$dest/" \;
-        echo "  + \$dataset_label"
+        for f in "\$src_dir"*; do
+            case "\$f" in *.h5ad) continue;; esac
+            [ -f "\$f" ] && cp -p "\$f" "\$dest/"
+        done
         n_silhouette=\$(( n_silhouette + 1 ))
     done
     echo "  total: \$n_silhouette"
