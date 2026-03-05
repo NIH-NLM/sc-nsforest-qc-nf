@@ -197,7 +197,7 @@ workflow {
             .collect()
 
         silhouette_signals_ch = viz_summary_process.out.plots
-            .map { meta, files -> "${meta.organ}_${meta.first_author}_${meta.year}" }
+            .map { meta, files, dataset_summary -> "${meta.organ}_${meta.first_author}_${meta.year}" }
             .collect()
 
         publish_results_process(
