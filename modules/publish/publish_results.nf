@@ -91,7 +91,7 @@ process publish_results_process {
     echo ""
     echo "--- scsilhouette ---"
     n_silhouette=0
-    for src_dir in "${outdir}"/outputs_\${NF_ORGAN}_*/; do
+    for src_dir in "\${NF_OUTDIR}"/outputs_\${NF_ORGAN}_*/; do
         [ -d "\$src_dir" ] || continue
         ls "\$src_dir"/*_silhouette_scores.csv 2>/dev/null || continue
         dataset_label=\$(basename "\$src_dir")
