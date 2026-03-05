@@ -15,7 +15,7 @@ include { compute_silhouette_process }             from './modules/scsilhouette/
 include { viz_summary_process }                    from './modules/scsilhouette/viz_summary.nf'
 include { viz_dotplot_process }                    from './modules/scsilhouette/viz_dotplot.nf'
 include { viz_distribution_process }               from './modules/scsilhouette/viz_distribution.nf'
-// include { publish_results_process }             from './modules/publish/publish_results.nf'
+include { publish_results_process }             from './modules/publish/publish_results.nf'
 
 params.batch_size       = 10
 params.datasets_csv     = null
