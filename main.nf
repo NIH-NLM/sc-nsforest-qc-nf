@@ -190,5 +190,6 @@ workflow {
         filter_output_ch.results.map { meta, h5ad, stats -> tuple(meta, h5ad) }
     )
 
-//    publish_results_process(params.organ, nsforest_done_ch, silhouette_done_ch)
+    // Step 10 - publish to a branch
+    publish_results_process(params.organ, nsforest_done_ch, silhouette_done_ch)
 }
