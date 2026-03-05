@@ -63,10 +63,17 @@ workflow {
                 author_cell_type: row.author_cell_type,
                 embedding:        row.embedding,
                 disease:          row.disease,
-                filter:           row.filter_normal
+                filter:           row.filter_normal,
+                doi:              row.doi,
+                collection_name:  row.collection_name,
+                dataset_title:    row.dataset_title,
+                journal:          row.journal,
+                collection_url:   row.collection_url,
+                explorer_url:     row.explorer_url,
+                h5ad_url:         row.h5ad_url,
             ]
             tuple(meta, row.h5ad_url)
-        }
+	}
 
     // Step 0a: Download h5ad from CellxGene URL
     downloaded_ch = download_h5ad_process(csv_rows_ch)
