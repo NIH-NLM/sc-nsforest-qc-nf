@@ -46,7 +46,7 @@ process filter_adata_process {
     """
     nsforest-cli filter-adata \
         --h5ad-path ${h5ad} \
-        --cluster-header ${meta.author_cell_type} \
+        --cluster-header "${meta.author_cell_type}" \
         --organ ${meta.organ} \
         --first-author ${meta.first_author} \
         --year ${meta.year} \

@@ -20,7 +20,7 @@ process viz_dotplot_process {
     scsilhouette viz-dotplot \
         --h5ad-path ${h5ad} \
         --embedding-key ${meta.embedding} \
-        --cluster-header ${meta.author_cell_type} \
+        --cluster-header "${meta.author_cell_type}" \
         --organ ${meta.organ} \
         --first-author ${meta.first_author} \
         --year ${meta.year}
