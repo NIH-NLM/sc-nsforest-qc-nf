@@ -192,18 +192,52 @@ workflow {
 
     // Step 10: Publish — fires once ALL datasets complete both branches
     if (params.github_token) {
-        nsforest_signals_ch = plots_process.out.plots
-            .map { meta, files -> "${meta.organ}_${meta.first_author}_${meta.year}" }
-            .collect()
-
-        silhouette_signals_ch = viz_summary_process.out.plots
-            .map { meta, files, dataset_summary -> "${meta.organ}_${meta.first_author}_${meta.year}" }
+        all_files_ch = plots_process.out.plots
+            .map { meta, files ->
+                def label = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
+                def flist = files instanceof List ? files : [files]
+                flist.collect { f -> "${label}:::${f}" }
+            }
+            .mix(
+                viz_summary_process.out.plots.map { meta, files, dataset_summary ->
+                    def label = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
+                    def flist = files instanceof List ? files : [files]
+                    (flist + [dataset_summary]).collect { f -> "${label}:::${f}" }
+                }
+            )
+            .mix(
+                viz_distribution_process.out.plots.map { meta, files ->
+                    def label = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
+                    def flist = files instanceof List ? files : [files]
+                    flist.collect { f -> "${label}:::${f}" }
+                }
+            )
+            .mix(
+                viz_dotplot_process.out.plots.map { meta, files ->
+                    def label = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
+                    def flist = files instanceof List ? files : [files]
+                    flist.collect { f -> "${label}:::${f}" }
+                }
+            )
+            .mix(
+                compute_silhouette_process.out.results.map { meta, scores, cluster_summary, annotation ->
+                    def label = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
+                    [scores, cluster_summary, annotation].collect { f -> "${label}:::${f}" }
+                }
+            )
+            .mix(
+                merge_nsforest_results_process.out.complete.map { meta, files ->
+                    def label = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
+                    def flist = files instanceof List ? files : [files]
+                    flist.collect { f -> "${label}:::${f}" }
+                }
+            )
+            .flatten()
             .collect()
 
         publish_results_process(
             params.organ,
-            nsforest_signals_ch,
-            silhouette_signals_ch
+            all_files_ch
         )
     } else {
         log.warn "WARNING: --github_token not set — skipping publish step"
