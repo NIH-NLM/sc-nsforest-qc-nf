@@ -190,6 +190,22 @@ workflow {
         filter_output_ch.results.map { meta, h5ad, stats -> tuple(meta, h5ad) }
     )
 
-    // Step 10 - publish to a branch
-    publish_results_process(params.organ, nsforest_done_ch, silhouette_done_ch)
+    // Step 10: Publish — fires once ALL datasets complete both branches
+    if (params.github_token) {
+        nsforest_signals_ch = plots_process.out.plots
+            .map { meta, files -> "${meta.organ}_${meta.first_author}_${meta.year}" }
+            .collect()
+
+        silhouette_signals_ch = viz_summary_process.out.plots
+            .map { meta, files -> "${meta.organ}_${meta.first_author}_${meta.year}" }
+            .collect()
+
+        publish_results_process(
+            params.organ,
+            nsforest_signals_ch,
+            silhouette_signals_ch
+        )
+    } else {
+        log.warn "WARNING: --github_token not set — skipping publish step"
+    }
 }
