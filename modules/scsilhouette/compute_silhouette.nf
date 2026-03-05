@@ -15,7 +15,6 @@ process compute_silhouette_process {
           path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/${meta.author_cell_type}_silhouette_scores.csv"),
           path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/${meta.author_cell_type}_cluster_summary.csv"),
           path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/${meta.author_cell_type}_annotation.json"),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/${meta.author_cell_type}_dataset_summary.csv"),
           emit: results
 
     script:
