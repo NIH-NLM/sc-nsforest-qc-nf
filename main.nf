@@ -160,10 +160,17 @@ workflow {
         filter_output_ch.results
             .map { meta, h5ad, stats -> tuple(meta, h5ad) }
     )
-
-    // Step 9a: viz_summary — waits for NSForest via join
+    
+    // Step 9a: viz_summary
     viz_summary_process(
         silhouette_output_ch.results
+            .map { meta, files ->
+                def flist = files instanceof List ? files : [files]
+                def scores     = flist.find { it.name.endsWith('_silhouette_scores.csv') }
+                def summary    = flist.find { it.name.endsWith('_cluster_summary.csv') }
+                def annotation = flist.find { it.name.endsWith('_annotation.json') }
+                tuple(meta, scores, summary, annotation)
+            }
             .join(
                 merged_nsforest_ch.complete.map { meta, results_files ->
                     def results_csv = results_files instanceof List
@@ -179,7 +186,11 @@ workflow {
 
     // Step 9b: viz_distribution
     viz_distribution_process(
-        silhouette_output_ch.results.map { meta, scores, summary, annotation ->
+        silhouette_output_ch.results.map { meta, files ->
+            def flist = files instanceof List ? files : [files]
+            def scores     = flist.find { it.name.endsWith('_silhouette_scores.csv') }
+            def summary    = flist.find { it.name.endsWith('_cluster_summary.csv') }
+            def annotation = flist.find { it.name.endsWith('_annotation.json') }
             tuple(meta, scores, summary, annotation)
         }
     )

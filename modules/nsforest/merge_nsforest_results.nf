@@ -10,7 +10,7 @@ process merge_nsforest_results_process {
 
     output:
     tuple val(meta),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/${meta.author_cell_type}_results.{csv,pkl}"),
+          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.{csv,svg,html,pkl}"),
           emit: complete
 
     script:

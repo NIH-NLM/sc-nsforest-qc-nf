@@ -37,7 +37,7 @@ process filter_adata_process {
     output:
     tuple val(meta),
           path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/adata_filtered.h5ad"),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/${meta.author_cell_type}*.{csv,svg}"),
+	  path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.{csv,svg}"),
           emit: results
 
     script:

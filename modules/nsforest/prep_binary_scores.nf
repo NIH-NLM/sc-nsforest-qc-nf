@@ -8,7 +8,7 @@ process prep_binary_scores_process {
     output:
     tuple val(meta),
           path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/adata_prep.h5ad"),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/${meta.author_cell_type}_binary_scores.csv"),
+          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.{csv,svg,html,pkl}"),
           emit: complete
 
     script:

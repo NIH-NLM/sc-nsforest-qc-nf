@@ -16,8 +16,7 @@ process viz_summary_process {
 
     output:
     tuple val(meta),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/${meta.author_cell_type}_silhouette_fscore_summary.{html,svg}"),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/${meta.author_cell_type}_dataset_summary.csv"),
+          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.{csv,svg,html,json}"),
           emit: plots
       
     script:

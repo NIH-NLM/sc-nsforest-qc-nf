@@ -11,10 +11,10 @@ process dendrogram_process {
     output:
     tuple val(meta),
           path(h5ad),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/${meta.author_cell_type}_cluster_order.csv"),
+          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.{csv}"),
           emit: stats
     tuple val(meta),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/${meta.author_cell_type}*.{csv,svg}"),
+          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.{csv,svg,html}"),
           emit: results
 
     script:
