@@ -52,11 +52,12 @@ process publish_results_process {
 
     export GITHUB_TOKEN="${params.github_token}"
     NF_ORGAN="${organ}"
+    NF_OUTDIR="${outdir}"
 
     echo "=========================================="
     echo " organ   : \${NF_ORGAN}"
     echo " branch  : ${branch}"
-    echo " outdir  : ${outdir}"
+    echo " outdir  : \${NF_OUTDIR}"
     echo "=========================================="
 
     # Clone cell-kn (shallow)
@@ -71,7 +72,7 @@ process publish_results_process {
     echo ""
     echo "--- NSForest ---"
     n_nsforest=0
-    for src_dir in "${outdir}"/outputs_\${NF_ORGAN}_*/; do
+    for src_dir in "\${NF_OUTDIR}"/outputs_\${NF_ORGAN}_*/; do
         [ -d "\$src_dir" ] || continue
         ls "\$src_dir"/*_results.csv 2>/dev/null || continue
         dataset_label=\$(basename "\$src_dir")
