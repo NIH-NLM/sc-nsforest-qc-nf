@@ -40,7 +40,7 @@ def run_nsforest(h5ad_path, cluster_header, organ, first_author, year,
     log_section("NSForest: Run NSForest")
     
     output_folder = create_output_dir(organ, first_author, year) + "/"
-    outputfilename_prefix = cluster_header
+    outputfilename_prefix = cluster_header.replace(" ", "_")
     
     # Load prepared adata (must have medians and binary_scores in varm)
     adata_prep = load_h5ad(h5ad_path, cluster_header)

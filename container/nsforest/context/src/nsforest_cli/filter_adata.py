@@ -287,7 +287,7 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, year,
     log_section("NSForest: Filter AnnData")
 
     output_folder         = create_output_dir(organ, first_author, year) + "/"
-    outputfilename_prefix = cluster_header
+    outputfilename_prefix = cluster_header.replace(" ", "_")
 
     logger.info(f"Loading: {h5ad_path}")
     adata = load_h5ad(h5ad_path, cluster_header)

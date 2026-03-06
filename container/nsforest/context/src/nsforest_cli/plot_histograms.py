@@ -33,7 +33,7 @@ def run_plot_histograms(medians_csv, binary_scores_csv, cluster_header, organ, f
     log_section("NSForest: Plot Histograms")
     
     output_folder = create_output_dir(organ, first_author, year)
-    outputfilename_suffix = cluster_header
+    outputfilename_suffix = cluster_header.replace(" ", "_")
     
     # Load data
     logger.info(f"Loading medians: {medians_csv}")

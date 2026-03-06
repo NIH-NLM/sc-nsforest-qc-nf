@@ -24,7 +24,7 @@ def run_prep_binary_scores(h5ad_path, cluster_header, organ, first_author, year,
     log_section("NSForest: Prep Binary Scores")
     
     output_folder = create_output_dir(organ, first_author, year)
-    outputfilename_prefix = cluster_header
+    outputfilename_prefix = cluster_header.replace(" ", "_")
     
     # Load adata_prep (should already be filtered by prep_medians)
     adata_prep = load_h5ad(h5ad_path, cluster_header)

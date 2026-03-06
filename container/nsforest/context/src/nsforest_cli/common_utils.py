@@ -34,7 +34,7 @@ def get_output_prefix(output_dir, cluster_header):
     
     Pattern: outputs_{organ}_{author}_{year}/{cluster_header}_
     """
-    return f"{output_dir}/{cluster_header}"
+    return f"{output_dir}/{cluster_header.replace(" ", "_")}"
 
 
 def load_h5ad(h5ad_path, cluster_header):

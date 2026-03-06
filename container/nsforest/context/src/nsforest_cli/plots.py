@@ -57,7 +57,7 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, year)
     log_section("NSForest: Plotting")
     
     output_folder = create_output_dir(organ, first_author, year) + "/"
-    outputfilename_prefix = cluster_header
+    outputfilename_prefix = cluster_header.replace(" ", "_")
     
     # Load results
     logger.info(f"Loading results: {results_csv}")

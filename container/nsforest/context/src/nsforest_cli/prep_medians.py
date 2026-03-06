@@ -25,7 +25,7 @@ def run_prep_medians(h5ad_path, cluster_header, organ, first_author, year, clust
     log_section("NSForest: Prep Medians")
     
     output_folder = create_output_dir(organ, first_author, year)
-    outputfilename_prefix = cluster_header
+    outputfilename_prefix = cluster_header.replace(" ", "_")
     
     # Load and prepare data
     adata = load_h5ad(h5ad_path, cluster_header)

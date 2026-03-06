@@ -35,7 +35,7 @@ def run_merge_nsforest_results(partial_files, cluster_header, organ, first_autho
     
     # Save outputs
     output_folder = create_output_dir(organ, first_author, year)
-    outputfilename_prefix = cluster_header
+    outputfilename_prefix = cluster_header.replace(" ", "_")
     
     results.to_csv(output_folder + "/" + outputfilename_prefix + "_results.csv", index=False)
     results.to_pickle(output_folder + "/" + outputfilename_prefix + "_results.pkl")

@@ -35,7 +35,7 @@ def run_merge_binary_scores(partial_files, cluster_header, organ, first_author, 
     
     # Save outputs
     output_folder = create_output_dir(organ, first_author, year)
-    outputfilename_prefix = cluster_header
+    outputfilename_prefix = cluster_header.replace(" ", "_")
     
     df_binary_scores.to_csv(output_folder + "/" + outputfilename_prefix + "_binary_scores.csv")
     df_binary_scores.to_pickle(output_folder + "/" + outputfilename_prefix + "_binary_scores.pkl")

@@ -33,8 +33,8 @@ def run_dendrogram(h5ad_path, cluster_header, organ, first_author, year):
     
     # Match DEMO variable names exactly
     output_folder = create_output_dir(organ, first_author, year) + "/"
-    outputfilename_suffix = cluster_header
-    outputfilename_prefix = cluster_header
+    outputfilename_suffix = cluster_header.replace(" ", "_")
+    outputfilename_prefix = cluster_header.replace(" ", "_")
     
     adata = load_h5ad(h5ad_path, cluster_header)
     

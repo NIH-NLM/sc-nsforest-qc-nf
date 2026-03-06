@@ -38,7 +38,7 @@ def run_merge_medians(partial_files, cluster_header, organ, first_author, year):
     
     # Save outputs (matching DEMO)
     output_folder = create_output_dir(organ, first_author, year)
-    outputfilename_prefix = cluster_header
+    outputfilename_prefix = cluster_header.replace(" ", "_")
     
     df_medians.to_csv(output_folder + "/" + outputfilename_prefix + "_medians.csv")
     df_medians.to_pickle(output_folder + "/" + outputfilename_prefix + "_medians.pkl")
