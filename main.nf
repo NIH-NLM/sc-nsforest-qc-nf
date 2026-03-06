@@ -44,7 +44,7 @@ workflow {
         .ifEmpty { exit 1, "Cannot find datasets CSV: ${params.datasets_csv}" }
         .splitCsv(header: true, sep: ',')
         .filter { row ->
-            def ref = row.reference?.trim().toLowerCase()
+            def ref = row.reference?.trim()?.toLowerCase()
             if (ref in ['exclude', 'delete', 'merge', 'question']) {
                 log.info "Skipping ${row.first_author} ${row.year} — reference='${row.reference}'"
                 return false
