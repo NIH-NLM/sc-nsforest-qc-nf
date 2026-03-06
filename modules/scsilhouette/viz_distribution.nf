@@ -23,8 +23,8 @@ process viz_distribution_process {
     scsilhouette viz-distribution \
         --cluster-summary-path ${cluster_summary} \
         --cluster-header "${meta.author_cell_type}" \
-        --organ ${meta.organ} \
-        --first-author ${meta.first_author} \
-        --year ${meta.year}
+        --organ "${meta.organ}" \
+        --first-author "${meta.first_author}" \
+        --year "${meta.year}"
     """
 }

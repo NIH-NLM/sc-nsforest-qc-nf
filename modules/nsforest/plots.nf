@@ -25,8 +25,8 @@ process plots_process {
         --h5ad-path ${h5ad} \
         --results-csv ${results_csv} \
         --cluster-header "${meta.author_cell_type}" \
-        --organ ${meta.organ} \
-        --first-author ${meta.first_author} \
-        --year ${meta.year}
+        --organ "${meta.organ}" \
+        --first-author "${meta.first_author}" \
+        --year "${meta.year}"
     """
 }

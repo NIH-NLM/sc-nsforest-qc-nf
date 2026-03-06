@@ -24,8 +24,8 @@ process plot_histograms_process {
         --medians-csv ${medians_csv} \
         --binary-scores-csv ${binary_scores_csv} \
         --cluster-header "${meta.author_cell_type}" \
-        --organ ${meta.organ} \
-        --first-author ${meta.first_author} \
-        --year ${meta.year}
+        --organ "${meta.organ}" \
+        --first-author "${meta.first_author}" \
+        --year "${meta.year}"
     """
 }

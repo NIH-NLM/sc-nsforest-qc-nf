@@ -32,10 +32,10 @@ process viz_summary_process {
     scsilhouette viz-summary \
         --silhouette-score-path ${silhouette_scores} \
         --cluster-header "${meta.author_cell_type}" \
-        --organ ${meta.organ} \
-        --first-author ${meta.first_author} \
-        --year ${meta.year} \
-        --embedding-key ${meta.embedding} \
+        --organ "${meta.organ}" \
+        --first-author "${meta.first_author}" \
+        --year "${meta.year}" \
+        --embedding-key "${meta.embedding}" \
         ${doi_flag} \
         ${collection_flag} \
         ${dataset_flag} \

@@ -16,8 +16,8 @@ process prep_binary_scores_process {
     nsforest-cli prep-binary-scores \
         --h5ad-path ${adata_prep} \
         --cluster-header "${meta.author_cell_type}" \
-        --organ ${meta.organ} \
-        --first-author ${meta.first_author} \
-        --year ${meta.year}
+        --organ "${meta.organ}" \
+        --first-author "${meta.first_author}" \
+        --year "${meta.year}"
     """
 }

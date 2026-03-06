@@ -20,11 +20,11 @@ process compute_silhouette_process {
     scsilhouette compute-silhouette \
         --h5ad-path ${h5ad} \
         --cluster-header "${meta.author_cell_type}" \
-        --embedding-key ${meta.embedding} \
-        --organ ${meta.organ} \
-        --first-author ${meta.first_author} \
-        --year ${meta.year} \
-        --disease ${meta.disease} \
+        --embedding-key "${meta.embedding}" \
+        --organ "${meta.organ}" \
+        --first-author "${meta.first_author}" \
+        --year "${meta.year}" \
+        --disease "${meta.disease}" \
         --save-scores \
         --save-cluster-summary \
         --save-annotation

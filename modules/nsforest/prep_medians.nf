@@ -16,8 +16,8 @@ process prep_medians_process {
     nsforest-cli prep-medians \
         --h5ad-path ${h5ad} \
         --cluster-header "${meta.author_cell_type}" \
-        --organ ${meta.organ} \
-        --first-author ${meta.first_author} \
-        --year ${meta.year}
+        --organ "${meta.organ}" \
+        --first-author "${meta.first_author}" \
+        --year "${meta.year}"
     """
 }

@@ -18,8 +18,8 @@ process merge_nsforest_results_process {
     nsforest-cli merge-nsforest-results \
         --partial-files ${partial_csvs.join(',')} \
         --cluster-header "${meta.author_cell_type}" \
-        --organ ${meta.organ} \
-        --first-author ${meta.first_author} \
-        --year ${meta.year}
+        --organ "${meta.organ}" \
+        --first-author "${meta.first_author}" \
+        --year "${meta.year}"
     """
 }
