@@ -231,9 +231,10 @@ workflow {
                 }
             )
             .mix(
-                compute_silhouette_process.out.results.map { meta, scores, cluster_summary, annotation ->
+ 	        compute_silhouette_process.out.results.map { meta, files ->
                     def label = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
-                    [scores, cluster_summary, annotation].collect { f -> "${label}:::${f}" }
+                    def flist = files instanceof List ? files : [files]
+                    flist.collect { f -> "${label}:::${f}" }
                 }
             )
             .mix(
