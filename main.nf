@@ -204,37 +204,35 @@ workflow {
         filter_output_ch.results.map { meta, h5ad, stats -> tuple(meta, h5ad) }
     )
 
-    // Step 10: Publish — fires once ALL datasets complete both branches
+    // Step 10: Publish — fires once per dataset
     if (params.github_token) {
-        all_files_ch = plots_process.out.plots
-            .map { meta, files -> files instanceof List ? files : [files] }
-            .mix(
+        per_dataset_files_ch = plots_process.out.plots
+            .map { meta, files -> tuple(meta, files instanceof List ? files : [files]) }
+            .join(
                 viz_summary_process.out.plots
-                    .map { meta, files -> files instanceof List ? files : [files] }
+                    .map { meta, files -> tuple(meta, files instanceof List ? files : [files]) }
             )
-            .mix(
+            .join(
                 viz_distribution_process.out.plots
-                    .map { meta, files -> files instanceof List ? files : [files] }
+                    .map { meta, files -> tuple(meta, files instanceof List ? files : [files]) }
             )
-            .mix(
+            .join(
                 viz_dotplot_process.out.plots
-                    .map { meta, files -> files instanceof List ? files : [files] }
+                    .map { meta, files -> tuple(meta, files instanceof List ? files : [files]) }
             )
-            .mix(
+            .join(
                 compute_silhouette_process.out.results
-                    .map { meta, files -> files instanceof List ? files : [files] }
+                    .map { meta, files -> tuple(meta, files instanceof List ? files : [files]) }
             )
-            .mix(
+            .join(
                 merge_nsforest_results_process.out.complete
-                    .map { meta, files -> files instanceof List ? files : [files] }
+                    .map { meta, files -> tuple(meta, files instanceof List ? files : [files]) }
             )
-            .flatten()
-            .collect()
+            .map { meta, plots, viz_summary, viz_dist, viz_dot, silhouette, nsforest ->
+                tuple(meta, (plots + viz_summary + viz_dist + viz_dot + silhouette + nsforest).flatten())
+            }
 
-        publish_results_process(
-            params.organ,
-            all_files_ch
-        )
+        publish_results_process(per_dataset_files_ch)
     } else {
         log.warn "WARNING: --github_token not set — skipping publish step"
     }
