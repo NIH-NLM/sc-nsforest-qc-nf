@@ -2,28 +2,18 @@
  * Publish Results to cell-kn GitHub Repository
  *
  * Fires ONCE after ALL datasets in the CSV have been processed.
- * Uses .collect() sentinel signals from plots_process (NSForest branch)
- * and viz_summary_process (scsilhouette branch) as completion gates.
+ * Files are staged by Nextflow into the work directory, then
+ * copied into the cell-kn repo under data/prod/{organ}/sc-nsforest-qc/{label}/
+ * where label is derived from the file's parent directory name (outputs_*).
  *
  * Pushes to a branch — no PR opened. Inspect branch on GitHub then
  * open PR manually and assign reviewer.
- *
- * Published directory structure in cell-kn:
- * ------------------------------------------
- *   data/prod/{organ}/sc-nsforest-qc/{organ}_{first_author}_{year}/
- *     All NSForest outputs EXCEPT *.h5ad files.
- *
- *   data/prod/{organ}/sc-nsforest-qc/{organ}_{first_author}_{year}/
- *     All scsilhouette outputs EXCEPT *.h5ad files.
- *     Includes dataset_summary.csv with provenance + QC metrics.
  *
  * Branch naming:
  *   workflow/{organ}_{YYYY-MM-DD}_{workflow.runName}
  *
  * Required params:
  *   params.github_token   GitHub PAT with repo write access.
- *                         Pass via --github_token or nextflow.config.
- *                         NEVER hardcode.
  *   params.outdir         Results directory written by all publishDir steps.
  */
 process publish_results_process {
@@ -36,7 +26,7 @@ process publish_results_process {
 
     input:
     val organ
-    val all_entries
+    path all_files
 
     output:
     path "publish_report.txt", emit: report
@@ -62,11 +52,10 @@ process publish_results_process {
     git checkout -b ${branch}
 
     n=0
-    for entry in ${all_entries.join(' ')}; do
-        label=\${entry%%:::*}
-        filepath=\${entry##*:::}
+    for filepath in ${all_files}; do
         [ -f "\$filepath" ] || continue
-        case "\$filepath" in *.h5ad) continue;; esac
+        case "\$filepath" in *.h5ad|*.pkl) continue;; esac
+        label=\$(basename \$(dirname "\$filepath"))
         dest="data/prod/${organ}/sc-nsforest-qc/\${label}"
         mkdir -p "\$dest"
         cp -p "\$filepath" "\$dest/"
@@ -113,5 +102,4 @@ branch_url: https://github.com/NIH-NLM/cell-kn/tree/${branch}
 REPORT
     cat ../publish_report.txt
     """
-
 }

@@ -207,45 +207,26 @@ workflow {
     // Step 10: Publish — fires once ALL datasets complete both branches
     if (params.github_token) {
         all_files_ch = plots_process.out.plots
-            .map { meta, files ->
-                def label = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
-                def flist = files instanceof List ? files : [files]
-                flist.collect { f -> "${label}:::${f}" }
-            }
+            .map { meta, files -> files instanceof List ? files : [files] }
             .mix(
-		viz_summary_process.out.plots.map { meta, files ->
-                    def label = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
-                    def flist = files instanceof List ? files : [files]
-                    flist.collect { f -> "${label}:::${f}" }
-                }
+                viz_summary_process.out.plots
+                    .map { meta, files -> files instanceof List ? files : [files] }
             )
             .mix(
-                viz_distribution_process.out.plots.map { meta, files ->
-                    def label = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
-                    def flist = files instanceof List ? files : [files]
-                    flist.collect { f -> "${label}:::${f}" }
-                }
+                viz_distribution_process.out.plots
+                    .map { meta, files -> files instanceof List ? files : [files] }
             )
             .mix(
-                viz_dotplot_process.out.plots.map { meta, files ->
-                    def label = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
-                    def flist = files instanceof List ? files : [files]
-                    flist.collect { f -> "${label}:::${f}" }
-                }
+                viz_dotplot_process.out.plots
+                    .map { meta, files -> files instanceof List ? files : [files] }
             )
             .mix(
-                compute_silhouette_process.out.results.map { meta, files ->
-                    def label = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
-                    def flist = files instanceof List ? files : [files]
-                    flist.collect { f -> "${label}:::${f}" }
-                }
+                compute_silhouette_process.out.results
+                    .map { meta, files -> files instanceof List ? files : [files] }
             )
             .mix(
-                merge_nsforest_results_process.out.complete.map { meta, files ->
-                    def label = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
-                    def flist = files instanceof List ? files : [files]
-                    flist.collect { f -> "${label}:::${f}" }
-                }
+                merge_nsforest_results_process.out.complete
+                    .map { meta, files -> files instanceof List ? files : [files] }
             )
             .flatten()
             .collect()
