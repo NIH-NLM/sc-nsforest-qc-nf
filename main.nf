@@ -42,7 +42,7 @@ workflow {
     csv_rows_ch = Channel
         .fromPath(params.datasets_csv)
         .ifEmpty { exit 1, "Cannot find datasets CSV: ${params.datasets_csv}" }
-        .splitCsv(header: true, sep: ',', quote: '"')
+        .splitCsv(header: true, sep: ',')
         .filter { row ->
             def ref = row.reference?.trim().toLowerCase()
             if (ref in ['exclude', 'delete', 'merge', 'question']) {
