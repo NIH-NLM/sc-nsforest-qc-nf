@@ -213,10 +213,10 @@ workflow {
                 flist.collect { f -> "${label}:::${f}" }
             }
             .mix(
-                viz_summary_process.out.plots.map { meta, files, dataset_summary ->
+		viz_summary_process.out.plots.map { meta, files ->
                     def label = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
                     def flist = files instanceof List ? files : [files]
-                    (flist + [dataset_summary]).collect { f -> "${label}:::${f}" }
+                    flist.collect { f -> "${label}:::${f}" }
                 }
             )
             .mix(
