@@ -15,7 +15,7 @@ include { compute_silhouette_process }             from './modules/scsilhouette/
 include { viz_summary_process }                    from './modules/scsilhouette/viz_summary.nf'
 include { viz_dotplot_process }                    from './modules/scsilhouette/viz_dotplot.nf'
 include { viz_distribution_process }               from './modules/scsilhouette/viz_distribution.nf'
-include { publish_results_process }             from './modules/publish/publish_results.nf'
+include { publish_results_process }                from './modules/publish/publish_results.nf'
 
 params.batch_size       = 10
 params.datasets_csv     = null
@@ -73,7 +73,7 @@ workflow {
                 h5ad_url:         row.h5ad_url,
             ]
             tuple(meta, row.h5ad_url)
-	}
+        }
 
     // Step 0a: Download h5ad from CellxGene URL
     downloaded_ch = download_h5ad_process(csv_rows_ch)
@@ -126,7 +126,10 @@ workflow {
             by: 0
         )
         .flatMap { meta, adata_prep, cluster_order_csv ->
-            def clusters = cluster_order_csv
+            def csv_file = cluster_order_csv instanceof List
+                ? cluster_order_csv.find { it.name.endsWith('_cluster_order.csv') }
+                : cluster_order_csv
+            def clusters = csv_file
                 .splitCsv(header: true)
                 .collect { it.cluster_order }
             clusters.collate(batchSize).collect { batch ->
@@ -161,7 +164,7 @@ workflow {
         filter_output_ch.results
             .map { meta, h5ad, stats -> tuple(meta, h5ad) }
     )
-    
+
     // Step 9a: viz_summary
     viz_summary_process(
         silhouette_output_ch.results
@@ -231,7 +234,7 @@ workflow {
                 }
             )
             .mix(
- 	        compute_silhouette_process.out.results.map { meta, files ->
+                compute_silhouette_process.out.results.map { meta, files ->
                     def label = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
                     def flist = files instanceof List ? files : [files]
                     flist.collect { f -> "${label}:::${f}" }
