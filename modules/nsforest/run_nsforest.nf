@@ -24,7 +24,7 @@ process run_nsforest_process {
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
         --year "${meta.year}" \
-        --cluster-list "${cluster}" \
+        --cluster-list '${cluster}' \
         --n-trees 1000 \
         --n-genes-eval 6
     """
