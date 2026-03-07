@@ -1,12 +1,17 @@
 /**
  * Publish Results to cell-kn GitHub Repository
  *
- * Fires once per dataset. Reads files directly from params.outdir
- * where all publishDir steps have already written outputs.
+ * Fires once per dataset. Reads files from S3 results path derived
+ * from workflow.workDir (works on CloudOS and other platforms).
  *
  * Branch naming:
  *   {YYYY}-{mon}-{DD}-{organ}-{first_author}-{year}-sc-nsforest-qc-nf
  *   e.g. 2026-mar-06-skin-of-body-Wiedemann-2023-sc-nsforest-qc-nf
+ *
+ * Platform notes:
+ *   CloudOS: publishDir files land at s3://.../jobs/{id}/results/results/{label}/
+ *            derived by replacing /work with /results/results in workflow.workDir
+ *   Other:   set params.publish_base explicitly if needed
  */
 process publish_results_process {
     tag "publish_${meta.organ}_${meta.first_author}_${meta.year}"
@@ -29,15 +34,16 @@ process publish_results_process {
     def label     = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
     def repo_url  = "https://\${GITHUB_TOKEN}@github.com/NIH-NLM/cell-kn.git"
     def report    = "publish_report_${meta.organ}_${meta.first_author}_${meta.year}.txt"
-    // CloudOS mounts publishDir outputs at /home/job/{params.outdir} in every container
-    def src_dir = "/home/job/${params.outdir}/${label}"
+    // Derive S3 results path from workDir: replace /work with /results/results
+    def s3_base   = workflow.workDir.toString().replaceAll('/work$', '')
+    def src_dir   = "${s3_base}/results/results/${label}"
     """
     set -euo pipefail
 
     export GITHUB_TOKEN="${params.github_token}"
 
-    echo " src_dir             : ${src_dir}"
-    ls "${src_dir}/" || echo "CANNOT LIST src_dir"
+    echo " src_dir : ${src_dir}"
+    aws s3 ls "${src_dir}/" || echo "CANNOT LIST src_dir"
 
     echo "=========================================="
     echo " organ  : ${meta.organ}"
@@ -56,14 +62,11 @@ process publish_results_process {
     dest="data/prod/${meta.organ}/sc-nsforest-qc/${label}"
     mkdir -p "\$dest"
 
-    n=0
-    for filepath in ${src_dir}/*; do
-        [ -f "\$filepath" ] || continue
-        case "\$filepath" in *.h5ad|*.pkl) continue;; esac
-        cp -p "\$filepath" "\$dest/"
-        n=\$(( n + 1 ))
-    done
+    aws s3 cp --recursive "${src_dir}/" "\$dest/" \
+        --exclude "*.h5ad" \
+        --exclude "*.pkl"
 
+    n=\$(aws s3 ls "${src_dir}/" | grep -v "\.h5ad\$" | grep -v "\.pkl\$" | grep -v "^\$" | wc -l)
     echo "Files copied: \$n"
 
     git add data/prod/${meta.organ}/sc-nsforest-qc/
