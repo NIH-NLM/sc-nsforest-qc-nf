@@ -29,7 +29,7 @@ process publish_results_process {
     def label     = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
     def repo_url  = "https://\${GITHUB_TOKEN}@github.com/NIH-NLM/cell-kn.git"
     def report    = "publish_report_${meta.organ}_${meta.first_author}_${meta.year}.txt"
-    def src_dir   = "${params.resolved_outdir}/${label}"
+    def src_dir = "/home/job/${params.outdir}/${label}"
     """
     set -euo pipefail
 
