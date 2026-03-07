@@ -28,7 +28,14 @@ params.outdir           = './results'
 params.publish_mode     = 'copy'
 
 workflow {
-
+    params.resolved_outdir = workflow.launchDir.toString() + '/' + params.outdir
+    log.info "workflow.workDir    : ${workflow.workDir}"
+    log.info "workflow.launchDir  : ${workflow.launchDir}"
+    log.info "workflow.projectDir : ${workflow.projectDir}"
+    log.info "workflow.runName    : ${workflow.runName}"
+    log.info "params.outdir       : ${params.outdir}"
+    log.info "resolved_outdir     : ${params.resolved_outdir}"
+    
     if (!params.datasets_csv) { log.error "ERROR: --datasets_csv is required"; exit 1 }
     if (!params.organ)        { log.error "ERROR: --organ is required";         exit 1 }
     if (!params.uberon_json)  { log.error "ERROR: --uberon_json is required";   exit 1 }
