@@ -63,10 +63,9 @@ process publish_results_process {
     mkdir -p "\$dest"
 
     aws s3 cp --recursive "${src_dir}/" "\$dest/" \
-        --exclude "*.h5ad" \
-        --exclude "*.pkl"
+        --exclude "*.h5ad"
 
-    n=\$(aws s3 ls "${src_dir}/" | grep -v "\.h5ad\$" | grep -v "\.pkl\$" | grep -v "^\$" | wc -l)
+    n=\$(aws s3 ls "${src_dir}/" | grep -v '[.]h5ad' | grep -v '^ *$' | wc -l)
     echo "Files copied: \$n"
 
     git add data/prod/${meta.organ}/sc-nsforest-qc/
