@@ -204,35 +204,18 @@ workflow {
         filter_output_ch.results.map { meta, h5ad, stats -> tuple(meta, h5ad) }
     )
 
-    // Step 10: Publish — fires once per dataset
+    // Step 10: Publish — fires once per dataset after all processes complete
     if (params.github_token) {
-        per_dataset_files_ch = plots_process.out.plots
-            .map { meta, files -> tuple(meta, files instanceof List ? files : [files]) }
-            .join(
-                viz_summary_process.out.plots
-                    .map { meta, files -> tuple(meta, files instanceof List ? files : [files]) }
-            )
-            .join(
-                viz_distribution_process.out.plots
-                    .map { meta, files -> tuple(meta, files instanceof List ? files : [files]) }
-            )
-            .join(
-                viz_dotplot_process.out.plots
-                    .map { meta, files -> tuple(meta, files instanceof List ? files : [files]) }
-            )
-            .join(
-                compute_silhouette_process.out.results
-                    .map { meta, files -> tuple(meta, files instanceof List ? files : [files]) }
-            )
-            .join(
-                merge_nsforest_results_process.out.complete
-                    .map { meta, files -> tuple(meta, files instanceof List ? files : [files]) }
-            )
-            .map { meta, plots, viz_summary, viz_dist, viz_dot, silhouette, nsforest ->
-                tuple(meta, (plots + viz_summary + viz_dist + viz_dot + silhouette + nsforest).flatten())
-            }
+        publish_trigger_ch = plots_process.out.plots
+            .map { meta, files -> meta }
+            .join( viz_summary_process.out.plots.map { meta, files -> meta } )
+            .join( viz_distribution_process.out.plots.map { meta, files -> meta } )
+            .join( viz_dotplot_process.out.plots.map { meta, files -> meta } )
+            .join( compute_silhouette_process.out.results.map { meta, files -> meta } )
+            .join( merge_nsforest_results_process.out.complete.map { meta, files -> meta } )
+            .map { items -> tuple(items[0]) }
 
-        publish_results_process(per_dataset_files_ch)
+        publish_results_process(publish_trigger_ch)
     } else {
         log.warn "WARNING: --github_token not set — skipping publish step"
     }

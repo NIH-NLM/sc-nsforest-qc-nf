@@ -1,16 +1,12 @@
 /**
  * Publish Results to cell-kn GitHub Repository
  *
- * Fires once per dataset after all processes complete.
- * Files are staged by Nextflow into the work directory.
+ * Fires once per dataset. Reads files directly from params.outdir
+ * where all publishDir steps have already written outputs.
  *
  * Branch naming:
  *   {YYYY}-{mon}-{DD}-{organ}-{first_author}-{year}-sc-nsforest-qc-nf
  *   e.g. 2026-mar-06-skin-of-body-Wiedemann-2023-sc-nsforest-qc-nf
- *
- * Required params:
- *   params.github_token   GitHub PAT with repo write access.
- *   params.outdir         Results directory written by all publishDir steps.
  */
 process publish_results_process {
     tag "publish_${meta.organ}_${meta.first_author}_${meta.year}"
@@ -21,7 +17,7 @@ process publish_results_process {
         pattern: "publish_report_*.txt"
 
     input:
-    tuple val(meta), path(all_files)
+    tuple val(meta)
 
     output:
     path "publish_report_${meta.organ}_${meta.first_author}_${meta.year}.txt", emit: report
@@ -33,6 +29,7 @@ process publish_results_process {
     def label     = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
     def repo_url  = "https://\${GITHUB_TOKEN}@github.com/NIH-NLM/cell-kn.git"
     def report    = "publish_report_${meta.organ}_${meta.first_author}_${meta.year}.txt"
+    def src_dir   = "${params.outdir}/${label}"
     """
     set -euo pipefail
 
@@ -43,6 +40,7 @@ process publish_results_process {
     echo " author : ${meta.first_author}"
     echo " year   : ${meta.year}"
     echo " branch : ${branch}"
+    echo " src    : ${src_dir}"
     echo "=========================================="
 
     git clone --depth 1 ${repo_url} cell-kn
@@ -55,7 +53,7 @@ process publish_results_process {
     mkdir -p "\$dest"
 
     n=0
-    for filepath in ${all_files}; do
+    for filepath in ${src_dir}/*; do
         [ -f "\$filepath" ] || continue
         case "\$filepath" in *.h5ad|*.pkl) continue;; esac
         cp -p "\$filepath" "\$dest/"
