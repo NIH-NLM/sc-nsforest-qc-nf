@@ -29,11 +29,20 @@ process publish_results_process {
     def label     = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
     def repo_url  = "https://\${GITHUB_TOKEN}@github.com/NIH-NLM/cell-kn.git"
     def report    = "publish_report_${meta.organ}_${meta.first_author}_${meta.year}.txt"
-    def src_dir   = "${params.outdir}/results/${label}"
+    def src_dir   = "${workflow.launchDir}/${params.outdir}/${label}"
     """
     set -euo pipefail
 
     export GITHUB_TOKEN="${params.github_token}"
+
+    echo " workflow.workDir    : ${workflow.workDir}"
+    echo " workflow.launchDir  : ${workflow.launchDir}"
+    echo " workflow.projectDir : ${workflow.projectDir}"
+    echo " workflow.runName    : ${workflow.runName}"
+    echo " params.outdir       : ${params.outdir}"
+    echo " workflow.outputDir  : ${workflow.outputDir}"
+    echo " src_dir             : ${src_dir}"
+    ls "${src_dir}/" || echo "CANNOT LIST src_dir"
 
     echo "=========================================="
     echo " organ  : ${meta.organ}"
