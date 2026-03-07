@@ -29,6 +29,7 @@ process publish_results_process {
     def label     = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
     def repo_url  = "https://\${GITHUB_TOKEN}@github.com/NIH-NLM/cell-kn.git"
     def report    = "publish_report_${meta.organ}_${meta.first_author}_${meta.year}.txt"
+    // CloudOS mounts publishDir outputs at /home/job/{params.outdir} in every container
     def src_dir = "/home/job/${params.outdir}/${label}"
     """
     set -euo pipefail
