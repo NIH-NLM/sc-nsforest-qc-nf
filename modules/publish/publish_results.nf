@@ -11,7 +11,6 @@
  * Platform notes:
  *   CloudOS: publishDir files land at s3://.../jobs/{id}/results/results/{label}/
  *            derived by replacing /work with /results/results in workflow.workDir
- *   Other:   set params.publish_base explicitly if needed
  */
 process publish_results_process {
     tag "publish_${meta.organ}_${meta.first_author}_${meta.year}"
@@ -34,7 +33,6 @@ process publish_results_process {
     def label     = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
     def repo_url  = "https://\${GITHUB_TOKEN}@github.com/NIH-NLM/cell-kn.git"
     def report    = "publish_report_${meta.organ}_${meta.first_author}_${meta.year}.txt"
-    // Derive S3 results path from workDir: replace /work with /results/results
     def s3_base   = workflow.workDir.toString().replaceAll('/work$', '')
     def src_dir   = "${s3_base}/results/results/${label}"
     """
@@ -65,7 +63,7 @@ process publish_results_process {
     aws s3 cp --recursive "${src_dir}/" "\$dest/" \
         --exclude "*.h5ad"
 
-    n=\$(aws s3 ls "${src_dir}/" | grep -v '[.]h5ad' | grep -v '^ *$' | wc -l)
+    n=\$(aws s3 ls "${src_dir}/" | grep -v "[.]h5ad" | wc -l)
     echo "Files copied: \$n"
 
     git add data/prod/${meta.organ}/sc-nsforest-qc/
