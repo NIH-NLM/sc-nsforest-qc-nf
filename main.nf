@@ -63,7 +63,7 @@ workflow {
         .map { row ->
             def meta = [
                 organ:            params.organ,
-                first_author:     row.first_author,
+		first_author:     row.first_author.normalize('NFD').replaceAll(/\p{InCombiningDiacriticalMarks}/, ''),
                 year:             row.year,
                 author_cell_type: row.author_cell_type,
                 embedding:        row.embedding,
