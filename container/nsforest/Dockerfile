@@ -17,7 +17,7 @@ COPY context/nsforest.yml /app/env.yaml
 COPY context/requirements-freeze.txt /app/requirements.txt
 RUN chown -R mambauser:mambauser /app
 
-COPY context/src/nsforest_cli/ ./src
+COPY context/src/ ./src
 RUN chown -R mambauser:mambauser ./src
 
 RUN git clone https://github.com/JCVenterInstitute/NSForest.git /opt/nsforest && \
