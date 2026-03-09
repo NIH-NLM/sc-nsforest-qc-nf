@@ -37,15 +37,13 @@ def run_prep_medians(h5ad_path, cluster_header, organ, first_author, year, clust
     logger.info("Running ns.pp.prep_medians()...")
     adata_prep = ns.pp.prep_medians(adata_prep, cluster_header)
     
-    # Extract median matrix from varm before writing h5ad
-    # (cluster names as column values are content, not h5py keys)
-    df_medians = adata_prep.varm['medians_' + cluster_header].T
-    del adata_prep.varm['medians_' + cluster_header]
-
-    # Save adata_prep (positive gene filter applied, medians removed from varm)
+    # Save adata_prep (all parallel jobs create identical adata_prep, so we save it)
     adata_prep_path = f"{output_folder}/adata_prep.h5ad"
     adata_prep.write_h5ad(adata_prep_path)
     logger.info(f"Saved: adata_prep.h5ad")
+    
+    # Extract median matrix from varm
+    df_medians = adata_prep.varm['medians_' + cluster_header].T
     
     # Filter to specific cluster(s) if requested
     if cluster_list is not None:
@@ -54,7 +52,13 @@ def run_prep_medians(h5ad_path, cluster_header, organ, first_author, year, clust
     
     logger.info(f"Median matrix shape: {df_medians.shape}")
     
-    output_csv = f"{output_folder}/{outputfilename_prefix}_medians.csv"
+    # Save with unique filename if single cluster
+    if cluster_list is not None and len(cluster_list) == 1:
+        cluster_safe = cluster_list[0].replace(' ', '_').replace('/', '-')
+        output_csv = f"{output_folder}/{outputfilename_prefix}_medians_{cluster_safe}.csv"
+    else:
+        output_csv = f"{output_folder}/{outputfilename_prefix}_medians.csv"
+    
     df_medians.to_csv(output_csv)
     logger.info(f"Saved: {output_csv}")
     logger.info("Prep medians complete!")

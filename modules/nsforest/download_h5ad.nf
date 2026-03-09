@@ -13,10 +13,6 @@ process download_h5ad_process {
     script:
     """
     echo "Downloading: ${url}"
-    if [[ "${url}" == s3://* ]]; then
-        aws s3 cp "${url}" "${meta.first_author}_${meta.year}.h5ad"
-    else
-        curl -fL "${url}" > "${meta.first_author}_${meta.year}.h5ad"
-    fi
+    curl -fL "${url}" > "${meta.first_author}_${meta.year}.h5ad"
     """
 }

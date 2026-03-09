@@ -32,20 +32,29 @@ def run_prep_binary_scores(h5ad_path, cluster_header, organ, first_author, year,
     # Run NSForest prep_binary_scores
     logger.info("Running ns.pp.prep_binary_scores()...")
     adata_prep = ns.pp.prep_binary_scores(adata_prep, cluster_header)
-
-    # Extract binary scores from varm before writing h5ad
-    # (cluster names as column values are content, not h5py keys)
-    df_binary_scores = adata_prep.varm['binary_scores_' + cluster_header].T
-    del adata_prep.varm['binary_scores_' + cluster_header]
-
-    # Save adata_prep (positive gene filter applied, binary scores removed from varm)
+    
+    # Save adata_prep (all parallel jobs create identical adata_prep)
     adata_prep_path = f"{output_folder}/adata_prep.h5ad"
     adata_prep.write_h5ad(adata_prep_path)
     logger.info(f"Saved: adata_prep.h5ad")
-
+    
+    # Extract binary scores from varm
+    df_binary_scores = adata_prep.varm['binary_scores_' + cluster_header].T
+    
+    # Filter to specific cluster(s) if requested
+    if cluster_list is not None:
+        logger.info(f"Filtering to cluster(s): {cluster_list}")
+        df_binary_scores = df_binary_scores.loc[cluster_list]
+    
     logger.info(f"Binary scores shape: {df_binary_scores.shape}")
-
-    output_csv = f"{output_folder}/{outputfilename_prefix}_binary_scores.csv"
+    
+    # Save with unique filename if single cluster
+    if cluster_list is not None and len(cluster_list) == 1:
+        cluster_safe = cluster_list[0].replace(' ', '_').replace('/', '-')
+        output_csv = f"{output_folder}/{outputfilename_prefix}_binary_scores_{cluster_safe}.csv"
+    else:
+        output_csv = f"{output_folder}/{outputfilename_prefix}_binary_scores.csv"
+    
     df_binary_scores.to_csv(output_csv)
     logger.info(f"Saved: {output_csv}")
     logger.info("Prep binary scores complete!")

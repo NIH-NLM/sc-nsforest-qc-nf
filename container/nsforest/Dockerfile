@@ -7,7 +7,7 @@ LABEL maintainer="nih-nlm"
 USER root:root
 
 RUN apt-get update && \
-    apt-get install -y git procps curl awscli && \
+    apt-get install -y git procps curl && \
     apt-get install -y --no-install-recommends build-essential gcc g++ gfortran && \
     apt-get clean
 
@@ -17,7 +17,7 @@ COPY context/nsforest.yml /app/env.yaml
 COPY context/requirements-freeze.txt /app/requirements.txt
 RUN chown -R mambauser:mambauser /app
 
-COPY context/src/ ./src
+COPY context/src ./src
 RUN chown -R mambauser:mambauser ./src
 
 RUN git clone https://github.com/JCVenterInstitute/NSForest.git /opt/nsforest && \
