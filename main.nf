@@ -2,19 +2,20 @@
 
 nextflow.enable.dsl=2
 
-include { download_h5ad_process }                        from './modules/nsforest/download_h5ad.nf'
-include { filter_adata_process }                         from './modules/nsforest/filter_adata.nf'
-include { dendrogram_process }                           from './modules/nsforest/dendrogram.nf'
-include { prep_medians_binary_scores_process }           from './modules/nsforest/prep_medians_binary_scores.nf'
-include { plot_histograms_process }                      from './modules/nsforest/plot_histograms.nf'
-include { run_nsforest_process }                         from './modules/nsforest/run_nsforest.nf'
-include { merge_nsforest_results_process }               from './modules/nsforest/merge_nsforest_results.nf'
-include { plots_process }                                from './modules/nsforest/plots.nf'
-include { compute_silhouette_process }                   from './modules/scsilhouette/compute_silhouette.nf'
-include { viz_summary_process }                          from './modules/scsilhouette/viz_summary.nf'
-include { viz_dotplot_process }                          from './modules/scsilhouette/viz_dotplot.nf'
-include { viz_distribution_process }                     from './modules/scsilhouette/viz_distribution.nf'
-include { publish_results_process }                      from './modules/publish/publish_results.nf'
+include { download_h5ad_process }                  from './modules/nsforest/download_h5ad.nf'
+include { filter_adata_process }                   from './modules/nsforest/filter_adata.nf'
+include { dendrogram_process }                     from './modules/nsforest/dendrogram.nf'
+include { prep_medians_process }                   from './modules/nsforest/prep_medians.nf'
+include { prep_binary_scores_process }             from './modules/nsforest/prep_binary_scores.nf'
+include { plot_histograms_process }                from './modules/nsforest/plot_histograms.nf'
+include { run_nsforest_process }                   from './modules/nsforest/run_nsforest.nf'
+include { merge_nsforest_results_process }         from './modules/nsforest/merge_nsforest_results.nf'
+include { plots_process }                          from './modules/nsforest/plots.nf'
+include { compute_silhouette_process }             from './modules/scsilhouette/compute_silhouette.nf'
+include { viz_summary_process }                    from './modules/scsilhouette/viz_summary.nf'
+include { viz_dotplot_process }                    from './modules/scsilhouette/viz_dotplot.nf'
+include { viz_distribution_process }               from './modules/scsilhouette/viz_distribution.nf'
+include { publish_results_process }                from './modules/publish/publish_results.nf'
 
 params.batch_size       = 10
 params.datasets_csv     = null
@@ -62,7 +63,7 @@ workflow {
         .map { row ->
             def meta = [
                 organ:            params.organ,
-                first_author:     row.first_author,
+		first_author:     row.first_author,
                 year:             row.year,
                 author_cell_type: row.author_cell_type,
                 embedding:        row.embedding,
@@ -95,31 +96,36 @@ workflow {
         filter_output_ch.results.map { meta, h5ad, stats -> tuple(meta, h5ad) }
     )
 
-    // Step 2: Prep medians + binary scores — runs ONCE per dataset on full filtered h5ad
-    // Combined into single step: ns.pp.prep_medians() then ns.pp.prep_binary_scores()
-    // on the same adata_prep object, matching DEMO Section 3 exactly.
-    // varm entries are extracted and deleted before writing h5ad to avoid h5py
-    // TypeError when cluster names contain '/' (e.g. 'VSMC/P').
-    prep_output_ch = prep_medians_binary_scores_process(
+    // Step 2: Prep medians — runs ONCE per dataset on full filtered h5ad
+    // No scatter here — global gene set must be preserved for NSForest
+    prep_medians_output_ch = prep_medians_process(
         filter_output_ch.results.map { meta, h5ad, stats -> tuple(meta, h5ad) }
     )
-    // emit: complete -> (meta, adata_prep.h5ad, [medians.csv, binary_scores.csv, ...])
+    // emit: complete -> (meta, adata_prep.h5ad, medians.csv)
 
-    // Step 3: Plot histograms — reads medians.csv and binary_scores.csv from prep output
+    // Step 3: Prep binary scores — runs ONCE per dataset
+    // No scatter — needs full gene set from prep_medians
+    prep_binary_scores_output_ch = prep_binary_scores_process(
+        prep_medians_output_ch.complete.map { meta, adata_prep, medians -> tuple(meta, adata_prep) }
+    )
+    // emit: complete -> (meta, adata_prep.h5ad, binary_scores.csv)
+
+    // Step 4: Plot histograms
     plot_histograms_process(
-        prep_output_ch.complete.map { meta, adata_prep, files ->
-            def flist   = files instanceof List ? files : [files]
-            def medians = flist.find { it.name.endsWith('_medians.csv') }
-            def binary  = flist.find { it.name.endsWith('_binary_scores.csv') }
-            tuple(meta, medians, binary)
-        }
+        prep_medians_output_ch.complete
+            .map { meta, adata_prep, medians -> tuple(meta, medians) }
+            .join(
+                prep_binary_scores_output_ch.complete
+                    .map { meta, adata_prep, binary -> tuple(meta, binary) }
+            )
+            .map { meta, medians_csv, binary_csv -> tuple(meta, medians_csv, binary_csv) }
     )
 
-    // Step 4: Scatter run_nsforest by cluster batch
+    // Step 5: Scatter run_nsforest by cluster batch
     // Only NSForest is scattered — safe because it reads from adata_prep independently
     def batchSize = params.batch_size ?: 10
-    nsforest_input_ch = prep_output_ch.complete
-        .map { meta, adata_prep, files -> tuple(meta, adata_prep) }
+    nsforest_input_ch = prep_binary_scores_output_ch.complete
+        .map { meta, adata_prep, binary -> tuple(meta, adata_prep) }
         .combine(
             dendrogram_output_ch.stats.map { meta, h5ad, cluster_order_csv -> tuple(meta, cluster_order_csv) },
             by: 0
@@ -138,13 +144,13 @@ workflow {
 
     nsforest_output_ch = run_nsforest_process(nsforest_input_ch)
 
-    // Step 5: Gather NSForest results
+    // Step 6: Gather NSForest results
     merged_nsforest_ch = merge_nsforest_results_process(
         nsforest_output_ch.partial.groupTuple()
     )
     // emit: complete -> (meta, results.{csv,pkl})
 
-    // Step 6: Plots — gene symbol mapping handled internally by nsforest-cli plots
+    // Step 7: Plots — gene symbol mapping handled internally by nsforest-cli plots
     plots_process(
         filter_output_ch.results
             .map { meta, h5ad, stats -> tuple(meta, h5ad) }
@@ -158,13 +164,13 @@ workflow {
             .map { meta, h5ad, results_csv -> tuple(meta, h5ad, results_csv) }
     )
 
-    // Step 7: Compute silhouette — h5ad already filtered
+    // Step 8: Compute silhouette — h5ad already filtered
     silhouette_output_ch = compute_silhouette_process(
         filter_output_ch.results
             .map { meta, h5ad, stats -> tuple(meta, h5ad) }
     )
 
-    // Step 8a: viz_summary
+    // Step 9a: viz_summary
     viz_summary_process(
         silhouette_output_ch.results
             .map { meta, files ->
@@ -187,7 +193,7 @@ workflow {
             }
     )
 
-    // Step 8b: viz_distribution
+    // Step 9b: viz_distribution
     viz_distribution_process(
         silhouette_output_ch.results.map { meta, files ->
             def flist = files instanceof List ? files : [files]
@@ -198,12 +204,12 @@ workflow {
         }
     )
 
-    // Step 8c: viz_dotplot
+    // Step 9c: viz_dotplot
     viz_dotplot_process(
         filter_output_ch.results.map { meta, h5ad, stats -> tuple(meta, h5ad) }
     )
 
-    // Step 9: Publish — fires once per dataset after all processes complete
+    // Step 10: Publish — fires once per dataset after all processes complete
     if (params.github_token) {
         publish_trigger_ch = plots_process.out.plots
             .map { meta, files -> tuple(meta, 1) }

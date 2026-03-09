@@ -79,24 +79,74 @@ def dendrogram_command(
     run_dendrogram(h5ad_path, cluster_header, organ, first_author, year)
 
 
-@app.command("prep-medians-binary-scores")
-def prep_medians_binary_scores_command(
+@app.command("prep-medians")
+def prep_medians_command(
     h5ad_path: Path = typer.Option(..., help="Path to h5ad file"),
+    cluster_header: str = typer.Option(..., help="Column name for clusters"),
+    organ: str = typer.Option(..., help="Organ/tissue"),
+    first_author: str = typer.Option(..., help="First author"),
+    year: str = typer.Option(..., help="Publication year"),
+    cluster_list: str = typer.Option(None, help="Comma-separated cluster list (for parallelization)"),
+):
+    """
+    Compute median expression per cluster.
+    
+    Uses ns.pp.prep_medians() to filter positive genes and compute medians.
+    """
+    from .prep_medians import run_prep_medians
+    clusters = cluster_list.split(',') if cluster_list else None
+    run_prep_medians(h5ad_path, cluster_header, organ, first_author, year, clusters)
+
+
+@app.command("merge-medians")
+def merge_medians_command(
+    partial_files: str = typer.Option(..., help="Comma-separated list of partial median CSV files"),
     cluster_header: str = typer.Option(..., help="Column name for clusters"),
     organ: str = typer.Option(..., help="Organ/tissue"),
     first_author: str = typer.Option(..., help="First author"),
     year: str = typer.Option(..., help="Publication year"),
 ):
     """
-    Compute median expression and binary scores per cluster.
-
-    Runs ns.pp.prep_medians() then ns.pp.prep_binary_scores() on the same
-    adata_prep object, matching DEMO notebook Section 3 exactly.
-
-    Saves: adata_prep.h5ad, {cluster_header}_medians.csv, {cluster_header}_binary_scores.csv
+    Merge partial median files and save csv + pkl.
     """
-    from .prep_medians_binary_scores import run_prep_medians_binary_scores
-    run_prep_medians_binary_scores(h5ad_path, cluster_header, organ, first_author, year)
+    from .merge_medians import run_merge_medians
+    files = partial_files.split(',')
+    run_merge_medians(files, cluster_header, organ, first_author, year)
+
+
+@app.command("prep-binary-scores")
+def prep_binary_scores_command(
+    h5ad_path: Path = typer.Option(..., help="Path to h5ad file (adata_prep from prep_medians)"),
+    cluster_header: str = typer.Option(..., help="Column name for clusters"),
+    organ: str = typer.Option(..., help="Organ/tissue"),
+    first_author: str = typer.Option(..., help="First author"),
+    year: str = typer.Option(..., help="Publication year"),
+    cluster_list: str = typer.Option(None, help="Comma-separated cluster list (for parallelization)"),
+):
+    """
+    Compute binary scores per cluster.
+    
+    Uses ns.pp.prep_binary_scores() on filtered adata from prep_medians.
+    """
+    from .prep_binary_scores import run_prep_binary_scores
+    clusters = cluster_list.split(',') if cluster_list else None
+    run_prep_binary_scores(h5ad_path, cluster_header, organ, first_author, year, clusters)
+
+
+@app.command("merge-binary-scores")
+def merge_binary_scores_command(
+    partial_files: str = typer.Option(..., help="Comma-separated list of partial binary scores CSV files"),
+    cluster_header: str = typer.Option(..., help="Column name for clusters"),
+    organ: str = typer.Option(..., help="Organ/tissue"),
+    first_author: str = typer.Option(..., help="First author"),
+    year: str = typer.Option(..., help="Publication year"),
+):
+    """
+    Merge partial binary scores files and save csv + pkl.
+    """
+    from .merge_binary_scores import run_merge_binary_scores
+    files = partial_files.split(',')
+    run_merge_binary_scores(files, cluster_header, organ, first_author, year)
 
 
 @app.command("plot-histograms")
