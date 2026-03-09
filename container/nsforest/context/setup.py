@@ -16,7 +16,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "nsforest-cli=nsforest_cli.main:app"
+            "nsforest-cli=nsforest_cli.nsforest_cli:app"
         ]
     },
 )
