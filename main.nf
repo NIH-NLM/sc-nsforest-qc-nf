@@ -213,12 +213,11 @@ workflow {
     if (params.github_token) {
         publish_trigger_ch = plots_process.out.plots
             .map { meta, files -> tuple(meta, 1) }
-            .join( viz_summary_process.out.plots.map { meta, files -> tuple(meta, 1) } )
-            .join( viz_distribution_process.out.plots.map { meta, files -> tuple(meta, 1) } )
-            .join( viz_dotplot_process.out.plots.map { meta, files -> tuple(meta, 1) } )
-            .join( compute_silhouette_process.out.results.map { meta, files -> tuple(meta, 1) } )
-            .join( merge_nsforest_results_process.out.complete.map { meta, files -> tuple(meta, 1) } )
-            // 1 original + 5 joins = tuple(meta, v1, v2, v3, v4, v5, v6) — extract meta only
+            .join( viz_summary_process.out)
+            .join( viz_distribution_process.out )
+            .join( viz_dotplot_process.out)
+            .join( compute_silhouette_process.out )
+            .join( merge_nsforest_results_process.out)
             .map { meta, v1, v2, v3, v4, v5, v6 -> tuple(meta) }
 
         publish_results_process(publish_trigger_ch)
