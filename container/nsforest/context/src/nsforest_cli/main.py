@@ -22,6 +22,15 @@ def filter_adata_command(
     disease: Path = typer.Option(None, help="Disease JSON from cellxgene-harvester resolve-disease"),
     hsapdv: Path = typer.Option(None, help="HsapDv JSON from cellxgene-harvester resolve-hsapdv --min-age N"),
     min_cluster_size: int = typer.Option(5, help="Minimum cells per cluster"),
+    tissue_ontology_term_id: str = typer.Option(
+        None, help="Pipe-separated UBERON term IDs from CSV row (e.g. 'UBERON:0008954|UBERON:0002048')"
+    ),
+    disease_ontology_term_id: str = typer.Option(
+        None, help="Pipe-separated disease ontology term IDs from CSV row"
+    ),
+    development_stage_ontology_term_id: str = typer.Option(
+        None, help="Pipe-separated HsapDv term IDs from CSV row"
+    ),
 ):
     """
     Filter adata by tissue, disease, age, and minimum cluster size.
@@ -49,16 +58,19 @@ def filter_adata_command(
     """
     from .filter_adata import run_filter_adata
     run_filter_adata(
-        h5ad_path      = h5ad_path,
-        cluster_header = cluster_header,
-        organ          = organ,
-        first_author   = first_author,
-        year           = year,
-        filter_normal  = filter_normal,
-        uberon_json    = str(uberon)  if uberon  else None,
-        disease_json   = str(disease) if disease else None,
-        hsapdv_json    = str(hsapdv)  if hsapdv  else None,
+        h5ad_path        = h5ad_path,
+        cluster_header   = cluster_header,
+        organ            = organ,
+        first_author     = first_author,
+        year             = year,
+        filter_normal    = filter_normal,
+        uberon_json      = str(uberon)  if uberon  else None,
+        disease_json     = str(disease) if disease else None,
+        hsapdv_json      = str(hsapdv)  if hsapdv  else None,
         min_cluster_size = min_cluster_size,
+        row_uberon_ids   = tissue_ontology_term_id,
+        row_disease_ids  = disease_ontology_term_id,
+        row_hsapdv_ids   = development_stage_ontology_term_id,
     )
 
 

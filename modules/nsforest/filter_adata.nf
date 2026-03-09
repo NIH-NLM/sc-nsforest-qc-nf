@@ -54,6 +54,9 @@ process filter_adata_process {
         --uberon ${uberon_json} \
         --disease ${disease_json} \
         --hsapdv ${hsapdv_json} \
+        --tissue-ontology-term-id "${meta.tissue_ontology_term_id}" \
+        --disease-ontology-term-id "${meta.disease_ontology_term_id}" \
+        --development-stage-ontology-term-id "${meta.development_stage_ontology_term_id}" \
         --min-cluster-size ${min_cluster_val}
     """
 }

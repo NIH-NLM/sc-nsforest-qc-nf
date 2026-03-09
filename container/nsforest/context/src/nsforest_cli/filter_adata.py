@@ -103,13 +103,17 @@ def create_stats_before_filter(adata, cluster_header, output_folder, outputfilen
 # Filter steps - ontology ID columns only
 # =============================================================================
 
-def filter_by_tissue(adata, uberon_json=None):
-    """Filter cells using tissue_ontology_term_id matched against UBERON obo_ids.
+def filter_by_tissue(adata, uberon_json=None, row_ids=None):
+    """Filter cells using tissue_ontology_term_id.
+
+    Uses row_ids (pipe-separated IDs from the CSV row's tissue_ontology_term_id
+    column) when provided — these are the pre-computed intersection of dataset
+    tissues with the organ UBERON JSON. Falls back to full JSON obo_ids if not.
 
     Args:
         adata:       AnnData object
-        uberon_json: Path to UBERON JSON from cellxgene-harvester resolve-uberon.
-                     Skipped if None.
+        uberon_json: Path to UBERON JSON (used for logging only when row_ids given).
+        row_ids:     Pipe-separated UBERON term IDs from the CSV row.
     """
     if not uberon_json:
         logger.info("No --uberon file provided - skipping tissue filter")
@@ -123,24 +127,32 @@ def filter_by_tissue(adata, uberon_json=None):
             "Ensure the h5ad file originates from CellxGene."
         )
 
-    obo_ids  = load_obo_ids(uberon_json, "UBERON")
+    if row_ids:
+        obo_ids = set(t.strip() for t in row_ids.split("|") if t.strip())
+        logger.info(f"  Tissue filter (row-specific): {sorted(obo_ids)}")
+    else:
+        obo_ids = load_obo_ids(uberon_json, "UBERON")
+
     mask     = adata.obs[id_col].isin(obo_ids)
     n_before = adata.n_obs
     adata    = adata[mask].copy()
 
-    logger.info(f"Tissue filter (UBERON IDs): {n_before} -> {adata.n_obs} cells "
+    logger.info(f"Tissue filter: {n_before} -> {adata.n_obs} cells "
                 f"({n_before - adata.n_obs} removed)")
     return adata
 
 
-def filter_by_disease(adata, disease_json=None, filter_normal=False):
-    """Filter cells using disease_ontology_term_id matched against disease obo_ids.
+def filter_by_disease(adata, disease_json=None, filter_normal=False, row_ids=None):
+    """Filter cells using disease_ontology_term_id.
+
+    Uses row_ids (pipe-separated IDs from the CSV row's disease_ontology_term_id
+    column) when provided. Falls back to full JSON obo_ids if not.
 
     Args:
         adata:         AnnData object
-        disease_json:  Path to disease JSON from cellxgene-harvester resolve-disease.
-                       Skipped if None or filter_normal=False.
+        disease_json:  Path to disease JSON. Skipped if None or filter_normal=False.
         filter_normal: If False, no disease filtering is applied.
+        row_ids:       Pipe-separated disease ontology term IDs from the CSV row.
     """
     if not filter_normal:
         logger.info("filter_normal=False - keeping all disease states")
@@ -158,7 +170,11 @@ def filter_by_disease(adata, disease_json=None, filter_normal=False):
             "Ensure the h5ad file originates from CellxGene."
         )
 
-    obo_ids  = load_obo_ids(disease_json, "disease")
+    if row_ids:
+        obo_ids = set(t.strip() for t in row_ids.split("|") if t.strip())
+        logger.info(f"  Disease filter (row-specific): {sorted(obo_ids)}")
+    else:
+        obo_ids  = load_obo_ids(disease_json, "disease")
     mask     = adata.obs[id_col].isin(obo_ids)
     n_before = adata.n_obs
     adata    = adata[mask].copy()
@@ -168,18 +184,18 @@ def filter_by_disease(adata, disease_json=None, filter_normal=False):
     return adata
 
 
-def filter_by_age(adata, hsapdv_json=None, filter_normal=False):
-    """Filter cells using development_stage_ontology_term_id matched against HsapDv obo_ids.
+def filter_by_age(adata, hsapdv_json=None, filter_normal=False, row_ids=None):
+    """Filter cells using development_stage_ontology_term_id.
 
-    The age threshold is encoded in the JSON at resolve time
-    (cellxgene-harvester resolve-hsapdv --min-age N).
-    No numeric comparison here — identical pattern to filter_by_tissue and filter_by_disease.
+    Uses row_ids (pipe-separated IDs from the CSV row's
+    development_stage_ontology_term_id column) when provided.
+    Falls back to full JSON obo_ids if not.
 
     Args:
         adata:         AnnData object
-        hsapdv_json:   Path to HsapDv JSON from cellxgene-harvester resolve-hsapdv --min-age N.
-                       Skipped if None or filter_normal=False.
+        hsapdv_json:   Path to HsapDv JSON. Skipped if None or filter_normal=False.
         filter_normal: If False, no age filtering is applied.
+        row_ids:       Pipe-separated HsapDv term IDs from the CSV row.
     """
     if not filter_normal:
         logger.info("filter_normal=False - skipping age filter")
@@ -197,7 +213,11 @@ def filter_by_age(adata, hsapdv_json=None, filter_normal=False):
             "Ensure the h5ad file originates from CellxGene."
         )
 
-    obo_ids    = load_obo_ids(hsapdv_json, "HsapDv")
+    if row_ids:
+        obo_ids = set(t.strip() for t in row_ids.split("|") if t.strip())
+        logger.info(f"  Age filter (row-specific): {sorted(obo_ids)}")
+    else:
+        obo_ids    = load_obo_ids(hsapdv_json, "HsapDv")
     obo_labels = load_obo_labels(hsapdv_json)
     mask       = adata.obs[id_col].isin(obo_ids)
     n_before   = adata.n_obs
@@ -260,7 +280,10 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, year,
                      uberon_json=None,
                      disease_json=None,
                      hsapdv_json=None,
-                     min_cluster_size=5):
+                     min_cluster_size=5,
+                     row_uberon_ids=None,
+                     row_disease_ids=None,
+                     row_hsapdv_ids=None):
     """
     Filter adata and create before/after statistics.
 
@@ -300,13 +323,13 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, year,
 
     if filter_normal:
         logger.info("\n[1/4] Tissue filter")
-        adata = filter_by_tissue(adata, uberon_json)
+        adata = filter_by_tissue(adata, uberon_json, row_ids=row_uberon_ids)
 
         logger.info("\n[2/4] Disease filter")
-        adata = filter_by_disease(adata, disease_json, filter_normal)
+        adata = filter_by_disease(adata, disease_json, filter_normal, row_ids=row_disease_ids)
 
         logger.info("\n[3/4] Age filter")
-        adata = filter_by_age(adata, hsapdv_json, filter_normal)
+        adata = filter_by_age(adata, hsapdv_json, filter_normal, row_ids=row_hsapdv_ids)
     else:
         logger.info("filter_normal=False - skipping tissue, disease, and age filters")
 
