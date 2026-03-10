@@ -14,7 +14,7 @@ always in sync with the actual .nf source:
     sphinx-build -b html docs/source docs/build/html
 
 The generated files are intentionally committed to the repository so that
-ReadTheDocs and GitHub Pages can build the docs without running this script.
+GitHub Pages can build the docs without running this script.
 Regenerate them whenever .nf files change.
 
 Usage
@@ -39,9 +39,9 @@ from pathlib import Path
 # Parsing helpers
 # ---------------------------------------------------------------------------
 
-_DOCBLOCK_RE  = re.compile(r'/\*\*(.*?)\*/', re.DOTALL)
-_PROCESS_RE   = re.compile(r'process\s+(\w+)\s*\{')
-_PARAM_RE     = re.compile(r'params\.(\w+)', re.MULTILINE)
+_DOCBLOCK_RE = re.compile(r'/\*\*(.*?)\*/', re.DOTALL)
+_PROCESS_RE  = re.compile(r'process\s+(\w+)\s*\{')
+_PARAM_RE    = re.compile(r'params\.(\w+)', re.MULTILINE)
 
 
 def _strip_leading_stars(text: str) -> str:
@@ -63,27 +63,24 @@ def parse_nf_file(path: Path) -> dict | None:
     Parse a single .nf file.
 
     Returns a dict with keys:
-        name        str   — process name (e.g. filter_adata_process)
-        docstring   str   — cleaned docblock text, or empty string
-        params      list  — params.* references found in the file
-        source_file str   — relative path used in the .rst for reference
+        name        str  — process name (e.g. filter_adata_process)
+        docstring   str  — cleaned docblock text, or empty string
+        params      list — params.* references found in the file
+        source_file str  — relative path used in the .rst for reference
     Returns None if no process declaration is found.
     """
     source = path.read_text(encoding='utf-8')
 
-    # Find process name
     m = _PROCESS_RE.search(source)
     if not m:
         return None
     process_name = m.group(1)
 
-    # Find the last /** ... */ block before the process declaration
     docstring = ''
     for dm in _DOCBLOCK_RE.finditer(source):
         if dm.start() < m.start():
             docstring = _strip_leading_stars(dm.group(1))
 
-    # Collect params references
     params = sorted(set(_PARAM_RE.findall(source)))
 
     return {
@@ -102,21 +99,8 @@ def _title(text: str, char: str = '-') -> str:
     return f"{text}\n{char * len(text)}\n"
 
 
-def _code(text: str, language: str = 'nextflow') -> str:
-    indent = '\n'.join('   ' + l for l in text.splitlines())
-    return f".. code-block:: {language}\n\n{indent}\n"
-
-
 def _docstring_to_rst(docstring: str) -> str:
-    """
-    Convert the cleaned docblock text to valid RST.
-
-    Handles:
-    - Section headings (lines ending with ':' that are followed by a
-      line of '-' or are standalone short labels)
-    - Code blocks indented by 4+ spaces → .. code-block:: bash
-    - Plain paragraphs
-    """
+    """Convert cleaned docblock text to valid RST."""
     if not docstring:
         return ''
 
@@ -126,7 +110,7 @@ def _docstring_to_rst(docstring: str) -> str:
     while i < len(lines):
         line = lines[i]
 
-        # Detect heading-like lines: "Input:", "Output:", "Script:", etc.
+        # Detect heading-like lines: "Input:", "Output:", etc.
         if re.match(r'^[A-Z][^.]{0,40}:\s*$', line):
             out.append('')
             out.append(line.rstrip())
@@ -134,16 +118,16 @@ def _docstring_to_rst(docstring: str) -> str:
             i += 1
             continue
 
-        # Detect code block: 4+ spaces AND looks like a shell command or path
-        # (starts with a command word, path, or bash operator).
-        # Avoid treating @param / - bullet continuation lines as code.
+        # Detect code blocks indented by 4+ spaces
         is_code_start = (
             (line.startswith('    ') or line.startswith('\t'))
             and bool(re.match(r'\s+(\$|//|#!|[a-z]+-[a-z]+|/|python|bash|nextflow|git|gh|cp|mkdir)', line))
         )
         if is_code_start:
             code_lines = []
-            while i < len(lines) and (lines[i].startswith('    ') or lines[i].startswith('\t') or lines[i].strip() == ''):
+            while i < len(lines) and (
+                lines[i].startswith('    ') or lines[i].startswith('\t') or lines[i].strip() == ''
+            ):
                 code_lines.append(lines[i])
                 i += 1
             while code_lines and code_lines[-1].strip() == '':
@@ -168,19 +152,16 @@ def process_to_rst(info: dict) -> str:
     """Render a single process as an RST section."""
     parts = []
 
-    # Process name as heading
     label = info['name'].replace('_', ' ').title()
     parts.append(_title(label, '^'))
     parts.append(f".. rubric:: ``{info['name']}``\n")
     parts.append(f"*Source:* ``{info['source_file']}``\n")
 
-    # Docstring body
     rst_doc = _docstring_to_rst(info['docstring'])
     if rst_doc:
         parts.append(rst_doc)
         parts.append('')
 
-    # Params table
     if info['params']:
         parts.append('**Params referenced:**\n')
         for p in info['params']:
@@ -193,9 +174,7 @@ def process_to_rst(info: dict) -> str:
 def group_to_rst(group_name: str, processes: list[dict], description: str = '') -> str:
     """Render all processes in one module group as a top-level RST page."""
     title_text = f"{group_name.title()} Modules"
-    lines = [
-        _title(title_text, '='),
-    ]
+    lines = [_title(title_text, '=')]
     if description:
         lines.append(description)
         lines.append('')
@@ -214,45 +193,50 @@ def group_to_rst(group_name: str, processes: list[dict], description: str = '') 
 GROUP_DESCRIPTIONS = {
     'nsforest': (
         "Nextflow modules for the NSForest marker-gene discovery branch of the\n"
-        "``sc-nsforest-qc-nf`` workflow.  These modules run inside the\n"
-        "``ghcr.io/nih-nlm/nsforest-nf/nsforest`` container and are\n"
+        "``sc-nsforest-qc-nf`` workflow. These modules run inside the\n"
+        "``ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest:latest`` container and are\n"
         "orchestrated by ``main.nf``.\n\n"
+        "The ``nsforest-cli`` package bundled in this container wraps the\n"
+        "`NSForest <https://github.com/JCVenterInstitute/NSForest>`_ algorithm\n"
+        "from the J. Craig Venter Institute. For algorithm details and citation\n"
+        "information see the\n"
+        "`NSForest documentation <https://nsforest.readthedocs.io>`_.\n\n"
         "Execution order:\n\n"
-        "1. ``filter_adata_process`` — tissue / disease / age ontology filter\n"
-        "2. ``dendrogram_process`` — cluster dendrogram\n"
-        "3. ``cluster_stats_process`` — drives scatter/gather parallelisation\n"
-        "4. ``prep_medians_process`` (parallel per cluster)\n"
-        "5. ``merge_medians_process``\n"
-        "6. ``prep_binary_scores_process`` (parallel per cluster)\n"
-        "7. ``merge_binary_scores_process``\n"
-        "8. ``plot_histograms_process``\n"
-        "9. ``run_nsforest_process`` (parallel per cluster)\n"
-        "10. ``merge_nsforest_results_process``\n"
-        "11. ``plots_process``\n"
+        "1. ``download_h5ad_process`` — download h5ad from CellxGene (https) or S3\n"
+        "2. ``filter_adata_process`` — tissue / disease / development stage ontology filter + min cluster size\n"
+        "3. ``dendrogram_process`` — cluster dendrogram + cluster order CSV\n"
+        "4. ``prep_medians_process`` — median expression per cluster (runs once on full filtered h5ad)\n"
+        "5. ``prep_binary_scores_process`` — binary scores per cluster (runs once on full filtered h5ad)\n"
+        "6. ``plot_histograms_process`` — non-zero median / binary score histograms\n"
+        "7. ``run_nsforest_process`` — NSForest scatter/gather by cluster batch\n"
+        "8. ``merge_nsforest_results_process`` — gather partial NSForest results\n"
+        "9. ``plots_process`` — boxplots, scatter, expression plots\n"
     ),
     'scsilhouette': (
         "Nextflow modules for the scsilhouette silhouette-score QC branch of the\n"
-        "``sc-nsforest-qc-nf`` workflow.  These modules run inside the\n"
-        "``ghcr.io/nih-nlm/scsilhouette`` container and are orchestrated\n"
+        "``sc-nsforest-qc-nf`` workflow. These modules run inside the\n"
+        "``ghcr.io/nih-nlm/scsilhouette:1.0`` container and are orchestrated\n"
         "by ``main.nf``.\n\n"
+        "The ``scsilhouette`` package computes silhouette scores and integrated\n"
+        "visualizations with NSForest F-scores. For full details see the\n"
+        "`scsilhouette repository <https://github.com/NIH-NLM/scsilhouette>`_ and\n"
+        "`scsilhouette documentation <https://nih-nlm.github.io/scsilhouette>`_.\n\n"
         "Execution order (runs in parallel with the NSForest branch):\n\n"
-        "1. ``compute_silhouette_process``\n"
-        "2. ``viz_summary_process``\n"
-        "3. ``viz_distribution_process``\n"
-        "4. ``viz_dotplot_process``\n"
-        "5. ``compute_summary_stats_process``\n"
+        "1. ``compute_silhouette_process`` — silhouette scores + cluster summary\n"
+        "2. ``viz_summary_process`` — silhouette + F-score summary plot\n"
+        "3. ``viz_distribution_process`` — cluster size vs silhouette distribution\n"
+        "4. ``viz_dotplot_process`` — UMAP/embedding coloured by silhouette\n"
     ),
     'publish': (
-        "Nextflow module that fires **once**, after every dataset in both the\n"
-        "NSForest and scsilhouette branches has completed (or failed).\n\n"
+        "Nextflow module that fires once per dataset after both the NSForest\n"
+        "and scsilhouette branches have completed.\n\n"
         "It clones ``NIH-NLM/cell-kn``, copies outputs into the\n"
         "``data/prod/{organ}/`` tree, commits, pushes a new branch, and\n"
         "opens a pull request against ``main``.\n\n"
         ".. warning::\n\n"
         "   ``params.github_token`` must be a GitHub personal access token\n"
-        "   with ``repo`` write access.  Never hardcode it — pass via\n"
+        "   with ``repo`` write access. Never hardcode it — pass via\n"
         "   ``-params-file params.json`` or an environment variable.\n"
-        "   See the README for the three recommended approaches.\n"
     ),
 }
 
@@ -282,7 +266,6 @@ def main():
     if not args.dry_run:
         output_root.mkdir(parents=True, exist_ok=True)
 
-    # Discover groups (subdirectories of modules/)
     groups = sorted(p for p in modules_root.iterdir() if p.is_dir())
     index_entries = []
 
@@ -319,7 +302,7 @@ def main():
     nextflow_index = "Nextflow Workflow Modules\n=========================\n\n"
     nextflow_index += (
         "The ``sc-nsforest-qc-nf`` Nextflow workflow is composed of three\n"
-        "module groups.  These pages are auto-generated from the\n"
+        "module groups. These pages are auto-generated from the\n"
         "``/** ... */`` docblocks in each ``.nf`` file by\n"
         "``docs/parse_nf_docs.py``.\n\n"
         "Re-generate after any ``.nf`` change::\n\n"

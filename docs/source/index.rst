@@ -1,27 +1,25 @@
 sc-nsforest-qc-nf Documentation
-==========================
+================================
 
-`nsforest` is a python container with wrapper code around JCVI's NSForest
-algorithm for making necessary and sufficient markers.  You can find full
-documentation on the algorithm here `NSForest <https://github.com/JCVenterInstitute/NSForest>`
+``sc-nsforest-qc-nf`` is a Nextflow pipeline for NSForest marker gene
+discovery and silhouette score quality control of single-cell RNA-seq data.
 
+It orchestrates parallel execution of
+`NSForest <https://github.com/JCVenterInstitute/NSForest>`_
+marker discovery and
+`scsilhouette <https://github.com/NIH-NLM/scsilhouette>`_
+clustering quality control across multiple datasets and organs, with
+ontology-based cell filtering driven by
+`cellxgene-harvester <https://github.com/NIH-NLM/cellxgene-harvester>`_
+outputs.
 
-`scsilhouette` computes silhouette scores to assess clustering quality in
-single-cell RNA-seq data and provides integrated visualizations with NSForest
-marker discovery results.  `scsilhouette <https://github.com/NIH-NLM/scsilhouette>`
-
-`sc-nsforest-qc-nf` is the Nextflow workflow that uses both NSForest and
-scsilhouette packages to establish quality metrics and markers for single cell
-experiments.
-
-It is part of the `NLM-CKN`.
-
+It is part of the `NIH NLM Cell Knowledge Network <https://github.com/NIH-NLM/cell-kn>`_.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Python API
+   :caption: Overview
 
-   modules
+   README
 
 .. toctree::
    :maxdepth: 2
@@ -30,58 +28,24 @@ It is part of the `NLM-CKN`.
    nextflow/index
 
 .. toctree::
+   :maxdepth: 2
+   :caption: Python API (nsforest-cli)
+
+   modules
+
+.. toctree::
    :maxdepth: 1
    :caption: More
 
    changelog
 
-Installation
-------------
+Related Projects
+----------------
 
-.. code-block:: bash
-
-   pip install scsilhouette
-
-Quick Start — standalone
-------------------------
-
-.. code-block:: bash
-
-   scsilhouette compute-silhouette \
-       --h5ad-path data.h5ad \
-       --cluster-header "cell_type" \
-       --embedding-key "X_umap" \
-       --organ "kidney" \
-       --first-author "Lake" \
-       --year "2023"
-
-Quick Start — with ontology filtering
---------------------------------------
-
-Generate the three JSON files once using
-`cellxgene-harvester <https://github.com/NIH-NLM/cellxgene-harvester>`_:
-
-.. code-block:: bash
-
-   cellxgene-harvester resolve-uberon  kidney  > data/uberon_kidney.json
-   cellxgene-harvester resolve-disease normal  > data/disease_normal.json
-   cellxgene-harvester resolve-hsapdv  --min-age 15 > data/hsapdv_adult_15.json
-
-Then run with filtering:
-
-.. code-block:: bash
-
-   scsilhouette compute-silhouette \
-       --h5ad-path data.h5ad \
-       --cluster-header "cell_type" \
-       --embedding-key "X_umap" \
-       --organ "kidney" \
-       --first-author "Lake" \
-       --year "2023" \
-       --filter-normal \
-       --uberon  data/uberon_kidney.json \
-       --disease data/disease_normal.json \
-       --hsapdv  data/hsapdv_adult_15.json
+- `NSForest <https://github.com/JCVenterInstitute/NSForest>`_ — marker gene discovery algorithm (J. Craig Venter Institute). `NSForest documentation <https://nsforest.readthedocs.io>`_
+- `scsilhouette <https://github.com/NIH-NLM/scsilhouette>`_ — silhouette score QC package (NIH NLM). `scsilhouette documentation <https://nih-nlm.github.io/scsilhouette>`_
+- `cellxgene-harvester <https://github.com/NIH-NLM/cellxgene-harvester>`_ — single-cell data aggregation from CellxGene
+- `cell-kn <https://github.com/NIH-NLM/cell-kn>`_ — NIH NLM Cell Knowledge Network
 
 Quick Start — Nextflow workflow
 --------------------------------
@@ -94,7 +58,7 @@ Quick Start — Nextflow workflow
        --uberon_json  data/uberon_kidney.json \
        --disease_json data/disease_normal.json \
        --hsapdv_json  data/hsapdv_adult_15.json \
-       --github_token "$(cat ~/.github_token)" \
+       --outdir       results/kidney \
        -c             configs/macamd64.config
 
 .. warning::
@@ -102,6 +66,29 @@ Quick Start — Nextflow workflow
    Pass ``--github_token`` via ``-params-file params.json`` or an environment
    variable — never hardcode it in a config file or on the command line where
    it may appear in shell history.  See the README for full details.
+
+Repository Structure
+--------------------
+
+.. code-block:: text
+
+   sc-nsforest-qc-nf/
+   ├── configs/                        # Platform-specific Nextflow configs
+   │   ├── aws.config
+   │   ├── macamd64.config
+   │   └── nexflow_biowulf.config
+   ├── container/nsforest/             # Docker image for nsforest-cli
+   │   ├── Dockerfile
+   │   └── context/src/nsforest_cli/   # nsforest-cli Python package
+   ├── docs/                           # Sphinx documentation
+   │   ├── parse_nf_docs.py            # Auto-generates RST from .nf docblocks
+   │   └── source/
+   ├── modules/
+   │   ├── nsforest/                   # NSForest Nextflow process modules
+   │   ├── publish/                    # cell-kn publish module
+   │   └── scsilhouette/               # scsilhouette Nextflow process modules
+   ├── main.nf                         # Pipeline entry point
+   └── nextflow.config                 # Default parameters and container config
 
 Indices and tables
 ==================

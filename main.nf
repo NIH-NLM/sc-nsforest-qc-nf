@@ -2,20 +2,19 @@
 
 nextflow.enable.dsl=2
 
-include { download_h5ad_process }          from './modules/nsforest/download_h5ad.nf'
-include { filter_adata_process }           from './modules/nsforest/filter_adata.nf'
-include { dendrogram_process }             from './modules/nsforest/dendrogram.nf'
-include { prep_medians_process }           from './modules/nsforest/prep_medians.nf'
-include { prep_binary_scores_process }     from './modules/nsforest/prep_binary_scores.nf'
-include { plot_histograms_process }        from './modules/nsforest/plot_histograms.nf'
-include { run_nsforest_process }           from './modules/nsforest/run_nsforest.nf'
-include { merge_nsforest_results_process } from './modules/nsforest/merge_nsforest_results.nf'
-include { plots_process }                  from './modules/nsforest/plots.nf'
-include { compute_silhouette_process }     from './modules/scsilhouette/compute_silhouette.nf'
-include { viz_summary_process }            from './modules/scsilhouette/viz_summary.nf'
-include { viz_dotplot_process }            from './modules/scsilhouette/viz_dotplot.nf'
-include { viz_distribution_process }       from './modules/scsilhouette/viz_distribution.nf'
-include { publish_results_process }        from './modules/publish/publish_results.nf'
+include { download_h5ad_process }                        from './modules/nsforest/download_h5ad.nf'
+include { filter_adata_process }                         from './modules/nsforest/filter_adata.nf'
+include { dendrogram_process }                           from './modules/nsforest/dendrogram.nf'
+include { prep_medians_binary_scores_process }           from './modules/nsforest/prep_medians_binary_scores.nf'
+include { plot_histograms_process }                      from './modules/nsforest/plot_histograms.nf'
+include { run_nsforest_process }                         from './modules/nsforest/run_nsforest.nf'
+include { merge_nsforest_results_process }               from './modules/nsforest/merge_nsforest_results.nf'
+include { plots_process }                                from './modules/nsforest/plots.nf'
+include { compute_silhouette_process }                   from './modules/scsilhouette/compute_silhouette.nf'
+include { viz_summary_process }                          from './modules/scsilhouette/viz_summary.nf'
+include { viz_dotplot_process }                          from './modules/scsilhouette/viz_dotplot.nf'
+include { viz_distribution_process }                     from './modules/scsilhouette/viz_distribution.nf'
+include { publish_results_process }                      from './modules/publish/publish_results.nf'
 
 params.batch_size       = 10
 params.datasets_csv     = null
@@ -62,31 +61,28 @@ workflow {
         }
         .map { row ->
             def meta = [
-                organ:                              params.organ,
-                first_author:                       row.first_author,
-                year:                               row.year,
-                author_cell_type:                   row.author_cell_type,
-                embedding:                          row.embedding,
-                disease:                            row.disease,
-                filter:                             row.filter_normal,
-                doi:                                row.doi,
-                collection_name:                    row.collection_name,
-                dataset_title:                      row.dataset_title,
-                journal:                            row.journal,
-                collection_url:                     row.collection_url,
-                explorer_url:                       row.explorer_url,
-                h5ad_url:                           row.h5ad_url,
-                tissue_ontology_term_id:            row.tissue_ontology_term_id,
-                disease_ontology_term_id:           row.disease_ontology_term_id,
-                development_stage_ontology_term_id: row.development_stage_ontology_term_id,
+                organ:            params.organ,
+                first_author:     row.first_author,
+                year:             row.year,
+                author_cell_type: row.author_cell_type,
+                embedding:        row.embedding,
+                disease:          row.disease,
+                filter:           row.filter_normal,
+                doi:              row.doi,
+                collection_name:  row.collection_name,
+                dataset_title:    row.dataset_title,
+                journal:          row.journal,
+                collection_url:   row.collection_url,
+                explorer_url:     row.explorer_url,
+                h5ad_url:         row.h5ad_url,
             ]
             tuple(meta, row.h5ad_url)
         }
 
-    // Step 0a: Download h5ad from CellxGene URL
+    // Step 0a: Download h5ad from CellxGene (https) or S3
     downloaded_ch = download_h5ad_process(csv_rows_ch)
 
-    // Step 0b: Filter — tissue + disease + age using per-row ontology term IDs
+    // Step 0b: Filter — tissue + disease + age ontology term IDs
     filter_output_ch = filter_adata_process(
         downloaded_ch.h5ad
             .combine(uberon_ch)
@@ -94,37 +90,49 @@ workflow {
             .combine(hsapdv_ch)
     )
 
-    // Convenience: filtered h5ad only channel
+    // Convenience: extract just (meta, h5ad) from filter output
     filtered_h5ad_ch = filter_output_ch.results.map { meta, h5ad, stats -> tuple(meta, h5ad) }
 
-    // Step 1: Dendrogram
+    // Step 1: Dendrogram — drives scatter for run_nsforest
     dendrogram_output_ch = dendrogram_process(filtered_h5ad_ch)
 
-    // Step 2a: Prep medians — runs once per dataset on full filtered h5ad
-    prep_medians_output_ch = prep_medians_process(filtered_h5ad_ch)
+    // Step 2: Prep medians + binary scores — runs ONCE per dataset on full filtered h5ad.
+    // Matches DEMO Section 3: ns.pp.prep_medians() then ns.pp.prep_binary_scores() in memory.
+    // varm DataFrames extracted to CSV to avoid h5py TypeError for cluster names with '/'.
+    prep_output_ch = prep_medians_binary_scores_process(filtered_h5ad_ch)
 
-    // Step 2b: Prep binary scores — runs once per dataset on full filtered h5ad
-    prep_binary_scores_output_ch = prep_binary_scores_process(filtered_h5ad_ch)
-
-    // Step 3: Plot histograms
+    // Step 3: Plot histograms of non-zero medians and binary scores
     plot_histograms_process(
-        prep_medians_output_ch.complete
-            .map { meta, medians_csv, medians_pkl -> tuple(meta, medians_csv) }
-            .join(
-                prep_binary_scores_output_ch.complete
-                    .map { meta, binary_csv, binary_pkl -> tuple(meta, binary_csv) }
-            )
-            .map { meta, medians_csv, binary_csv -> tuple(meta, medians_csv, binary_csv) }
+        prep_output_ch.complete.map { meta, adata_prep, files ->
+            def flist   = files instanceof List ? files : [files]
+            def medians = flist.find { it.name.endsWith('_medians.csv') }
+            def binary  = flist.find { it.name.endsWith('_binary_scores.csv') }
+            tuple(meta, medians, binary)
+        }
     )
 
-    // Step 4: Scatter run_nsforest by cluster batch
+    // Step 4: Scatter run_nsforest by cluster batch.
+    // Reads filtered h5ad + medians CSV + binary_scores CSV directly —
+    // no adata_prep.h5ad is passed between processes.
     def batchSize = params.batch_size ?: 10
+
     nsforest_input_ch = filtered_h5ad_ch
-        .join(prep_medians_output_ch.complete.map { meta, medians_csv, medians_pkl -> tuple(meta, medians_csv) })
-        .join(prep_binary_scores_output_ch.complete.map { meta, binary_csv, binary_pkl -> tuple(meta, binary_csv) })
-        .join(dendrogram_output_ch.stats.map { meta, h5ad, cluster_order_csv -> tuple(meta, cluster_order_csv) })
+        .join(
+            prep_output_ch.complete.map { meta, adata_prep, files ->
+                def flist   = files instanceof List ? files : [files]
+                def medians = flist.find { it.name.endsWith('_medians.csv') }
+                def binary  = flist.find { it.name.endsWith('_binary_scores.csv') }
+                tuple(meta, medians, binary)
+            }
+        )
+        .join(
+            dendrogram_output_ch.stats.map { meta, h5ad, cluster_order_csv -> tuple(meta, cluster_order_csv) }
+        )
         .flatMap { meta, h5ad, medians_csv, binary_csv, cluster_order_csv ->
-            def clusters = cluster_order_csv
+            def csv_file = cluster_order_csv instanceof List
+                ? cluster_order_csv.find { it.name.endsWith('_cluster_order.csv') }
+                : cluster_order_csv
+            def clusters = csv_file
                 .splitCsv(header: true)
                 .collect { it.cluster_order }
             clusters.collate(batchSize).collect { batch ->
@@ -134,24 +142,29 @@ workflow {
 
     nsforest_output_ch = run_nsforest_process(nsforest_input_ch)
 
-    // Step 5: Merge NSForest results
+    // Step 5: Gather NSForest partial results and merge
     merged_nsforest_ch = merge_nsforest_results_process(
         nsforest_output_ch.partial.groupTuple()
     )
 
-    // Step 6: Plots
+    // Step 6: Final NSForest plots — boxplots, scatter, expression dotplots
     plots_process(
         filtered_h5ad_ch
             .join(
-                merged_nsforest_ch.complete.map { meta, results_csv, results_pkl -> tuple(meta, results_csv) }
+                merged_nsforest_ch.complete.map { meta, results_files ->
+                    def results_csv = results_files instanceof List
+                        ? results_files.find { it.name.endsWith('_results.csv') }
+                        : results_files
+                    tuple(meta, results_csv)
+                }
             )
             .map { meta, h5ad, results_csv -> tuple(meta, h5ad, results_csv) }
     )
 
-    // Step 7: Compute silhouette
+    // Step 7: Compute silhouette scores
     silhouette_output_ch = compute_silhouette_process(filtered_h5ad_ch)
 
-    // Step 8a: viz_summary
+    // Step 8a: Silhouette summary plot (with optional NSForest F-scores overlay)
     viz_summary_process(
         silhouette_output_ch.results
             .map { meta, files ->
@@ -162,7 +175,12 @@ workflow {
                 tuple(meta, scores, summary, annotation)
             }
             .join(
-                merged_nsforest_ch.complete.map { meta, results_csv, results_pkl -> tuple(meta, results_csv) },
+                merged_nsforest_ch.complete.map { meta, results_files ->
+                    def results_csv = results_files instanceof List
+                        ? results_files.find { it.name.endsWith('_results.csv') }
+                        : results_files
+                    tuple(meta, results_csv)
+                },
                 remainder: true
             )
             .map { meta, scores, summary, annotation, nsforest_csv ->
@@ -170,7 +188,7 @@ workflow {
             }
     )
 
-    // Step 8b: viz_distribution
+    // Step 8b: Distribution plots (cluster size vs silhouette)
     viz_distribution_process(
         silhouette_output_ch.results.map { meta, files ->
             def flist      = files instanceof List ? files : [files]
@@ -181,10 +199,10 @@ workflow {
         }
     )
 
-    // Step 8c: viz_dotplot
+    // Step 8c: Embedding dotplot coloured by cluster
     viz_dotplot_process(filtered_h5ad_ch)
 
-    // Step 9: Publish
+    // Step 9: Publish — fires once per dataset after all processes complete
     if (params.github_token) {
         publish_trigger_ch = plots_process.out.plots
             .map { meta, files -> tuple(meta, 1) }
@@ -192,7 +210,7 @@ workflow {
             .join( viz_distribution_process.out.plots.map { meta, files -> tuple(meta, 1) } )
             .join( viz_dotplot_process.out.plots.map      { meta, files -> tuple(meta, 1) } )
             .join( compute_silhouette_process.out.results.map { meta, files -> tuple(meta, 1) } )
-            .join( merge_nsforest_results_process.out.complete.map { meta, csv, pkl -> tuple(meta, 1) } )
+            .join( merge_nsforest_results_process.out.complete.map { meta, files -> tuple(meta, 1) } )
             .map { meta, v1, v2, v3, v4, v5, v6 -> tuple(meta) }
 
         publish_results_process(publish_trigger_ch)

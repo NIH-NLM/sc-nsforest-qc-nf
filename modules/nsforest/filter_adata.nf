@@ -1,16 +1,34 @@
 /**
  * Filter AnnData Module
  *
- * Three-stage filtering using per-row ontology term IDs from harvester CSV:
- *   1. Tissue  — tissue_ontology_term_id
- *   2. Disease — disease_ontology_term_id
- *   3. Age     — development_stage_ontology_term_id
- *   4. Min cluster size
+ * Three-stage filtering using ontology IDs — identical logic to cellxgene-harvester:
+ *   1. Tissue  — tissue_ontology_term_id.isin(obo_ids) from uberon_{organ}.json
+ *   2. Disease — disease_ontology_term_id.isin(obo_ids) from disease_normal.json
+ *   3. Age     — development_stage_ontology_term_id.isin(obo_ids) from hsapdv_adult_N.json
+ * Then:
+ *   4. Min cluster size — drops clusters with < min_cluster_size cells
+ *
+ * Input:
+ * ------
+ * @param tuple:
+ *   - meta:         Map with organ, first_author, year, author_cell_type, filter
+ *   - h5ad:         Path to input h5ad (downloaded from CellxGene)
+ *   - uberon_json:  Path to uberon_{organ}.json from cellxgene-harvester resolve-uberon
+ *   - disease_json: Path to disease_normal.json from cellxgene-harvester resolve-disease
+ *   - hsapdv_json:  Path to hsapdv_adult_N.json from cellxgene-harvester resolve-hsapdv
+ *
+ * Output:
+ * -------
+ * @emit results: tuple(meta, adata_filtered.h5ad, [stats CSVs and SVGs])
+ *   Flat filenames: {organ}_{first_author}_{year}_adata_filtered.h5ad
+ *                   {organ}_{first_author}_{year}_{cluster_header_safe}_*.{csv,svg}
  */
 process filter_adata_process {
-    tag "${meta.organ}_${meta.first_author}_${meta.year}"
+    tag "\"${meta.organ}\"_${meta.first_author}_${meta.year}"
     label 'nsforest'
-    publishDir "${params.outdir}", mode: params.publish_mode
+    publishDir "${params.outdir}",
+        mode: params.publish_mode,
+        pattern: "*.{h5ad,csv,svg}"
 
     input:
     tuple val(meta), path(h5ad), path(uberon_json), path(disease_json), path(hsapdv_json)
@@ -18,15 +36,12 @@ process filter_adata_process {
     output:
     tuple val(meta),
           path("${meta.organ}_${meta.first_author}_${meta.year}_adata_filtered.h5ad"),
-          path("${meta.organ}_${meta.first_author}_${meta.year}_${meta.author_cell_type.replace(' ','_')}*.{csv,svg}"),
+          path("${meta.organ}_${meta.first_author}_${meta.year}_*.{csv,svg}", optional: true),
           emit: results
 
     script:
     def filter_flag     = meta.filter == "True" ? "--filter-normal" : ""
     def min_cluster_val = params.min_cluster_size ?: 5
-    def tissue_ids      = meta.tissue_ontology_term_id             ? "--tissue-ontology-term-id \"${meta.tissue_ontology_term_id}\""                         : ""
-    def disease_ids     = meta.disease_ontology_term_id            ? "--disease-ontology-term-id \"${meta.disease_ontology_term_id}\""                        : ""
-    def hsapdv_ids      = meta.development_stage_ontology_term_id  ? "--development-stage-ontology-term-id \"${meta.development_stage_ontology_term_id}\""   : ""
     """
     nsforest-cli filter-adata \
         --h5ad-path ${h5ad} \
@@ -38,9 +53,6 @@ process filter_adata_process {
         --uberon ${uberon_json} \
         --disease ${disease_json} \
         --hsapdv ${hsapdv_json} \
-        --min-cluster-size ${min_cluster_val} \
-        ${tissue_ids} \
-        ${disease_ids} \
-        ${hsapdv_ids}
+        --min-cluster-size ${min_cluster_val}
     """
 }

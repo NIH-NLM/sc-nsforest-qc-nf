@@ -1,7 +1,27 @@
+/**
+ * Dendrogram Module
+ *
+ * Computes a hierarchical dendrogram over cluster medians and writes the
+ * cluster traversal order used to scatter run_nsforest_process.
+ *
+ * Input:
+ * ------
+ * @param tuple:
+ *   - meta: Map with organ, first_author, year, author_cell_type
+ *   - h5ad: Path to adata_filtered.h5ad
+ *
+ * Output:
+ * -------
+ * @emit stats:   tuple(meta, h5ad, cluster_order.csv)  — drives scatter
+ * @emit results: tuple(meta, [dendrogram SVG + cluster_order CSV])
+ *   Flat filenames: {organ}_{first_author}_{year}_{cluster_header_safe}_*.{csv,svg}
+ */
 process dendrogram_process {
     tag "${meta.organ}_${meta.first_author}_${meta.year}"
     label 'nsforest'
-    publishDir "${params.outdir}", mode: params.publish_mode
+    publishDir "${params.outdir}",
+        mode: params.publish_mode,
+        pattern: "*.{csv,svg}"
 
     input:
     tuple val(meta), path(h5ad)
@@ -9,10 +29,10 @@ process dendrogram_process {
     output:
     tuple val(meta),
           path(h5ad),
-          path("${meta.organ}_${meta.first_author}_${meta.year}_${meta.author_cell_type.replace(' ','_')}_cluster_order.csv"),
+          path("${meta.organ}_${meta.first_author}_${meta.year}_*_cluster_order.csv"),
           emit: stats
     tuple val(meta),
-          path("${meta.organ}_${meta.first_author}_${meta.year}_${meta.author_cell_type.replace(' ','_')}*.{csv,svg}"),
+          path("${meta.organ}_${meta.first_author}_${meta.year}_*.{csv,svg}", optional: true),
           emit: results
 
     script:
