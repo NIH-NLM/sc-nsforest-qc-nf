@@ -1,13 +1,21 @@
-scsilhouette Documentation
+sc-nsforest-qc-nf Documentation
 ==========================
 
-Silhouette score analysis for single-cell clustering quality control.
+`nsforest` is a python container with wrapper code around JCVI's NSForest
+algorithm for making necessary and sufficient markers.  You can find full
+documentation on the algorithm here `NSForest <https://github.com/JCVenterInstitute/NSForest>`
+
 
 `scsilhouette` computes silhouette scores to assess clustering quality in
 single-cell RNA-seq data and provides integrated visualizations with NSForest
-marker discovery results.  It is used as the scsilhouette component of the
-`sc-nsforest-qc-nf <https://github.com/NIH-NLM/sc-nsforest-qc-nf>`_
-Nextflow workflow.
+marker discovery results.  `scsilhouette <https://github.com/NIH-NLM/scsilhouette>`
+
+`sc-nsforest-qc-nf` is the Nextflow workflow that uses both NSForest and
+scsilhouette packages to establish quality metrics and markers for single cell
+experiments.
+
+It is part of the `NLM-CKN`.
+
 
 .. toctree::
    :maxdepth: 2

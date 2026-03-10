@@ -2,10 +2,7 @@ process viz_distribution_process {
     tag "${meta.organ}_${meta.first_author}_${meta.year}"
     label 'scsilhouette'
     containerOptions '--entrypoint ""'
-    
-    publishDir "${params.outdir}",
-        mode: params.publish_mode,
-        pattern: "outputs_*/**"
+    publishDir "${params.outdir}", mode: params.publish_mode
 
     input:
     tuple val(meta),
@@ -15,7 +12,8 @@ process viz_distribution_process {
 
     output:
     tuple val(meta),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.{csv,svg,html,json,pkl}", optional: true),
+          path("${meta.organ}_${meta.first_author}_${meta.year}_${meta.author_cell_type.replace(' ','_')}_distribution_*.{html,svg}",
+               optional: true),
           emit: plots
 
     script:

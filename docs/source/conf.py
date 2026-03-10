@@ -2,7 +2,7 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../../src'))
 
-project   = 'scsilhouette'
+project   = 'sc-nsforest-qc-nf'
 copyright = '2026, NIH-NLM'
 author    = 'NIH-NLM'
 release   = '1.0.0'
