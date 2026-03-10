@@ -17,7 +17,7 @@ def filter_adata_command(
     organ: str = typer.Option(..., help="Organ/tissue"),
     first_author: str = typer.Option(..., help="First author"),
     year: str = typer.Option(..., help="Publication year"),
-    filter_normal: bool = typer.Option(False, help="Filter to normal adult cells only"),
+    filter_normal: bool = typer.Option(True, help="Filter to normal adult cells only"),
     uberon: Path = typer.Option(None, help="UBERON JSON from cellxgene-harvester resolve-uberon"),
     disease: Path = typer.Option(None, help="Disease JSON from cellxgene-harvester resolve-disease"),
     hsapdv: Path = typer.Option(None, help="HsapDv JSON from cellxgene-harvester resolve-hsapdv --min-age N"),

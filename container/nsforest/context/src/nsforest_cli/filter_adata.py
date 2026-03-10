@@ -314,17 +314,14 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, year,
 
     logger.info("\n=== Applying Filters ===")
 
-    if filter_normal:
-        logger.info("\n[1/4] Tissue filter")
-        adata = filter_by_tissue(adata, uberon_json, row_ids=row_uberon_ids)
+    logger.info("\n[1/4] Tissue filter")
+    adata = filter_by_tissue(adata, uberon_json, row_ids=row_uberon_ids)
 
-        logger.info("\n[2/4] Disease filter")
-        adata = filter_by_disease(adata, disease_json, filter_normal, row_ids=row_disease_ids)
+    logger.info("\n[2/4] Disease filter")
+    adata = filter_by_disease(adata, disease_json, filter_normal, row_ids=row_disease_ids)
 
-        logger.info("\n[3/4] Age filter")
-        adata = filter_by_age(adata, hsapdv_json, filter_normal, row_ids=row_hsapdv_ids)
-    else:
-        logger.info("filter_normal=False - skipping tissue, disease, and age filters")
+    logger.info("\n[3/4] Age filter")
+    adata = filter_by_age(adata, hsapdv_json, filter_normal, row_ids=row_hsapdv_ids)
 
     logger.info("\n[4/4] Min cluster size filter")
     adata = filter_by_min_cluster_size(adata, cluster_header, min_cluster_size)
