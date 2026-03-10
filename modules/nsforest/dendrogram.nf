@@ -1,9 +1,7 @@
 process dendrogram_process {
     tag "${meta.organ}_${meta.first_author}_${meta.year}"
     label 'nsforest'
-    publishDir "${params.outdir}",
-        mode: params.publish_mode,
-        pattern: "outputs_*/**"
+    publishDir "${params.outdir}", mode: params.publish_mode
 
     input:
     tuple val(meta), path(h5ad)
@@ -11,10 +9,10 @@ process dendrogram_process {
     output:
     tuple val(meta),
           path(h5ad),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.csv", optional: true),
+          path("${meta.organ}_${meta.first_author}_${meta.year}_${meta.author_cell_type.replace(' ','_')}_cluster_order.csv"),
           emit: stats
     tuple val(meta),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.{csv,svg,html}", optional: true),
+          path("${meta.organ}_${meta.first_author}_${meta.year}_${meta.author_cell_type.replace(' ','_')}*.{csv,svg}"),
           emit: results
 
     script:

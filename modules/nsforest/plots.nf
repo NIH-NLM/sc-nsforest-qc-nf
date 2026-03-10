@@ -1,24 +1,16 @@
-/**
- * Plots Module
- *
- * Creates boxplots, scatter plots, and expression plots.
- * Maps Ensembl IDs to gene symbols using cell-kn gene mapping.
- */
 process plots_process {
     tag "${meta.organ}_${meta.first_author}_${meta.year}"
     label 'nsforest'
-    publishDir "${params.outdir}", 
-        mode: params.publish_mode,
-        pattern: "outputs_*/**"
-    
+    publishDir "${params.outdir}", mode: params.publish_mode
+
     input:
     tuple val(meta), path(h5ad), path(results_csv)
-    
+
     output:
     tuple val(meta),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.{html,svg}",optional: true),
+          path("${meta.organ}_${meta.first_author}_${meta.year}_${meta.author_cell_type.replace(' ','_')}*.{html,svg}"),
           emit: plots
-    
+
     script:
     """
     nsforest-cli plots \
