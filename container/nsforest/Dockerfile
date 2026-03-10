@@ -7,7 +7,7 @@ LABEL maintainer="nih-nlm"
 USER root:root
 
 RUN apt-get update && \
-    apt-get install -y git procps curl && \
+    apt-get install -y git procps curl awscli && \
     apt-get install -y --no-install-recommends build-essential gcc g++ gfortran && \
     apt-get clean
 
