@@ -3,18 +3,18 @@ process prep_binary_scores_process {
     label 'nsforest'
 
     input:
-    tuple val(meta), path(adata_prep)
+    tuple val(meta), path(h5ad)
 
     output:
     tuple val(meta),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/adata_prep.h5ad"),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.{csv,svg,html,pkl}",optional: true),
+          path("${meta.organ}_${meta.first_author}_${meta.year}_${meta.author_cell_type.replace(' ','_')}_binary_scores.csv"),
+          path("${meta.organ}_${meta.first_author}_${meta.year}_${meta.author_cell_type.replace(' ','_')}_binary_scores.pkl"),
           emit: complete
 
     script:
     """
     nsforest-cli prep-binary-scores \
-        --h5ad-path ${adata_prep} \
+        --h5ad-path ${h5ad} \
         --cluster-header "${meta.author_cell_type}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
