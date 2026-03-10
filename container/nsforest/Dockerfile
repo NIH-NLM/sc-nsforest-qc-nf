@@ -7,7 +7,7 @@ LABEL maintainer="nih-nlm"
 USER root:root
 
 RUN apt-get update && \
-    apt-get install -y git procps curl awscli && \
+    apt-get install -y git procps curl && \
     apt-get install -y --no-install-recommends build-essential gcc g++ gfortran && \
     apt-get clean
 
@@ -38,6 +38,7 @@ RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel
 RUN python -m pip install --no-cache-dir -r /app/requirements.txt
 RUN python -m pip install --no-cache-dir "plotly==5.22.0"
 RUN python -m pip install --no-cache-dir "kaleido==0.2.1"
+RUN python -m pip install --no-cache-dir "awscli"
 RUN python -m pip install --no-cache-dir /app/
 
 # Bake gene mapping at build time — avoids runtime network dependency
