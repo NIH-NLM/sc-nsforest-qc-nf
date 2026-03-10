@@ -16,11 +16,9 @@ process publish_results_process {
     tag "publish_${meta.organ}_${meta.first_author}_${meta.year}"
     label 'publish'
 
-    publishDir "${params.outdir}",
-        mode: params.publish_mode,
-        pattern: "publish_report_*.txt"
-
     input:
+    // val meta
+    // files from all the files -- it all flat -- so I have to encode the context into the filename that is flattened
     tuple val(meta)
 
     output:
@@ -33,8 +31,8 @@ process publish_results_process {
     def label     = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
     def repo_url  = "https://\${GITHUB_TOKEN}@github.com/NIH-NLM/cell-kn.git"
     def report    = "publish_report_${meta.organ}_${meta.first_author}_${meta.year}.txt"
-    def s3_base   = workflow.workDir.toString().replaceAll('/work$', '')
-    def src_dir   = "${s3_base}/results/results/${label}"
+    //def s3_base   = workflow.workDir.toString().replaceAll('/work$', '')
+    //def src_dir   = "${s3_base}/results/results/${label}"
     """
     set -euo pipefail
 
