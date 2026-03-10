@@ -1,25 +1,27 @@
 /**
- * Run NSForest Module (Parallelized by Cluster)
+ * Run NSForest Module (Parallelized by Cluster Batch)
  *
  * Runs NSForest algorithm to identify marker gene combinations.
- * Each cluster processed independently (one vs all).
+ * Each cluster batch processed independently (one vs all).
  */
 process run_nsforest_process {
     tag "${meta.organ}_${meta.first_author}_${meta.year}_${cluster}"
     label 'nsforest'
-    
+
     input:
-    tuple val(meta), path(adata_prep), val(cluster)
-    
+    tuple val(meta), path(h5ad), path(medians_csv), path(binary_scores_csv), val(cluster)
+
     output:
-    tuple val(meta), 
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/*.{csv,svg,html,pkl}",optional: true),
+    tuple val(meta),
+          path("${meta.organ}_${meta.first_author}_${meta.year}_${meta.author_cell_type.replace(' ','_')}_results_*.csv"),
           emit: partial
-    
+
     script:
     """
     nsforest-cli run-nsforest \
-        --h5ad-path ${adata_prep} \
+        --h5ad-path ${h5ad} \
+        --medians-csv ${medians_csv} \
+        --binary-scores-csv ${binary_scores_csv} \
         --cluster-header "${meta.author_cell_type}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \

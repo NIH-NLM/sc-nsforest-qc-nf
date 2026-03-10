@@ -1,23 +1,16 @@
-/**
- * Plot Histograms Module
- *
- * Creates histograms of non-zero median and binary score distributions.
- */
 process plot_histograms_process {
     tag "${meta.organ}_${meta.first_author}_${meta.year}"
     label 'nsforest'
-    publishDir "${params.outdir}", 
-        mode: params.publish_mode,
-        pattern: "outputs_*/**"
-    
+    publishDir "${params.outdir}", mode: params.publish_mode
+
     input:
     tuple val(meta), path(medians_csv), path(binary_scores_csv)
-    
+
     output:
     tuple val(meta),
-          path("outputs_${meta.organ}_${meta.first_author}_${meta.year}/hist_nonzero_*.svg"),
+          path("${meta.organ}_${meta.first_author}_${meta.year}_${meta.author_cell_type.replace(' ','_')}_hist_nonzero_*.svg"),
           emit: histograms
-    
+
     script:
     """
     nsforest-cli plot-histograms \

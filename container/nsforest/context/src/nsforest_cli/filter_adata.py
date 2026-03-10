@@ -20,7 +20,6 @@ import pandas as pd
 import nsforest as ns
 
 from .common_utils import (
-    create_output_dir,
     load_h5ad,
     log_section,
     logger
@@ -57,7 +56,7 @@ def load_obo_labels(json_path: str) -> dict:
 # Before-filter statistics
 # =============================================================================
 
-def create_stats_before_filter(adata, cluster_header, output_folder, outputfilename_prefix):
+def create_stats_before_filter(adata, cluster_header, prefix):
     """Create dendrogram and stats BEFORE filtering."""
     logger.info("Creating BEFORE FILTER statistics...")
 
@@ -67,8 +66,8 @@ def create_stats_before_filter(adata, cluster_header, output_folder, outputfilen
     ns.pp.dendrogram(
         adata, cluster_header,
         tl_kwargs={"optimal_ordering": True}, save="svg",
-        output_folder=output_folder,
-        outputfilename_suffix=outputfilename_prefix + "_before_filter"
+        output_folder="",
+        outputfilename_suffix=prefix + "_before_filter"
     )
 
     cluster_counts   = adata.obs[cluster_header].value_counts()
@@ -76,25 +75,18 @@ def create_stats_before_filter(adata, cluster_header, output_folder, outputfilen
         "cluster": cluster_counts.index.tolist(),
         "count":   cluster_counts.values
     })
-    df_cluster_sizes.to_csv(
-        output_folder + "/" + outputfilename_prefix + "_cluster_sizes_before_filter.csv",
-        index=False
-    )
+    df_cluster_sizes.to_csv(f"{prefix}_cluster_sizes_before_filter.csv", index=False)
 
     cluster_order = [
         x.strip() for x in adata.uns["dendrogram_" + cluster_header]["categories_ordered"]
     ]
     pd.DataFrame({"cluster_order": cluster_order}).to_csv(
-        output_folder + "/" + outputfilename_prefix + "_cluster_order_before_filter.csv",
-        index=False
+        f"{prefix}_cluster_order_before_filter.csv", index=False
     )
 
     pd.DataFrame({
         "n_obs": [adata.n_obs], "n_vars": [adata.n_vars], "n_clusters": [n_clusters]
-    }).to_csv(
-        output_folder + "/" + outputfilename_prefix + "_summary_before_filter.csv",
-        index=False
-    )
+    }).to_csv(f"{prefix}_summary_before_filter.csv", index=False)
 
     logger.info("Before filter statistics saved")
 
@@ -309,15 +301,16 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, year,
     """
     log_section("NSForest: Filter AnnData")
 
-    output_folder         = create_output_dir(organ, first_author, year) + "/"
-    outputfilename_prefix = cluster_header.replace(" ", "_")
+    cluster_header_safe   = cluster_header.replace(" ", "_")
+    prefix                = f"{organ}_{first_author}_{year}_{cluster_header_safe}"
+    filtered_h5ad_name    = f"{organ}_{first_author}_{year}_adata_filtered.h5ad"
 
     logger.info(f"Loading: {h5ad_path}")
     adata = load_h5ad(h5ad_path, cluster_header)
     logger.info(f"Original data: {adata.n_obs} cells, {adata.n_vars} genes, "
                 f"{adata.obs[cluster_header].nunique()} clusters")
 
-    create_stats_before_filter(adata, cluster_header, output_folder, outputfilename_prefix)
+    create_stats_before_filter(adata, cluster_header, prefix)
 
     logger.info("\n=== Applying Filters ===")
 
@@ -346,7 +339,7 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, year,
     ns.pp.dendrogram(
         adata, cluster_header,
         tl_kwargs={"optimal_ordering": True}, save="svg",
-        output_folder=output_folder, outputfilename_suffix=outputfilename_prefix
+        output_folder="", outputfilename_suffix=prefix
     )
 
     cluster_counts   = adata.obs[cluster_header].value_counts()
@@ -354,25 +347,20 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, year,
         "cluster": cluster_counts.index.tolist(),
         "count":   cluster_counts.values
     })
-    df_cluster_sizes.to_csv(
-        output_folder + outputfilename_prefix + "_cluster_sizes.csv", index=False
-    )
+    df_cluster_sizes.to_csv(f"{prefix}_cluster_sizes.csv", index=False)
 
     cluster_order = [
         x.strip() for x in adata.uns["dendrogram_" + cluster_header]["categories_ordered"]
     ]
     pd.DataFrame({"cluster_order": cluster_order}).to_csv(
-        output_folder + outputfilename_prefix + "_cluster_order.csv", index=False
+        f"{prefix}_cluster_order.csv", index=False
     )
 
     pd.DataFrame({
         "n_obs": [adata.n_obs], "n_vars": [adata.n_vars], "n_clusters": [n_clusters]
-    }).to_csv(
-        output_folder + outputfilename_prefix + "_summary_normal.csv", index=False
-    )
+    }).to_csv(f"{prefix}_summary_normal.csv", index=False)
 
-    filtered_h5ad_path = output_folder + "adata_filtered.h5ad"
-    adata.write_h5ad(filtered_h5ad_path)
-    logger.info(f"Saved filtered h5ad: {filtered_h5ad_path}")
+    adata.write_h5ad(filtered_h5ad_name)
+    logger.info(f"Saved filtered h5ad: {filtered_h5ad_name}")
 
     logger.info("\nFilter complete!")
