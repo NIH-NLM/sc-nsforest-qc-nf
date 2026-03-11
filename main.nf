@@ -197,7 +197,7 @@ workflow {
 	        dendrogram_process.out.stats.map                { meta, files -> tuple(meta, files) },
 	        dendrogram_process.out.results.map              { meta, files -> tuple(meta, files) },
 		cluster_stats_process.out.results.map           { meta, files -> tuple(meta, files) },
-		filter_adata_process.out.results.map            { meta, files -> tuple(meta, files) },
+		filter_adata_process.out.results.map            { items -> tuple(items[0], [items[1], items[2]].flatten())},
 		plot_histograms_process.out.histograms.map      { meta, files -> tuple(meta, files) },
 		plots_process.out.plots.map                     { meta, files -> tuple(meta, files) },
 		prep_medians_process.out.complete.map           { meta, files -> tuple(meta, files) },
