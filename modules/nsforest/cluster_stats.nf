@@ -19,14 +19,14 @@ process cluster_stats_process {
     label 'nsforest'
     publishDir "${params.outdir}",
         mode: params.publish_mode,
-        pattern: "*.{csv,log}"
+        pattern: "*.{csv,svg,log}"
 
     input:
     tuple val(meta), path(h5ad)
 
     output:
     tuple val(meta),
-          path("${meta.organ}_${meta.first_author}_${meta.year}_*.{csv,log}", optional: true),
+          path("${meta.organ}_${meta.first_author}_${meta.year}_*.{csv,svg,html,log}", optional: true),
           emit: results
 
     script:
