@@ -20,8 +20,7 @@ process plots_process {
     tag "plots_${meta.organ}_${meta.first_author}_${meta.year}"
     label 'nsforest'
     publishDir "${params.outdir}",
-        mode: params.publish_mode,
-        pattern: "*.{svg,html,log}"
+        mode: params.publish_mode
 
     input:
     tuple val(meta), path(h5ad), path(results_csv)

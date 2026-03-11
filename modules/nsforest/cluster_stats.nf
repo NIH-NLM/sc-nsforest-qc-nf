@@ -18,8 +18,7 @@ process cluster_stats_process {
     tag "cluster_stats_${meta.organ}_${meta.first_author}_${meta.year}"
     label 'nsforest'
     publishDir "${params.outdir}",
-        mode: params.publish_mode,
-        pattern: "*.{csv,svg,log}"
+        mode: params.publish_mode
 
     input:
     tuple val(meta), path(h5ad)

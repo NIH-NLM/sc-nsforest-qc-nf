@@ -20,8 +20,7 @@ process plot_histograms_process {
     tag "plot_histograms_${meta.organ}_${meta.first_author}_${meta.year}"
     label 'nsforest'
     publishDir "${params.outdir}",
-        mode: params.publish_mode,
-        pattern: "*.svg,*log,*html"
+        mode: params.publish_mode
 
     input:
     tuple val(meta), path(medians_csv), path(binary_scores_csv)
