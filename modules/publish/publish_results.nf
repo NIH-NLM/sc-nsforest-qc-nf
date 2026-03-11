@@ -17,40 +17,38 @@ process publish_results_process {
     label 'publish'
 
     input:
-    // val meta
-    // files from all the files -- it all flat -- so I have to encode the context into the filename that is flattened
-    tuple val(metas), file(all_files_ch)
+    tuple val(meta), file(all_files_ch)
 
     output:
     path "publish_report_${meta.organ}_${meta.first_author}_${meta.year}.txt", emit: report
 
     script:
     def today     = new java.text.SimpleDateFormat("yyyy-MMM-dd").format(new Date()).toLowerCase()
-    def organSlug = metas.organ.replace('_', '-')
-    def branch    = "${today}-${organSlug}-${metas.first_author}-${metas.year}-sc-nsforest-qc-nf"
-    def label     = "outputs_${metas.organ}_${metas.first_author}_${metas.year}"
+    def organSlug = meta.organ.replace('_', '-')
+    def branch    = "${today}-${organSlug}-${meta.first_author}-${meta.year}-sc-nsforest-qc-nf"
+    def label     = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
     def repo_url  = "https://\${GITHUB_TOKEN}@github.com/NIH-NLM/cell-kn.git"
-    def report    = "publish_report_${metas.organ}_${metas.first_author}_${metas.year}.txt"
+    def report    = "publish_report_${meta.organ}_${meta.first_author}_${meta.year}.txt"
     """
     ls -lh 
 
     export GITHUB_TOKEN="${params.github_token}"
 
     echo "=========================================="
-    echo " organ  : ${metas.organ}"
-    echo " author : ${metas.first_author}"
-    echo " year   : ${metas.year}"
+    echo " organ  : ${meta.organ}"
+    echo " author : ${meta.first_author}"
+    echo " year   : ${meta.year}"
     echo " branch : ${branch}"
     echo "=========================================="
 
 #    git clone --depth 1 ${repo_url} cell-kn
-#    cd cell-kn/prod/data/{metas.organ}/sc-nsforest-qc-nf
+#    cd cell-kn/prod/data/{meta.organ}/sc-nsforest-qc-nf
     
 #    git config user.email "adeslatt@scitechcon.org"
 #    git config user.name  "adeslatt"
 #    git checkout -b ${branch}
 
-#    git commit -m "workflow: publish ${metas.organ} ${metas.first_author} ${metas.year} results (${today})
+#    git commit -m "workflow: publish ${meta.organ} ${meta.first_author} ${meta.year} results (${today})
 
 #    git push origin ${branch}
     """
