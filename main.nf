@@ -202,7 +202,7 @@ workflow {
 		plots_process.out.plots.map                     { meta, files -> tuple(meta, files) },
 		prep_medians_process.complete.map               { meta, files -> tuple(meta, files) },
 		prep_binary_scores_process.complete.map         { meta, files -> tuple(meta, files) },
-                merge_nsforest_results_process.out.complete.map { meta, files -> tuple(meta, files) }
+                merge_nsforest_results_process.out.complete.map { meta, files -> tuple(meta, files) },
 		run_nsforest_process.partial.map                { meta, files -> tuple(meta, files) },
                 compute_silhouette_process.out.results.map      { meta, files -> tuple(meta, files) },
                 viz_dotplot_process.out.plots.map               { meta, files -> tuple(meta, files) },
