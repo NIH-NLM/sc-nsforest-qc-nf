@@ -5,8 +5,11 @@
  * Each cluster batch processed independently (one vs all).
  */
 process run_nsforest_process {
-    tag "${meta.organ}_${meta.first_author}_${meta.year}_${cluster}"
+    tag "run_nsforest_${meta.organ}_${meta.first_author}_${meta.year}_${cluster}"
     label 'nsforest'
+    publishDir "${params.outdir}",
+        mode: params.publish_mode,
+        pattern: "*.{csv,svg,html,log,pkl}"
 
     input:
     tuple val(meta), path(h5ad), path(medians_csv), path(binary_scores_csv), val(cluster)

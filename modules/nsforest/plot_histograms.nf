@@ -17,18 +17,18 @@
  *   Flat filenames: {organ}_{first_author}_{year}_{cluster_header_safe}_hist_nonzero_*.svg
  */
 process plot_histograms_process {
-    tag "${meta.organ}_${meta.first_author}_${meta.year}"
+    tag "plot_histograms_${meta.organ}_${meta.first_author}_${meta.year}"
     label 'nsforest'
     publishDir "${params.outdir}",
         mode: params.publish_mode,
-        pattern: "*.svg"
+        pattern: "*.svg,*log,*html"
 
     input:
     tuple val(meta), path(medians_csv), path(binary_scores_csv)
 
     output:
     tuple val(meta),
-          path("${meta.organ}_${meta.first_author}_${meta.year}_*_hist_nonzero_*.svg"),
+          path("${meta.organ}_${meta.first_author}_${meta.year}*.{svg,html,log}"),
           emit: histograms
 
     script:

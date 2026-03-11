@@ -2,20 +2,21 @@
 
 nextflow.enable.dsl=2
 
+include { cluster_stats_process }          from './modules/nsforest/cluster_stats.nf'
+include { compute_silhouette_process }     from './modules/scsilhouette/compute_silhouette.nf'
+include { dendrogram_process }             from './modules/nsforest/dendrogram.nf'
 include { download_h5ad_process }          from './modules/nsforest/download_h5ad.nf'
 include { filter_adata_process }           from './modules/nsforest/filter_adata.nf'
-include { dendrogram_process }             from './modules/nsforest/dendrogram.nf'
+include { merge_nsforest_results_process } from './modules/nsforest/merge_nsforest_results.nf'
 include { prep_medians_process }           from './modules/nsforest/prep_medians.nf'
 include { prep_binary_scores_process }     from './modules/nsforest/prep_binary_scores.nf'
 include { plot_histograms_process }        from './modules/nsforest/plot_histograms.nf'
-include { run_nsforest_process }           from './modules/nsforest/run_nsforest.nf'
-include { merge_nsforest_results_process } from './modules/nsforest/merge_nsforest_results.nf'
 include { plots_process }                  from './modules/nsforest/plots.nf'
-include { compute_silhouette_process }     from './modules/scsilhouette/compute_silhouette.nf'
-include { viz_summary_process }            from './modules/scsilhouette/viz_summary.nf'
-include { viz_dotplot_process }            from './modules/scsilhouette/viz_dotplot.nf'
-include { viz_distribution_process }       from './modules/scsilhouette/viz_distribution.nf'
 include { publish_results_process }        from './modules/publish/publish_results.nf'
+include { run_nsforest_process }           from './modules/nsforest/run_nsforest.nf'
+include { viz_distribution_process }       from './modules/scsilhouette/viz_distribution.nf'
+include { viz_dotplot_process }            from './modules/scsilhouette/viz_dotplot.nf'
+include { viz_summary_process }            from './modules/scsilhouette/viz_summary.nf'
 
 params.batch_size       = 10
 params.datasets_csv     = null
@@ -100,6 +101,9 @@ workflow {
     // Step 1: Dendrogram
     dendrogram_output_ch = dendrogram_process(filtered_h5ad_ch)
 
+    // Step 1b: Cluster statistics
+    cluster_stats_output_ch = cluster_stats_process(filtered_h5ad_ch)
+    
     // Step 2a: Prep medians — runs once per dataset on full filtered h5ad
     prep_medians_output_ch = prep_medians_process(filtered_h5ad_ch)
 
@@ -186,16 +190,29 @@ workflow {
 
     // Step 9: Publish
     if (params.github_token) {
-        publish_trigger_ch = plots_process.out.plots
-            .map { meta, files -> tuple(meta, 1) }
-            .join( viz_summary_process.out.plots.map      { meta, files -> tuple(meta, 1) } )
-            .join( viz_distribution_process.out.plots.map { meta, files -> tuple(meta, 1) } )
-            .join( viz_dotplot_process.out.plots.map      { meta, files -> tuple(meta, 1) } )
-            .join( compute_silhouette_process.out.results.map { meta, files -> tuple(meta, 1) } )
-            .join( merge_nsforest_results_process.out.complete.map { meta, csv, pkl -> tuple(meta, 1) } )
-            .map { meta, v1, v2, v3, v4, v5, v6 -> tuple(meta) }
-
-        publish_results_process(publish_trigger_ch)
+        all_files_ch = Channel
+            .empty()
+            .mix(
+	        dendrogram_output_ch.out.stats.map              { meta, files -> tuple(meta, files) },
+	        dendrogram_output_ch.out.results.map            { meta, files -> tuple(meta, files) },
+		cluster_stats_process.out.results.map           { meta, files -> tuple(meta, files) },
+		filter_adata_process.out.results.map            { meta, files -> tuple(meta, files) },
+		merge_results_process.out.complete.map          { meta, files -> tuple(meta, files) },
+		plot_histograms.out.histograms.map              { meta, files -> tuple(meta, files) },
+		plots_process.out.plots.map                     { meta, files -> tuple(meta, files) },
+		prep_medians_process.complete.map               { meta, files -> tuple(meta, files) },
+		prep_binary_scores_process.complete.map         { meta, files -> tuple(meta, files) },
+                merge_nsforest_results_process.out.complete.map { meta, files -> tuple(meta, files) }
+		run_nsforest_process.partial.map                { meta, files -> tuple(meta, files) },
+                compute_silhouette_process.out.results.map      { meta, files -> tuple(meta, files) },
+                viz_dotplot_process.out.plots.map               { meta, files -> tuple(meta, files) },
+                viz_distribution_process.out.plots.map          { meta, files -> tuple(meta, files) },
+                viz_summary_process.out.plots.map               { meta, files -> tuple(meta, files) },
+            )
+            .map { meta, file_lists ->
+                tuple(meta[0], file_lists.flatten())
+            }
+        publish_results_process(all_files_ch)
     } else {
         log.warn "WARNING: --github_token not set — skipping publish step"
     }

@@ -8,12 +8,12 @@ import numpy as np
 import pandas as pd
 
 from .common_utils import (
-    create_output_dir,
     get_output_prefix,
     load_h5ad,
-    save_dataframe,
     log_section,
-    logger
+    logger,
+    save_dataframe,
+    setup_file_logging
 )
 
 
@@ -28,6 +28,7 @@ def compute_cluster_statistics(adata, cluster_header):
     Returns:
         DataFrame with cluster statistics
     """
+    
     logger.info("Computing cluster statistics...")
     
     total_cells = adata.n_obs
@@ -59,12 +60,14 @@ def run_cluster_stats(h5ad_path, cluster_header, organ, first_author, year):
         first_author: First author surname
         year: Publication year
     """
+
+    setup_file_logging("cluster_stats")
+    
     log_section("NSForest: Cluster Statistics")
     
     # Create output directory
-    output_dir = create_output_dir(organ, first_author, year)
-    output_prefix = get_output_prefix(output_dir, cluster_header)
-    
+    output_prefix = get_output_prefix(organ, first_author, year, cluster_header)
+
     # Load data
     adata = load_h5ad(h5ad_path, cluster_header)
     

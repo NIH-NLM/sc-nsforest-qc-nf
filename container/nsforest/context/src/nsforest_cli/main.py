@@ -9,6 +9,29 @@ from pathlib import Path
 
 app = typer.Typer(help="NSForest workflow commands")
 
+@app.command("cluster-stats")
+def cluster_stats_command(
+    h5ad_path: Path = typer.Option(..., help="Path to h5ad file"),
+    cluster_header: str = typer.Option(..., help="Column name for clusters"),
+    organ: str = typer.Option(..., help="Organ/tissue"),
+    first_author: str = typer.Option(..., help="First author"),
+    year: str = typer.Option(..., help="Publication year"),
+):
+    """Compute cluster statistics."""
+    from .cluster_stats import run_cluster_stats
+    run_cluster_stats(h5ad_path, cluster_header, organ, first_author, year)
+
+@app.command("dendrogram")
+def dendrogram_command(
+    h5ad_path: Path = typer.Option(..., help="Path to h5ad file"),
+    cluster_header: str = typer.Option(..., help="Column name for clusters"),
+    organ: str = typer.Option(..., help="Organ/tissue"),
+    first_author: str = typer.Option(..., help="First author"),
+    year: str = typer.Option(..., help="Publication year"),
+):
+    """Generate dendrogram and cluster statistics."""
+    from .dendrogram import run_dendrogram
+    run_dendrogram(h5ad_path, cluster_header, organ, first_author, year)
 
 @app.command("filter-adata")
 def filter_adata_command(
@@ -44,45 +67,18 @@ def filter_adata_command(
         row_hsapdv_ids   = development_stage_ontology_term_id,
     )
 
-
-@app.command("dendrogram")
-def dendrogram_command(
-    h5ad_path: Path = typer.Option(..., help="Path to h5ad file"),
+@app.command("merge-nsforest-results")
+def merge_nsforest_results_command(
+    partial_files: str = typer.Option(..., help="Comma-separated list of partial results CSV files"),
     cluster_header: str = typer.Option(..., help="Column name for clusters"),
     organ: str = typer.Option(..., help="Organ/tissue"),
     first_author: str = typer.Option(..., help="First author"),
     year: str = typer.Option(..., help="Publication year"),
 ):
-    """Generate dendrogram and cluster statistics."""
-    from .dendrogram import run_dendrogram
-    run_dendrogram(h5ad_path, cluster_header, organ, first_author, year)
-
-
-@app.command("prep-medians")
-def prep_medians_command(
-    h5ad_path: Path = typer.Option(..., help="Path to adata_filtered.h5ad"),
-    cluster_header: str = typer.Option(..., help="Column name for clusters"),
-    organ: str = typer.Option(..., help="Organ/tissue"),
-    first_author: str = typer.Option(..., help="First author"),
-    year: str = typer.Option(..., help="Publication year"),
-):
-    """Compute median expression per cluster. Saves medians csv + pkl."""
-    from .prep_medians import run_prep_medians
-    run_prep_medians(h5ad_path, cluster_header, organ, first_author, year)
-
-
-@app.command("prep-binary-scores")
-def prep_binary_scores_command(
-    h5ad_path: Path = typer.Option(..., help="Path to adata_filtered.h5ad"),
-    cluster_header: str = typer.Option(..., help="Column name for clusters"),
-    organ: str = typer.Option(..., help="Organ/tissue"),
-    first_author: str = typer.Option(..., help="First author"),
-    year: str = typer.Option(..., help="Publication year"),
-):
-    """Compute binary scores per cluster. Saves binary_scores csv + pkl."""
-    from .prep_binary_scores import run_prep_binary_scores
-    run_prep_binary_scores(h5ad_path, cluster_header, organ, first_author, year)
-
+    """Merge partial NSForest results files and save csv + pkl."""
+    from .merge_nsforest_results import run_merge_nsforest_results
+    files = partial_files.split(',')
+    run_merge_nsforest_results(files, cluster_header, organ, first_author, year)
 
 @app.command("plot-histograms")
 def plot_histograms_command(
@@ -97,6 +93,43 @@ def plot_histograms_command(
     from .plot_histograms import run_plot_histograms
     run_plot_histograms(medians_csv, binary_scores_csv, cluster_header, organ, first_author, year)
 
+@app.command("plots")
+def plots_command(
+    h5ad_path: Path = typer.Option(..., help="Path to adata_filtered.h5ad"),
+    results_csv: Path = typer.Option(..., help="Path to NSForest results CSV"),
+    cluster_header: str = typer.Option(..., help="Column name for clusters"),
+    organ: str = typer.Option(..., help="Organ/tissue"),
+    first_author: str = typer.Option(..., help="First author"),
+    year: str = typer.Option(..., help="Publication year"),
+):
+    """Create NSForest visualization plots with gene symbol mapping."""
+    from .plots import run_plots
+    run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, year)
+
+@app.command("prep-binary-scores")
+def prep_binary_scores_command(
+    h5ad_path: Path = typer.Option(..., help="Path to adata_filtered.h5ad"),
+    cluster_header: str = typer.Option(..., help="Column name for clusters"),
+    organ: str = typer.Option(..., help="Organ/tissue"),
+    first_author: str = typer.Option(..., help="First author"),
+    year: str = typer.Option(..., help="Publication year"),
+):
+    """Compute binary scores per cluster. Saves binary_scores csv + pkl."""
+    from .prep_binary_scores import run_prep_binary_scores
+    run_prep_binary_scores(h5ad_path, cluster_header, organ, first_author, year)
+
+
+@app.command("prep-medians")
+def prep_medians_command(
+    h5ad_path: Path = typer.Option(..., help="Path to adata_filtered.h5ad"),
+    cluster_header: str = typer.Option(..., help="Column name for clusters"),
+    organ: str = typer.Option(..., help="Organ/tissue"),
+    first_author: str = typer.Option(..., help="First author"),
+    year: str = typer.Option(..., help="Publication year"),
+):
+    """Compute median expression per cluster. Saves medians csv + pkl."""
+    from .prep_medians import run_prep_medians
+    run_prep_medians(h5ad_path, cluster_header, organ, first_author, year)
 
 @app.command("run-nsforest")
 def run_nsforest_command(
@@ -116,34 +149,6 @@ def run_nsforest_command(
     clusters = cluster_list.split(',') if cluster_list else None
     run_nsforest(h5ad_path, medians_csv, binary_scores_csv, cluster_header,
                  organ, first_author, year, clusters, n_trees, n_genes_eval)
-
-
-@app.command("merge-nsforest-results")
-def merge_nsforest_results_command(
-    partial_files: str = typer.Option(..., help="Comma-separated list of partial results CSV files"),
-    cluster_header: str = typer.Option(..., help="Column name for clusters"),
-    organ: str = typer.Option(..., help="Organ/tissue"),
-    first_author: str = typer.Option(..., help="First author"),
-    year: str = typer.Option(..., help="Publication year"),
-):
-    """Merge partial NSForest results files and save csv + pkl."""
-    from .merge_nsforest_results import run_merge_nsforest_results
-    files = partial_files.split(',')
-    run_merge_nsforest_results(files, cluster_header, organ, first_author, year)
-
-
-@app.command("plots")
-def plots_command(
-    h5ad_path: Path = typer.Option(..., help="Path to adata_filtered.h5ad"),
-    results_csv: Path = typer.Option(..., help="Path to NSForest results CSV"),
-    cluster_header: str = typer.Option(..., help="Column name for clusters"),
-    organ: str = typer.Option(..., help="Organ/tissue"),
-    first_author: str = typer.Option(..., help="First author"),
-    year: str = typer.Option(..., help="Publication year"),
-):
-    """Create NSForest visualization plots with gene symbol mapping."""
-    from .plots import run_plots
-    run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, year)
 
 
 if __name__ == "__main__":

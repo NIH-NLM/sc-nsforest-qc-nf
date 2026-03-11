@@ -19,7 +19,7 @@
  *                   {organ}_{first_author}_{year}_{cluster_header_safe}_annotation.json
  */
 process compute_silhouette_process {
-    tag "${meta.organ}_${meta.first_author}_${meta.year}"
+    tag "compute_silhouette_${meta.organ}_${meta.first_author}_${meta.year}"
     label 'scsilhouette'
     containerOptions '--entrypoint ""'
     publishDir "${params.outdir}",
@@ -31,7 +31,7 @@ process compute_silhouette_process {
 
     output:
     tuple val(meta),
-          path("${meta.organ}_${meta.first_author}_${meta.year}_*.{csv,json}", optional: true),
+          path("${meta.organ}_${meta.first_author}_${meta.year}_*.{csv,json,log}", optional: true),
           emit: results
 
     script:

@@ -18,12 +18,12 @@
  *   Flat filenames: {organ}_{first_author}_{year}_{cluster_header_safe}_distribution_*.{html,svg}
  */
 process viz_distribution_process {
-    tag "${meta.organ}_${meta.first_author}_${meta.year}"
+    tag "viz_distribution_${meta.organ}_${meta.first_author}_${meta.year}"
     label 'scsilhouette'
     containerOptions '--entrypoint ""'
     publishDir "${params.outdir}",
         mode: params.publish_mode,
-        pattern: "*.{csv,svg,html,json}"
+        pattern: "*.{csv,svg,html,log,json}"
 
     input:
     tuple val(meta),

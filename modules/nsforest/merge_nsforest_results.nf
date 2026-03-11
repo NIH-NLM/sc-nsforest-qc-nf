@@ -1,5 +1,5 @@
 process merge_nsforest_results_process {
-    tag "${meta.organ}_${meta.first_author}_${meta.year}"
+    tag "merge_${meta.organ}_${meta.first_author}_${meta.year}"
     label 'nsforest'
     publishDir "${params.outdir}", mode: params.publish_mode
 

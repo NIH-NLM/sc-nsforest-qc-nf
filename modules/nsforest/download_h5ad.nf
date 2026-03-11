@@ -15,7 +15,7 @@
  * @emit h5ad: tuple(meta, {first_author}_{year}.h5ad)
  */
 process download_h5ad_process {
-    tag "${meta.first_author}_${meta.year}"
+    tag "download_${meta.first_author}_${meta.year}"
 
     errorStrategy { task.attempt <= 3 ? 'retry' : 'fail' }
     maxRetries 3

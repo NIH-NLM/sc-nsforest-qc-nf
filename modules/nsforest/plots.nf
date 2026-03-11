@@ -17,18 +17,18 @@
  *   Flat filenames: {organ}_{first_author}_{year}_{cluster_header_safe}_*.{svg,html}
  */
 process plots_process {
-    tag "${meta.organ}_${meta.first_author}_${meta.year}"
+    tag "plots_${meta.organ}_${meta.first_author}_${meta.year}"
     label 'nsforest'
     publishDir "${params.outdir}",
         mode: params.publish_mode,
-        pattern: "*.{svg,html}"
+        pattern: "*.{svg,html,log}"
 
     input:
     tuple val(meta), path(h5ad), path(results_csv)
 
     output:
     tuple val(meta),
-          path("${meta.organ}_${meta.first_author}_${meta.year}_*.{svg,html}", optional: true),
+          path("${meta.organ}_${meta.first_author}_${meta.year}_*.{svg,html,log}", optional: true),
           emit: plots
 
     script:

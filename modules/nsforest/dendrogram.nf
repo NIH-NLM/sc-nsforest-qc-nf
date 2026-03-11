@@ -17,11 +17,11 @@
  *   Flat filenames: {organ}_{first_author}_{year}_{cluster_header_safe}_*.{csv,svg}
  */
 process dendrogram_process {
-    tag "${meta.organ}_${meta.first_author}_${meta.year}"
+    tag "dendrogram_${meta.organ}_${meta.first_author}_${meta.year}"
     label 'nsforest'
     publishDir "${params.outdir}",
         mode: params.publish_mode,
-        pattern: "*.{csv,svg}"
+        pattern: "*.{csv,svg,log}"
 
     input:
     tuple val(meta), path(h5ad)
@@ -29,10 +29,10 @@ process dendrogram_process {
     output:
     tuple val(meta),
           path(h5ad),
-          path("${meta.organ}_${meta.first_author}_${meta.year}_*_cluster_order.csv"),
+          path("${meta.organ}_${meta.first_author}_${meta.year}_*_cluster_*.csv"),
           emit: stats
     tuple val(meta),
-          path("${meta.organ}_${meta.first_author}_${meta.year}_*.{csv,svg}", optional: true),
+          path("${meta.organ}_${meta.first_author}_${meta.year}_*.{csv,svg,html,log}", optional: true),
           emit: results
 
     script:
