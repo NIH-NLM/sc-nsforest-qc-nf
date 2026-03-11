@@ -35,7 +35,7 @@ workflow {
     log.info "workflow.runName    : ${workflow.runName}"
     log.info "params.outdir       : ${params.outdir}"
 
-    if (!params.datasets_csv) { log.error "ERROR: --datasets_csv is required"; exit 1 }
+    if (!params.datasets_csv) { log.error "ERROR: --datasets_csv is required";  exit 1 }
     if (!params.organ)        { log.error "ERROR: --organ is required";         exit 1 }
     if (!params.uberon_json)  { log.error "ERROR: --uberon_json is required";   exit 1 }
     if (!params.disease_json) { log.error "ERROR: --disease_json is required";  exit 1 }
@@ -96,7 +96,8 @@ workflow {
     )
 
     // Convenience: filtered h5ad only channel
-    filtered_h5ad_ch = filter_output_ch.results.map { items -> tuple(items[0], items[1])
+    filtered_h5ad_ch = filter_output_ch.results
+        .map { items -> tuple(items[0], items[1]) }
 
     // Step 1: Dendrogram
     dendrogram_output_ch = dendrogram_process(filtered_h5ad_ch)
