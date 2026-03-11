@@ -96,7 +96,7 @@ workflow {
     )
 
     // Convenience: filtered h5ad only channel
-    filtered_h5ad_ch = filter_output_ch.results.map { meta, h5ad, stats -> tuple(meta, h5ad) }
+    filtered_h5ad_ch = filter_output_ch.results.map { items -> tuple(items[0], items[1])
 
     // Step 1: Dendrogram
     dendrogram_output_ch = dendrogram_process(filtered_h5ad_ch)
