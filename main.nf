@@ -128,7 +128,10 @@ workflow {
         .join(prep_medians_output_ch.complete.map { meta, medians_csv, medians_pkl -> tuple(meta, medians_csv) })
         .join(prep_binary_scores_output_ch.complete.map { meta, binary_csv, binary_pkl -> tuple(meta, binary_csv) })
         .join(dendrogram_output_ch.stats.map { meta, h5ad, cluster_order_csv -> tuple(meta, cluster_order_csv) })
-        .flatMap { meta, h5ad, medians_csv, binary_csv, cluster_order_csv ->
+        .flatMap { meta, h5ad, medians_csv, binary_csv, cluster_order_files ->
+            def cluster_order_csv = cluster_order_files instanceof List
+                ? cluster_order_files.find { it.name.endsWith('_cluster_order.csv') }
+                : cluster_order_files
             def clusters = cluster_order_csv
                 .splitCsv(header: true)
                 .collect { it.cluster_order }
