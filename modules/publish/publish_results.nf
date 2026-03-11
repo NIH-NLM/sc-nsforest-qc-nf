@@ -41,6 +41,7 @@ process publish_results_process {
     echo " branch : ${branch}"
     echo "=========================================="
 
+    echo "publish complete: ${meta.organ} ${meta.first_author} ${meta.year} branch: ${branch}" > ${report}
 #    git clone --depth 1 ${repo_url} cell-kn
 #    cd cell-kn/prod/data/{meta.organ}/sc-nsforest-qc-nf
     
