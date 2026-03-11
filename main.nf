@@ -193,21 +193,21 @@ workflow {
         all_files_ch = Channel
             .empty()
             .mix(
-	        dendrogram_output_ch.out.stats.map              { meta, files -> tuple(meta, files) },
-	        dendrogram_output_ch.out.results.map            { meta, files -> tuple(meta, files) },
-		cluster_stats_process.out.results.map           { meta, files -> tuple(meta, files) },
-		filter_adata_process.out.results.map            { meta, files -> tuple(meta, files) },
-		merge_results_process.out.complete.map          { meta, files -> tuple(meta, files) },
-		plot_histograms.out.histograms.map              { meta, files -> tuple(meta, files) },
-		plots_process.out.plots.map                     { meta, files -> tuple(meta, files) },
-		prep_medians_process.complete.map               { meta, files -> tuple(meta, files) },
-		prep_binary_scores_process.complete.map         { meta, files -> tuple(meta, files) },
-                merge_nsforest_results_process.out.complete.map { meta, files -> tuple(meta, files) },
-		run_nsforest_process.partial.map                { meta, files -> tuple(meta, files) },
-                compute_silhouette_process.out.results.map      { meta, files -> tuple(meta, files) },
-                viz_dotplot_process.out.plots.map               { meta, files -> tuple(meta, files) },
-                viz_distribution_process.out.plots.map          { meta, files -> tuple(meta, files) },
-                viz_summary_process.out.plots.map               { meta, files -> tuple(meta, files) },
+	        dendrogram_output_ch.stats.map              { meta, files -> tuple(meta, files) },
+	        dendrogram_output_ch.results.map            { meta, files -> tuple(meta, files) },
+		cluster_stats_process.results.map           { meta, files -> tuple(meta, files) },
+		filter_adata_process.results.map            { meta, files -> tuple(meta, files) },
+		merge_results_process.complete.map          { meta, files -> tuple(meta, files) },
+		plot_histograms.histograms.map              { meta, files -> tuple(meta, files) },
+		plots_process.plots.map                     { meta, files -> tuple(meta, files) },
+		prep_medians_process.complete.map           { meta, files -> tuple(meta, files) },
+		prep_binary_scores_process.complete.map     { meta, files -> tuple(meta, files) },
+                merge_nsforest_results_process.complete.map { meta, files -> tuple(meta, files) },
+		run_nsforest_process.partial.map            { meta, files -> tuple(meta, files) },
+                compute_silhouette_process.results.map      { meta, files -> tuple(meta, files) },
+                viz_dotplot_process.plots.map               { meta, files -> tuple(meta, files) },
+                viz_distribution_process.plots.map          { meta, files -> tuple(meta, files) },
+                viz_summary_process.plots.map               { meta, files -> tuple(meta, files) },
             )
             .map { meta, file_lists ->
                 tuple(meta[0], file_lists.flatten())
