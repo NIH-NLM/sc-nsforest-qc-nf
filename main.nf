@@ -207,8 +207,8 @@ workflow {
                 viz_distribution_process.out.plots.map          { meta, files -> tuple(meta, files) },
                 viz_summary_process.out.plots.map               { meta, files -> tuple(meta, files) },
             )
-            .map { meta, file_lists ->
-                tuple(meta[0], file_lists.flatten())
+	    .map { meta, file_lists ->
+	        tuple(meta, file_lists instanceof List ? file_lists.flatten() : [file_lists])
             }
         publish_results_process(all_files_ch)
     } else {
