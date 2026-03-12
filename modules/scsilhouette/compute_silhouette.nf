@@ -23,8 +23,7 @@ process compute_silhouette_process {
     label 'scsilhouette'
     containerOptions '--entrypoint ""'
     publishDir "${params.outdir}",
-        mode: params.publish_mode,
-        pattern: "*.{csv,json}"
+        mode: params.publish_mode
 
     input:
     tuple val(meta), path(h5ad)

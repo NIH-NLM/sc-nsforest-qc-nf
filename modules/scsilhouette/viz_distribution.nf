@@ -22,8 +22,7 @@ process viz_distribution_process {
     label 'scsilhouette'
     containerOptions '--entrypoint ""'
     publishDir "${params.outdir}",
-        mode: params.publish_mode,
-        pattern: "*.{csv,svg,html,log,json}"
+        mode: params.publish_mode
 
     input:
     tuple val(meta),

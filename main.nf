@@ -16,6 +16,7 @@ include { publish_results_process }        from './modules/publish/publish_resul
 include { run_nsforest_process }           from './modules/nsforest/run_nsforest.nf'
 include { viz_distribution_process }       from './modules/scsilhouette/viz_distribution.nf'
 include { viz_dotplot_process }            from './modules/scsilhouette/viz_dotplot.nf'
+include { compute_summary_stats_process }  from './modules/scsilhouette/compute_summary_stats.nf'
 include { viz_summary_process }            from './modules/scsilhouette/viz_summary.nf'
 
 params.batch_size       = 10
@@ -151,7 +152,7 @@ workflow {
     plots_process(
         filtered_h5ad_ch
             .join(
-                merged_nsforest_ch.complete.map { meta, results_csv, results_pkl -> tuple(meta, results_csv) }
+                merged_nsforest_ch.complete.map { meta, results_csv, results_pkl, marker_csvs, gene_sel -> tuple(meta, results_csv) }
             )
             .map { meta, h5ad, results_csv -> tuple(meta, h5ad, results_csv) }
     )
@@ -170,7 +171,7 @@ workflow {
                 tuple(meta, scores, summary, annotation)
             }
             .join(
-                merged_nsforest_ch.complete.map { meta, results_csv, results_pkl -> tuple(meta, results_csv) },
+                merged_nsforest_ch.complete.map { meta, results_csv, results_pkl, marker_csvs, gene_sel -> tuple(meta, results_csv) },
                 remainder: true
             )
             .map { meta, scores, summary, annotation, nsforest_csv ->
@@ -192,6 +193,25 @@ workflow {
     // Step 8c: viz_dotplot
     viz_dotplot_process(filtered_h5ad_ch)
 
+    // Step 8d: compute_summary_stats
+    compute_summary_stats_process(
+        silhouette_output_ch.results
+            .map { meta, files ->
+                def flist      = files instanceof List ? files : [files]
+                def scores     = flist.find { it.name.endsWith('_silhouette_scores.csv') }
+                def summary    = flist.find { it.name.endsWith('_cluster_summary.csv') }
+                def annotation = flist.find { it.name.endsWith('_annotation.json') }
+                tuple(meta, scores, summary, annotation)
+            }
+            .join(
+                merged_nsforest_ch.complete.map { meta, results_csv, results_pkl, marker_csvs, gene_sel -> tuple(meta, results_csv) },
+                remainder: true
+            )
+            .map { meta, scores, summary, annotation, nsforest_csv ->
+                tuple(meta, scores, summary, annotation, nsforest_csv ?: file('NO_FILE'))
+            }
+    )
+
     // Step 9: Publish
     if (params.github_token) {
         all_files_ch = Channel
@@ -204,12 +224,13 @@ workflow {
 		plots_process.out.plots.map                     { meta, files -> tuple(meta, files) },
 		prep_binary_scores_process.out.complete.map     { items -> tuple(items[0], [items[1], items[2]].flatten())},
 		prep_medians_process.out.complete.map           { items -> tuple(items[0], [items[1], items[2]].flatten())},
-		merge_nsforest_results_process.out.complete.map { items -> tuple(items[0], [items[1], items[2]].flatten())},
+		merge_nsforest_results_process.out.complete.map { items -> tuple(items[0], [items[1], items[2], items[3], items[4]].flatten())},
 		plot_histograms_process.out.histograms.map      { meta, files -> tuple(meta, files) },
                 compute_silhouette_process.out.results.map      { meta, files -> tuple(meta, files) },
                 viz_dotplot_process.out.plots.map               { meta, files -> tuple(meta, files) },
                 viz_distribution_process.out.plots.map          { meta, files -> tuple(meta, files) },
                 viz_summary_process.out.plots.map               { meta, files -> tuple(meta, files) },
+                compute_summary_stats_process.out.summary.map  { meta, files -> tuple(meta, files) },
             )
 	    .map { meta, file_lists ->
 	        tuple(meta, file_lists instanceof List ? file_lists.flatten() : [file_lists])
