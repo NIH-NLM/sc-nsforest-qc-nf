@@ -84,7 +84,7 @@ summary = pd.DataFrame({
     'explorer_url': ["${meta.explorer_url ?: ''}"],
     'h5ad_url': ["${meta.h5ad_url ?: ''}"],
     'n_clusters': [len(cluster_summary)],
-    'n_cells': [int(cluster_summary['cluster_size'].sum())],
+    'n_cells': [int(cluster_summary['count'].sum())],
     'median_silhouette': [median_of_medians],
     'mean_silhouette': [mean_of_medians],
     'std_silhouette': [std_of_medians],
@@ -102,7 +102,7 @@ summary.to_csv(f"{prefix}_dataset_summary.csv", index=False)
 
 print(f"Dataset Summary: ${meta.organ}_${meta.first_author}_${meta.year}")
 print(f"  Clusters: {len(cluster_summary)} total")
-print(f"  Cells: {int(cluster_summary['cluster_size'].sum())}")
+print(f"  Cells: {int(cluster_summary['count'].sum())}")
 print(f"  Median of median silhouette scores: {median_of_medians:.3f}")
 print(f"    High quality (>= 0.5): {int(high_quality)}")
 print(f"    Medium quality (0.25-0.5): {int(medium_quality)}")
