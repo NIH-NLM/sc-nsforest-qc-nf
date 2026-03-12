@@ -93,7 +93,7 @@ workflow {
         downloaded_ch.h5ad,
         uberon_ch,
         disease_ch,
-	hsapdv
+	hsapdv_ch
     )
 
     // Convenience: filtered h5ad only channel
