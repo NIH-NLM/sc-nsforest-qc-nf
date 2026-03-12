@@ -17,7 +17,7 @@ process publish_results_process {
     label 'publish'
 
     input:
-    tuple val(meta), file(all_files_ch)
+    tuple val(meta), path('*')
 
     output:
     path "publish_report_${meta.organ}_${meta.first_author}_${meta.year}.txt", emit: report
@@ -57,7 +57,7 @@ process publish_results_process {
     mkdir -p ${dest_dir}
     mkdir -p results
     
-    cp -L ../*.html ../*.log ../*.svg ../*.pkl ../*.json ../*.csv ${dest_dir}/ 2>/dev/null || true
+    cp -L *.html *.log *.svg *.pkl *.json *.csv ${dest_dir}/ 2>/dev/null || true
 
     git add ${dest_dir}/
     git commit -m "workflow: publish ${organ} ${first_author} ${year} results (${today})"
