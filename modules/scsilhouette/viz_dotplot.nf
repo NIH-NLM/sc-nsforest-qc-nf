@@ -20,8 +20,7 @@ process viz_dotplot_process {
     label 'scsilhouette'
     containerOptions '--entrypoint ""'
     publishDir "${params.outdir}",
-        mode: params.publish_mode,
-        pattern: "*.{html,svg}"
+        mode: params.publish_mode
 
     input:
     tuple val(meta), path(h5ad)

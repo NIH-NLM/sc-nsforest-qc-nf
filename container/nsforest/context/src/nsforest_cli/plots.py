@@ -10,6 +10,8 @@ import matplotlib
 matplotlib.use("Agg")
 
 import ast
+import glob
+import os
 import pandas as pd
 import nsforest as ns
 
@@ -81,5 +83,18 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, year)
     ns.pl.matrixplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                      gene_symbols='gene_symbol', standard_scale='var', save="svg",
                      output_folder="", outputfilename_suffix=prefix + "_scaled")
+
+    # Rename expression plot SVGs: move prefix from suffix to prefix position
+    # NSForest library creates: {plot_type}_{prefix}[_scaled].svg
+    # We want:                  {prefix}_{plot_type}[_scaled].svg
+    for svg in glob.glob("*.svg"):
+        if not svg.startswith(prefix):
+            base = svg
+            base = base.replace(f"_{prefix}_scaled.svg", "_scaled.svg")
+            base = base.replace(f"_{prefix}.svg", ".svg")
+            new_name = f"{prefix}_{base}"
+            if new_name != svg and not os.path.exists(new_name):
+                os.rename(svg, new_name)
+                logger.info(f"Renamed: {svg} -> {new_name}")
 
     logger.info("Plotting complete!")
