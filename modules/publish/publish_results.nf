@@ -61,6 +61,6 @@ process publish_results_process {
     git add ${dest_dir}/
     git commit -m "workflow: publish ${organ} ${first_author} ${year} results (${today})"
 
-    git push origin ${branch}
+    git push --force origin ${branch}
     """
 }
