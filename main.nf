@@ -90,10 +90,10 @@ workflow {
 
     // Step 0b: Filter — tissue + disease + age using per-row ontology term IDs
     filter_output_ch = filter_adata_process(
-        downloaded_ch.h5ad
-            .combine(uberon_ch)
-            .combine(disease_ch)
-            .combine(hsapdv_ch)
+        downloaded_ch.h5ad,
+        uberon_ch,
+        disease_ch,
+	hsapdv
     )
 
     // Convenience: filtered h5ad only channel

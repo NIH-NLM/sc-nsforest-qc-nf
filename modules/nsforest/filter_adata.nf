@@ -30,7 +30,10 @@ process filter_adata_process {
         mode: params.publish_mode,
         pattern: "*.{h5ad,csv,svg,log}"
     input:
-    tuple val(meta), path(h5ad), path(uberon_json), path(disease_json), path(hsapdv_json)
+    tuple val(meta), path(h5ad)
+    path uberon_json
+    path disease_json
+    path hsapdv_json
 
     output:
     tuple val(meta),
