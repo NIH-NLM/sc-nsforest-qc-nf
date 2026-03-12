@@ -5,8 +5,8 @@
  * from workflow.workDir (works on CloudOS and other platforms).
  *
  * Branch naming:
- *   {YYYY}-{mon}-{DD}-{organ}-{first_author}-{year}-sc-nsforest-qc-nf
- *   e.g. 2026-mar-06-skin-of-body-Wiedemann-2023-sc-nsforest-qc-nf
+ *   {YYYY}-{mon}-{DD}-{organ}-{first_author}-{year}-sc_nsforest_qc_nf
+ *   e.g. 2026-mar-06-skin-of-body-Wiedemann-2023-sc_nsforest_qc_nf
  *
  * Platform notes:
  *   CloudOS: publishDir files land at s3://.../jobs/{id}/results/results/{label}/
@@ -28,14 +28,14 @@ process publish_results_process {
     def first_author      = meta.first_author
     def year              = meta.year
     def organSlug         = organ.replace('_', '-')
-    def branch            = "${today}-${organSlug}-${first_author}-${year}-sc-nsforest-qc-nf"
+    def branch            = "${today}-${organSlug}-${first_author}-${year}-sc_nsforest_qc_nf"
     def label             = "outputs_${organ}_${first_author}_${year}"
     def repo_url          = "https://\${GITHUB_TOKEN}@github.com/NIH-NLM/cell-kn.git"
     def report            = "publish_report_${organ}_${first_author}_${year}.txt"
     def run_id            = 123456789
     def organ_author_year = "${organ}_${first_author}_${year}"
-    def sc-nsforest-qc-nf = "sc-nsforest-qc-nf"
-    def dest_dir          = "data/prod/${sc-nsforest-qc-nf}/${organ_author_year}/${run_id}/results"
+    def sc_nsforest_qc_nf = "sc-nsforest-qc-nf"
+    def dest_dir          = "data/prod/${sc_nsforest_qc_nf}/${organ_author_year}/${run_id}/results"
     """
     ls -lh
 
@@ -56,10 +56,10 @@ process publish_results_process {
     git config user.name  "adeslatt"
     git checkout -b ${branch}
 
-    mkdir -p ${sc-nsforest-qc-nf}
-    mkdir -p ${sc-nsforest-qc-nf}/${organ}_${first_author}_${year}
-    mkdir -p ${sc-nsforest-qc-nf}/${organ}_${first_author}_${year}/${run_id}
-    mkdir -p ${sc-nsforest-qc-nf}/${organ}_${first_author}_${year}/${run_id}/results
+    mkdir -p ${sc_nsforest_qc_nf}
+    mkdir -p ${sc_nsforest_qc_nf}/${organ}_${first_author}_${year}
+    mkdir -p ${sc_nsforest_qc_nf}/${organ}_${first_author}_${year}/${run_id}
+    mkdir -p ${sc_nsforest_qc_nf}/${organ}_${first_author}_${year}/${run_id}/results
 
     cp -L ../*.html ../*.log ../*.svg ../*.pkl ../*.json ../*.csv ${dest_dir}/ 2>/dev/null || true
 
