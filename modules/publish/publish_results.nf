@@ -43,13 +43,13 @@ process publish_results_process {
 
     echo "publish complete: ${meta.organ} ${meta.first_author} ${meta.year} branch: ${branch}" > ${report}
     git clone --depth 1 ${repo_url} cell-kn
-    cd cell-kn/prod/data/{meta.organ}/sc-nsforest-qc-nf
+    cd cell-kn/prod/data/${meta.organ}/sc-nsforest-qc-nf
    
     git config user.email "adeslatt@scitechcon.org"
     git config user.name  "adeslatt"
     git checkout -b ${branch}
 
-    git commit -m "workflow: publish ${meta.organ} ${meta.first_author} ${meta.year} results (${today})
+    git commit -m "workflow: publish ${meta.organ} ${meta.first_author} ${meta.year} results (${today})"
 
     git push origin ${branch}
     """
