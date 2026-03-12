@@ -23,17 +23,19 @@ process publish_results_process {
     path "publish_report_${meta.organ}_${meta.first_author}_${meta.year}.txt", emit: report
 
     script:
-    def today        = new java.text.SimpleDateFormat("yyyy-MMM-dd").format(new Date()).toLowerCase()
-    def organ        = meta.organ
-    def first_author = meta.first_author
-    def year         = meta.year
-    def organSlug    = organ.replace('_', '-')
-    def branch       = "${today}-${organSlug}-${first_author}-${year}-sc-nsforest-qc-nf"
-    def label        = "outputs_${organ}_${first_author}_${year}"
-    def repo_url     = "https://\${GITHUB_TOKEN}@github.com/NIH-NLM/cell-kn.git"
-    def report       = "publish_report_${organ}_${first_author}_${year}.txt"
-    def run_id       = 123456789
-    def dest_dir     = "prod/data/${organ}/sc-nsforest-qc-nf/${run_id}"
+    def today             = new java.text.SimpleDateFormat("yyyy-MMM-dd").format(new Date()).toLowerCase()
+    def organ             = meta.organ
+    def first_author      = meta.first_author
+    def year              = meta.year
+    def organSlug         = organ.replace('_', '-')
+    def branch            = "${today}-${organSlug}-${first_author}-${year}-sc-nsforest-qc-nf"
+    def label             = "outputs_${organ}_${first_author}_${year}"
+    def repo_url          = "https://\${GITHUB_TOKEN}@github.com/NIH-NLM/cell-kn.git"
+    def report            = "publish_report_${organ}_${first_author}_${year}.txt"
+    def run_id            = 123456789
+    def organ_author_year = "${organ}_${first_author}_${year}"
+    def sc-nsforest-qc-nf = "sc-nsforest-qc-nf"
+    def dest_dir          = "data/prod/${sc-nsforest-qc-nf}/${organ_author_year}/${run_id}/results"
     """
     ls -lh
 
@@ -54,9 +56,11 @@ process publish_results_process {
     git config user.name  "adeslatt"
     git checkout -b ${branch}
 
-    mkdir -p ${dest_dir}
-    mkdir -p results
-    
+    mkdir -p ${sc-nsforest-qc-nf}
+    mkdir -p ${sc-nsforest-qc-nf}/${organ}_${first_author}_${year}
+    mkdir -p ${sc-nsforest-qc-nf}/${organ}_${first_author}_${year}/${run_id}
+    mkdir -p ${sc-nsforest-qc-nf}/${organ}_${first_author}_${year}/${run_id}/results
+
     cp -L ../*.html ../*.log ../*.svg ../*.pkl ../*.json ../*.csv ${dest_dir}/ 2>/dev/null || true
 
     git add ${dest_dir}/
