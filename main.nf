@@ -235,7 +235,7 @@ workflow {
 	    .map { meta, file_lists ->
 	        tuple(meta, file_lists instanceof List ? file_lists.flatten() : [file_lists])
             }
-        publish_results_process(all_files_ch)
+        publish_results_process(all_files_ch.groupTuple())
     } else {
         log.warn "WARNING: --github_token not set — skipping publish step"
     }

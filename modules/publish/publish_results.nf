@@ -57,7 +57,8 @@ process publish_results_process {
     mkdir -p ${dest_dir}
     mkdir -p results
     
-    cp ../*.h5ad ../*.csv ${dest_dir}/ 2>/dev/null || true
+    cp -L ../*.html ../*.log ../*.svg ../*.pkl ../*.json ../*.csv ${dest_dir}/ 2>/dev/null || true
+
     git add ${dest_dir}/
     git commit -m "workflow: publish ${organ} ${first_author} ${year} results (${today})"
 
