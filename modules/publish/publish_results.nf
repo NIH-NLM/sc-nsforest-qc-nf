@@ -23,33 +23,43 @@ process publish_results_process {
     path "publish_report_${meta.organ}_${meta.first_author}_${meta.year}.txt", emit: report
 
     script:
-    def today     = new java.text.SimpleDateFormat("yyyy-MMM-dd").format(new Date()).toLowerCase()
-    def organSlug = meta.organ.replace('_', '-')
-    def branch    = "${today}-${organSlug}-${meta.first_author}-${meta.year}-sc-nsforest-qc-nf"
-    def label     = "outputs_${meta.organ}_${meta.first_author}_${meta.year}"
-    def repo_url  = "https://\${GITHUB_TOKEN}@github.com/NIH-NLM/cell-kn.git"
-    def report    = "publish_report_${meta.organ}_${meta.first_author}_${meta.year}.txt"
+    def today        = new java.text.SimpleDateFormat("yyyy-MMM-dd").format(new Date()).toLowerCase()
+    def organ        = meta.organ
+    def first_author = meta.first_author
+    def year         = meta.year
+    def organSlug    = organ.replace('_', '-')
+    def branch       = "${today}-${organSlug}-${first_author}-${year}-sc-nsforest-qc-nf"
+    def label        = "outputs_${organ}_${first_author}_${year}"
+    def repo_url     = "https://\${GITHUB_TOKEN}@github.com/NIH-NLM/cell-kn.git"
+    def report       = "publish_report_${organ}_${first_author}_${year}.txt"
+    def run_id       = 123456789
+    def dest_dir     = "prod/data/${organ}/sc-nsforest-qc-nf/${run_id}"
     """
-    ls -lh 
+    ls -lh
 
     export GITHUB_TOKEN="${params.github_token}"
 
     echo "=========================================="
-    echo " organ  : ${meta.organ}"
-    echo " author : ${meta.first_author}"
-    echo " year   : ${meta.year}"
+    echo " organ  : ${organ}"
+    echo " author : ${first_author}"
+    echo " year   : ${year}"
     echo " branch : ${branch}"
     echo "=========================================="
 
-    echo "publish complete: ${meta.organ} ${meta.first_author} ${meta.year} branch: ${branch}" > ${report}
+    echo "publish complete: ${organ} ${first_author} ${year} branch: ${branch}" > ${report}
     git clone --depth 1 ${repo_url} cell-kn
-    cd cell-kn/prod/data/${meta.organ}/sc-nsforest-qc-nf
-   
+    cd cell-kn
+
     git config user.email "adeslatt@scitechcon.org"
     git config user.name  "adeslatt"
     git checkout -b ${branch}
 
-    git commit -m "workflow: publish ${meta.organ} ${meta.first_author} ${meta.year} results (${today})"
+    mkdir -p ${dest_dir}
+    mkdir -p results
+    
+    cp ../*.h5ad ../*.csv ${dest_dir}/ 2>/dev/null || true
+    git add ${dest_dir}/
+    git commit -m "workflow: publish ${organ} ${first_author} ${year} results (${today})"
 
     git push origin ${branch}
     """
