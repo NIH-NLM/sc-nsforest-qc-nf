@@ -24,8 +24,7 @@ process viz_summary_process {
     label 'scsilhouette'
     containerOptions '--entrypoint ""'
     publishDir "${params.outdir}",
-        mode: params.publish_mode,
-        pattern: "*.{csv,svg,html,json}"
+        mode: params.publish_mode
 
     input:
     tuple val(meta),
@@ -40,6 +39,7 @@ process viz_summary_process {
           emit: plots
 
     script:
+    def prefix            = "${meta.organ}_${meta.first_author}_${meta.year}"
     def fscore_flag       = nsforest_results.name != 'NO_FILE' ? "--fscore-path ${nsforest_results}" : ""
     def doi_flag          = meta.doi             ? "--doi \"${meta.doi}\""                         : ""
     def collection_flag   = meta.collection_name ? "--collection-name \"${meta.collection_name}\"" : ""
@@ -64,5 +64,16 @@ process viz_summary_process {
         ${explorer_url_flag} \
         ${h5ad_url_flag} \
         ${fscore_flag}
+
+    # Ensure all new output files have organ_author_year prefix
+    for f in *.csv *.svg *.html *.json; do
+        [ -f "\$f" ] || continue
+        [ -L "\$f" ] && continue
+        case "\$f" in
+            ${prefix}_*) ;;
+            NO_FILE) ;;
+            *) mv "\$f" "${prefix}_\$f" 2>/dev/null || true ;;
+        esac
+    done
     """
 }

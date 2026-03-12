@@ -7,8 +7,6 @@
 process run_nsforest_process {
     tag "run_nsforest_${meta.organ}_${meta.first_author}_${meta.year}_${cluster}"
     label 'nsforest'
-    publishDir "${params.outdir}",
-        mode: params.publish_mode
 
     input:
     tuple val(meta), path(h5ad), path(medians_csv), path(binary_scores_csv), val(cluster)

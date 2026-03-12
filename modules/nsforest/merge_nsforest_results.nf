@@ -10,6 +10,8 @@ process merge_nsforest_results_process {
     tuple val(meta),
           path("${meta.organ}_${meta.first_author}_${meta.year}_${meta.author_cell_type.replace(' ','_')}_results.csv"),
           path("${meta.organ}_${meta.first_author}_${meta.year}_${meta.author_cell_type.replace(' ','_')}_results.pkl"),
+          path("${meta.organ}_${meta.first_author}_${meta.year}_${meta.author_cell_type.replace(' ','_')}_markers*.csv", optional: true),
+          path("${meta.organ}_${meta.first_author}_${meta.year}_${meta.author_cell_type.replace(' ','_')}_gene_selection.csv", optional: true),
           emit: complete
 
     script:
