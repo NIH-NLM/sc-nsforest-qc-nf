@@ -33,9 +33,8 @@ process publish_results_process {
     def repo_url          = "https://\${GITHUB_TOKEN}@github.com/NIH-NLM/cell-kn.git"
     def report            = "publish_report_${organ}_${first_author}_${year}.txt"
     def run_id            = 123456789
-    def organ_author_year = "${organ}_${first_author}_${year}"
     def sc_nsforest_qc_nf = "sc-nsforest-qc-nf"
-    def dest_dir          = "data/prod/${sc_nsforest_qc_nf}/${organ_author_year}/${run_id}/results"
+    def dest_dir          = "data/prod/${sc_nsforest_qc_nf}/${organ}/${organ}_${first_author}_${year}/${run_id}/results
     """
     ls -lh
 
@@ -56,10 +55,7 @@ process publish_results_process {
     git config user.name  "adeslatt"
     git checkout -b ${branch}
 
-    mkdir -p ${sc_nsforest_qc_nf}
-    mkdir -p ${sc_nsforest_qc_nf}/${organ}_${first_author}_${year}
-    mkdir -p ${sc_nsforest_qc_nf}/${organ}_${first_author}_${year}/${run_id}
-    mkdir -p ${sc_nsforest_qc_nf}/${organ}_${first_author}_${year}/${run_id}/results
+    mkdir -p ${dest_dir}
 
     cp -L ../*.html ../*.log ../*.svg ../*.pkl ../*.json ../*.csv ${dest_dir}/ 2>/dev/null || true
 

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 # in common_utils.py
 
 def get_output_prefix(organ, first_author, year, cluster_header):
-    output_prefix = f"{organ}_{first_author}_{year}_{cluster_header}"
+    output_prefix = f"{organ}_{first_author}_{year}_{cluster_header.replace(' ', '_')}"
     return output_prefix 
 
     
