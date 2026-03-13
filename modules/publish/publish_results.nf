@@ -34,7 +34,7 @@ process publish_results_process {
     def report            = "publish_report_${organ}_${first_author}_${year}.txt"
     def run_id            = 123456789
     def sc_nsforest_qc_nf = "sc-nsforest-qc-nf"
-    def dest_dir          = "data/prod/${sc_nsforest_qc_nf}/${organ}/${organ}_${first_author}_${year}/${run_id}/results
+    def dest_dir          = "data/prod/${sc_nsforest_qc_nf}/${organ}/${organ}_${first_author}_${year}/${run_id}/results"
     """
     ls -lh
 
