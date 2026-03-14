@@ -82,7 +82,7 @@ workflow {
                 tissue_ontology_term_id:            row.tissue_ontology_term_id,
                 disease_ontology_term_id:           row.disease_ontology_term_id,
                 development_stage_ontology_term_id: row.development_stage_ontology_term_id,
-                session_id:                         workflow.sessionId[-6..-1],
+                session_id:                         workflow.sessionId.toString()[-6..-1],
             ]
             tuple(meta, row.h5ad_url)
         }
