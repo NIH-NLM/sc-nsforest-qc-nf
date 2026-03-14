@@ -74,6 +74,7 @@ workflow {
                 doi:                                row.doi,
                 collection_name:                    row.collection_name,
                 dataset_title:                      row.dataset_title,
+		dataset_version_id:		    row.dataset_version_id,
                 journal:                            row.journal,
                 collection_url:                     row.collection_url,
                 explorer_url:                       row.explorer_url,
@@ -81,6 +82,7 @@ workflow {
                 tissue_ontology_term_id:            row.tissue_ontology_term_id,
                 disease_ontology_term_id:           row.disease_ontology_term_id,
                 development_stage_ontology_term_id: row.development_stage_ontology_term_id,
+		run_name:                           workflow.runName,
             ]
             tuple(meta, row.h5ad_url)
         }

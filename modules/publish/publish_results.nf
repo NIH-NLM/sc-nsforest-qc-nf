@@ -27,14 +27,15 @@ process publish_results_process {
     def organ             = meta.organ
     def first_author      = meta.first_author
     def year              = meta.year
+    def vid               = meta.dataset_version_id[-6..-1]
     def organSlug         = organ.replace('_', '-')
-    def branch            = "${today}-${organSlug}-${first_author}-${year}-sc_nsforest_qc_nf"
+    def branch            = "${today}-${organSlug}-${first_author}-${year}-${vid}-sc_nsforest_qc_nf"
     def label             = "outputs_${organ}_${first_author}_${year}"
     def repo_url          = "https://\${GITHUB_TOKEN}@github.com/NIH-NLM/cell-kn.git"
     def report            = "publish_report_${organ}_${first_author}_${year}.txt"
-    def run_id            = 123456789
+    def run_id            = meta.run_name
     def sc_nsforest_qc_nf = "sc-nsforest-qc-nf"
-    def dest_dir          = "data/prod/${sc_nsforest_qc_nf}/${organ}/${organ}_${first_author}_${year}/${run_id}/results"
+    def dest_dir          = "data/prod/${sc_nsforest_qc_nf}/${organ}/${organ}_${first_author}_${year}_${vid}/${run_id}/results"
     """
     ls -lh
 
