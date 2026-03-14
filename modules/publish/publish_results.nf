@@ -33,7 +33,7 @@ process publish_results_process {
     def label             = "outputs_${organ}_${first_author}_${year}"
     def repo_url          = "https://\${GITHUB_TOKEN}@github.com/NIH-NLM/cell-kn.git"
     def report            = "publish_report_${organ}_${first_author}_${year}.txt"
-    def run_id            = meta.run_name
+    def run_id            = meta.session_id
     def sc_nsforest_qc_nf = "sc-nsforest-qc-nf"
     def dest_dir          = "data/prod/${sc_nsforest_qc_nf}/${organ}/${organ}_${first_author}_${year}_${vid}/${run_id}/results"
     """
