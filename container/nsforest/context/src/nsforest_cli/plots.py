@@ -38,9 +38,17 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, year)
 
     # Load results
     logger.info(f"Loading results: {results_csv}")
-    results = pd.read_csv(results_csv)
-    results['NSForest_markers'] = results['NSForest_markers'].apply(ast.literal_eval)
 
+    results = pd.read_csv(results_csv)
+    results = results.dropna(subset=['NSForest_markers'])
+    results = results[results['NSForest_markers'].str.strip() != '[]']
+
+    if results.empty:
+        logger.warning("No valid marker results — skipping all plots")
+        return
+
+    results['NSForest_markers'] = results['NSForest_markers'].apply(ast.literal_eval)
+    
     # Gene symbol mapping
     ensg_to_symbol = load_gene_mapping()
     results, markers_dict = map_markers_to_symbols(results, ensg_to_symbol)

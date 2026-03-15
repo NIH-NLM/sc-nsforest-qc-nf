@@ -36,10 +36,22 @@ def run_merge_nsforest_results(partial_files, cluster_header, organ, first_autho
 
     dfs = []
     for filepath in partial_files:
-        df = pd.read_csv(filepath)
-        dfs.append(df)
+        try:
+            df = pd.read_csv(filepath)
+            if df.empty:
+                logger.warning(f"Skipping empty partial file: {filepath}")
+                continue
+            dfs.append(df)
+        except pd.errors.EmptyDataError:
+            logger.warning(f"Skipping empty partial file: {filepath}")
+            continue
 
-    results = pd.concat(dfs, axis=0, ignore_index=True)
+    if not dfs:
+        logger.warning("No non-empty partial files found — writing empty results")
+        results = pd.DataFrame()
+    else:
+        results = pd.concat(dfs, axis=0, ignore_index=True)
+
     logger.info(f"Complete results: {results.shape}")
 
     results.to_csv(f"{prefix}_results.csv", index=False)
@@ -71,6 +83,8 @@ def run_merge_nsforest_results(partial_files, cluster_header, organ, first_autho
     all_markers = []
     for _, row in results.iterrows():
         markers = row['NSForest_markers']
+        if pd.isna(markers):
+            continue
         if isinstance(markers, str):
             markers = ast.literal_eval(markers)
         for gene in markers:
