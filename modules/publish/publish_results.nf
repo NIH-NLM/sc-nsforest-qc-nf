@@ -35,7 +35,7 @@ process publish_results_process {
     def report            = "publish_report_${organ}_${first_author}_${year}.txt"
     def run_id            = meta.session_id
     def sc_nsforest_qc_nf = "sc-nsforest-qc-nf"
-    def dest_dir          = "data/prod/${sc_nsforest_qc_nf}/${organ}/${organ}_${first_author}_${year}_${vid}/${run_id}/results"
+    def dest_dir          = "data/prod/${sc_nsforest_qc_nf}/${organ}/${organ}-${first_author}-${year}-${vid}/${run_id}/results"
     """
     ls -lh
 
@@ -60,8 +60,14 @@ process publish_results_process {
 
     cp -L ../*.html ../*.log ../*.svg ../*.pkl ../*.json ../*.csv ${dest_dir}/ 2>/dev/null || true
 
+    # Compress files larger than 50MB
+    find ${dest_dir} -type f -size +50M | while read f; do
+        tar czf "\${f}.tar.gz" -C "\$(dirname "\$f")" "\$(basename "\$f")"
+        rm "\$f"
+    done
+
     git add ${dest_dir}/
-    git commit -m "workflow: publish ${organ} ${first_author} ${year} results (${today})"
+    git commit -m "workflow: publish ${organ} ${first_author} ${year} ${vid} results (${today})"
 
     git push --force origin ${branch}
     """
