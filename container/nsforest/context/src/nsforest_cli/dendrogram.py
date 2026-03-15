@@ -39,14 +39,24 @@ def run_dendrogram(h5ad_path, cluster_header, organ, first_author, year):
 
     # Dendrogram — save svg
     logger.info("Creating dendrogram...")
-    ns.pp.dendrogram(
-        adata,
-        cluster_header,
-        tl_kwargs={'optimal_ordering': True},
-        save="svg",
-        output_folder="",
-        outputfilename_suffix=prefix
-    )
+    try:
+        ns.pp.dendrogram(
+            adata, cluster_header,
+            tl_kwargs={"optimal_ordering": True}, save="svg",
+            output_folder="",
+            outputfilename_suffix=prefix
+        )
+    except ValueError as e:
+        if "negative distances" in str(e):
+            logger.warning(f"Optimal ordering failed — retrying without: {e}")
+            ns.pp.dendrogram(
+                adata, cluster_header,
+                tl_kwargs={"optimal_ordering": False}, save="svg",
+                output_folder="",
+                outputfilename_suffix=prefix
+            )
+        else:
+            raise
 
     # Cluster sizes
     df_cluster_sizes = pd.DataFrame(adata.obs[cluster_header].value_counts())

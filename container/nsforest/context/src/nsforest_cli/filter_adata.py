@@ -63,12 +63,24 @@ def create_stats_before_filter(adata, cluster_header, prefix):
     n_clusters = adata.obs[cluster_header].nunique()
     logger.info(f"Before filter - Total cells: {adata.n_obs}, Clusters: {n_clusters}")
 
-    ns.pp.dendrogram(
-        adata, cluster_header,
-        tl_kwargs={"optimal_ordering": True}, save="svg",
-        output_folder="",
-        outputfilename_suffix=prefix + "_before_filter"
-    )
+    try:
+        ns.pp.dendrogram(
+            adata, cluster_header,
+            tl_kwargs={"optimal_ordering": True}, save="svg",
+            output_folder="",
+            outputfilename_suffix=prefix + "_before_filter"
+        )
+    except ValueError as e:
+        if "negative distances" in str(e):
+            logger.warning(f"Optimal ordering failed — retrying without: {e}")
+            ns.pp.dendrogram(
+                adata, cluster_header,
+                tl_kwargs={"optimal_ordering": False}, save="svg",
+                output_folder="",
+                outputfilename_suffix=prefix + "_before_filter"
+            )
+        else:
+            raise
 
     cluster_counts   = adata.obs[cluster_header].value_counts()
     df_cluster_sizes = pd.DataFrame({
@@ -333,11 +345,24 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, year,
 
     n_clusters = adata.obs[cluster_header].nunique()
 
-    ns.pp.dendrogram(
-        adata, cluster_header,
-        tl_kwargs={"optimal_ordering": True}, save="svg",
-        output_folder="", outputfilename_suffix=prefix
-    )
+    try:
+        ns.pp.dendrogram(
+            adata, cluster_header,
+            tl_kwargs={"optimal_ordering": True}, save="svg",
+            output_folder="",
+            outputfilename_suffix=prefix
+        )
+    except ValueError as e:
+        if "negative distances" in str(e):
+            logger.warning(f"Optimal ordering failed — retrying without: {e}")
+            ns.pp.dendrogram(
+                adata, cluster_header,
+                tl_kwargs={"optimal_ordering": False}, save="svg",
+                output_folder="",
+                outputfilename_suffix=prefix
+            )
+        else:
+            raise
 
     cluster_counts   = adata.obs[cluster_header].value_counts()
     df_cluster_sizes = pd.DataFrame({
