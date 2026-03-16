@@ -72,12 +72,25 @@ def create_stats_before_filter(adata, cluster_header, prefix):
         )
     except ValueError as e:
         if "negative distances" in str(e):
-            logger.warning(f"Optimal ordering failed — retrying without: {e}")
-            ns.pp.dendrogram(
-                adata, cluster_header,
-                tl_kwargs={"optimal_ordering": False}, save="svg",
-                output_folder="",
-                outputfilename_suffix=prefix + "_before_filter"
+            logger.warning(f"Dendrogram failed ({e}) — computing with clamped distances")
+            import numpy as np
+            from scipy.spatial import distance
+            from scipy.cluster import hierarchy as sch
+
+            mean_df = adata.to_df().groupby(adata.obs[cluster_header]).mean()
+            corr_matrix = mean_df.T.corr()
+            corr_condensed = distance.squareform(1 - corr_matrix)
+            corr_condensed = np.clip(corr_condensed, 0, None)
+            z_var = sch.linkage(corr_condensed, method='complete', optimal_ordering=False)
+            dendro_info = sch.dendrogram(z_var, labels=list(mean_df.index), no_plot=True)
+
+            adata.uns[f'dendrogram_{cluster_header}'] = dict(
+                linkage=z_var,
+                groupby=cluster_header,
+                categories_ordered=dendro_info['ivl'],
+                categories_idx_ordered=[mean_df.index.tolist().index(c) for c in dendro_info['ivl']],
+                dendrogram_info=dendro_info,
+                correlation_matrix=corr_matrix.values,
             )
         else:
             raise
