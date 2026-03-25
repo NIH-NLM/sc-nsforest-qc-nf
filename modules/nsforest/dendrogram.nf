@@ -28,7 +28,7 @@ process dendrogram_process {
     output:
     tuple val(meta),
           path(h5ad),
-          path("$*.csv"),
+          path("*.csv"),
           emit: stats
     tuple val(meta),
           path("*.{csv,svg,html,log}", optional: true),
