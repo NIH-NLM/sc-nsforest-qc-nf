@@ -4,10 +4,10 @@ Generate dendrogram and cluster statistics.
 Corresponds to DEMO_NS-Forest_workflow.py: Section 2
 
 Saves:
-  {organ}_{first_author}_{year}_{cluster_header}_dendrogram.svg
-  {organ}_{first_author}_{year}_{cluster_header}_cluster_sizes.csv
-  {organ}_{first_author}_{year}_{cluster_header}_cluster_order.csv
-  {organ}_{first_author}_{year}_{cluster_header}_summary_normal.csv
+  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_dendrogram.svg
+  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_cluster_sizes.csv
+  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_cluster_order.csv
+  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_summary_normal.csv
 """
 
 import matplotlib
@@ -17,20 +17,20 @@ import pandas as pd
 import nsforest as ns
 
 from .common_utils import (
+    get_output_prefix,
     load_h5ad,
     log_section,
     logger
 )
 
 
-def run_dendrogram(h5ad_path, cluster_header, organ, first_author, year):
+def run_dendrogram(h5ad_path, cluster_header, organ, first_author, year, embedding, dataset_version_id):
     """
     Generate dendrogram and cluster statistics.
     """
     log_section("NSForest: Dendrogram")
 
-    cluster_header_safe = cluster_header.replace(" ", "_")
-    prefix = f"{organ}_{first_author}_{year}_{cluster_header_safe}"
+    prefix = get_output_prefix( organ, first_author, year, cluster_header, embedding, dataset_version_id )
 
     adata = load_h5ad(h5ad_path, cluster_header)
 

@@ -16,6 +16,7 @@ import pandas as pd
 import nsforest as ns
 
 from .common_utils import (
+    get_output_prefix,
     load_h5ad,
     log_section,
     logger
@@ -27,14 +28,13 @@ from .gene_mapping_utils import (
 )
 
 
-def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, year):
+def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, year, embedding, dataset_version_id):
     """
     Create NSForest visualization plots with gene symbol mapping.
     """
     log_section("NSForest: Plotting")
 
-    cluster_header_safe = cluster_header.replace(" ", "_")
-    prefix = f"{organ}_{first_author}_{year}_{cluster_header_safe}"
+    prefix = get_output_prefix( organ, first_author, year, cluster_header, embedding, dataset_version_id )
 
     # Load results
     logger.info(f"Loading results: {results_csv}")

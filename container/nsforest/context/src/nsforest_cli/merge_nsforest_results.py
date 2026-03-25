@@ -5,12 +5,12 @@ Also generates supplementary marker files from the merged results.
 Corresponds to DEMO_NS-Forest_workflow.py: Section 3 (gather phase)
 
 Saves:
-  {organ}_{first_author}_{year}_{cluster_header}_results.csv
-  {organ}_{first_author}_{year}_{cluster_header}_results.pkl
-  {organ}_{first_author}_{year}_{cluster_header}_markers.csv
-  {organ}_{first_author}_{year}_{cluster_header}_markers_onTarget.csv
-  {organ}_{first_author}_{year}_{cluster_header}_markers_onTarget_supp.csv
-  {organ}_{first_author}_{year}_{cluster_header}_gene_selection.csv
+  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_results.csv
+  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_results.pkl
+  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_markers.csv
+  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_markers_onTarget.csv
+  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_markers_onTarget_supp.csv
+  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_gene_selection.csv
 """
 
 import ast
@@ -18,19 +18,19 @@ import ast
 import pandas as pd
 
 from .common_utils import (
+    get_output_prefix,
     log_section,
     logger
 )
 
 
-def run_merge_nsforest_results(partial_files, cluster_header, organ, first_author, year):
+def run_merge_nsforest_results(partial_files, cluster_header, organ, first_author, year, embedding, dataset_version_id):
     """
     Merge partial NSForest results CSV files and save csv + pkl + marker files.
     """
     log_section("NSForest: Merge NSForest Results")
 
-    cluster_header_safe = cluster_header.replace(" ", "_")
-    prefix = f"{organ}_{first_author}_{year}_{cluster_header_safe}"
+    prefix = get_output_prefix( organ, first_author, year, cluster_header, embedding, dataset_version_id )
 
     logger.info(f"Merging {len(partial_files)} partial NSForest results files...")
 

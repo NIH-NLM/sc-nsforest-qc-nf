@@ -20,6 +20,7 @@ import pandas as pd
 import nsforest as ns
 
 from .common_utils import (
+    get_output_prefix,
     load_h5ad,
     log_section,
     logger
@@ -292,7 +293,7 @@ def filter_by_min_cluster_size(adata, cluster_header, min_size=5):
 # Main entry point
 # =============================================================================
 
-def run_filter_adata(h5ad_path, cluster_header, organ, first_author, year,
+def run_filter_adata(h5ad_path, cluster_header, organ, first_author, year, embedding, dataset_version_id,
                      filter_normal=False,
                      uberon_json=None,
                      disease_json=None,
@@ -318,6 +319,8 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, year,
         organ:            Organ/tissue label (used for output directory)
         first_author:     First author (used for output directory)
         year:             Publication year (used for output directory)
+        embedding:        embedding (used for output directory)
+        dataset_version_id: dataset_version_id (used for output directory)
         filter_normal:    If True, apply tissue + disease + age filters
         uberon_json:      Path to UBERON JSON from resolve-uberon
         disease_json:     Path to disease JSON from resolve-disease
@@ -326,9 +329,8 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, year,
     """
     log_section("NSForest: Filter AnnData")
 
-    cluster_header_safe   = cluster_header.replace(" ", "_")
-    prefix                = f"{organ}_{first_author}_{year}_{cluster_header_safe}"
-    filtered_h5ad_name    = f"{organ}_{first_author}_{year}_adata_filtered.h5ad"
+    prefix                = get_output_prefix( organ, first_author, year, cluster_header, embedding, dataset_version_id)
+    filtered_h5ad_name    = f"{prefix}_adata_filtered.h5ad"
 
     logger.info(f"Loading: {h5ad_path}")
     adata = load_h5ad(h5ad_path, cluster_header)

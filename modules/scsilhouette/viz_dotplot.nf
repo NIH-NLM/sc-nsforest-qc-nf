@@ -16,7 +16,7 @@
  *   Flat filenames: {organ}_{first_author}_{year}_{cluster_header_safe}_dotplot_{embedding_key}.{html,svg}
  */
 process viz_dotplot_process {
-    tag "viz_dotplot_${meta.organ}_${meta.first_author}_${meta.year}"
+    tag "viz_dotplot_${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
     label 'scsilhouette'
     containerOptions '--entrypoint ""'
     publishDir "${params.outdir}",
@@ -27,7 +27,7 @@ process viz_dotplot_process {
 
     output:
     tuple val(meta),
-          path("${meta.organ}_${meta.first_author}_${meta.year}_*_dotplot_*.{html,svg,log}", optional: true),
+          path("*.{html,svg,log}", optional: true),
           emit: plots
 
     script:
@@ -38,6 +38,8 @@ process viz_dotplot_process {
         --cluster-header "${meta.author_cell_type}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
-        --year "${meta.year}"
+        --year "${meta.year}" \
+	--embedding "${meta.embedding}" \
+	--dataset-version-id "${meta.dataset_version_id}"
     """
 }

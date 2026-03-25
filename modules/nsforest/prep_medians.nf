@@ -1,5 +1,5 @@
 process prep_medians_process {
-    tag "prep_medians_${meta.organ}_${meta.first_author}_${meta.year}"
+    tag "prep_medians_${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
     label 'nsforest'
     publishDir "${params.outdir}",
         mode: params.publish_mode
@@ -9,8 +9,8 @@ process prep_medians_process {
 
     output:
     tuple val(meta),
-          path("${meta.organ}_${meta.first_author}_${meta.year}_${meta.author_cell_type.replace(' ','_')}_medians.csv"),
-          path("${meta.organ}_${meta.first_author}_${meta.year}_${meta.author_cell_type.replace(' ','_')}_medians.pkl"),
+          path("*medians.csv"),
+          path("*medians.pkl"),
           emit: complete
 
     script:
@@ -20,6 +20,8 @@ process prep_medians_process {
         --cluster-header "${meta.author_cell_type}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
-        --year "${meta.year}"
+        --year "${meta.year}" \
+	--embedding "${meta.embedding}" \
+	--dataset-version-id "${meta.dataset_version_id}"
     """
 }

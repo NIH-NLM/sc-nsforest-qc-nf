@@ -24,7 +24,7 @@
  *                   {organ}_{first_author}_{year}_{cluster_header_safe}_*.{csv,svg}
  */
 process filter_adata_process {
-    tag "filter_adata_${meta.organ}_${meta.first_author}_${meta.year}"
+    tag "filter_adata_${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
     label 'nsforest'
     publishDir "${params.outdir}",
         mode: params.publish_mode,
@@ -37,8 +37,8 @@ process filter_adata_process {
 
     output:
     tuple val(meta),
-          path("${meta.organ}_${meta.first_author}_${meta.year}_adata_filtered.h5ad"),
-          path("${meta.organ}_${meta.first_author}_${meta.year}_*.{csv,svg,log}", optional: true),
+          path("*_adata_filtered.h5ad"),
+          path("*.{csv,svg,log}", optional: true),
           emit: results
 
     script:
@@ -55,6 +55,8 @@ process filter_adata_process {
         --uberon ${uberon_json} \
         --disease ${disease_json} \
         --hsapdv ${hsapdv_json} \
-        --min-cluster-size ${min_cluster_val}
+        --min-cluster-size ${min_cluster_val} \
+        --embedding "${meta.embedding}" \
+	--dataset-version-id "${meta.dataset_version_id}"
     """
 }

@@ -4,8 +4,8 @@ Plot histograms of non-zero median and binary score values.
 Corresponds to DEMO_NS-Forest_workflow.py: Section 3 histograms
 
 Saves:
-  {organ}_{first_author}_{year}_{cluster_header}_hist_nonzero_medians.svg
-  {organ}_{first_author}_{year}_{cluster_header}_hist_nonzero_binary_scores.svg
+  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_hist_nonzero_medians.svg
+  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_hist_nonzero_binary_scores.svg
 """
 
 import matplotlib
@@ -15,19 +15,20 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from .common_utils import (
+    get_output_prefix,
     log_section,
     logger
 )
 
 
-def run_plot_histograms(medians_csv, binary_scores_csv, cluster_header, organ, first_author, year):
+def run_plot_histograms(medians_csv, binary_scores_csv, cluster_header, organ, first_author, year,
+                        embedding, dataset_version_id):
     """
     Create histograms of non-zero median and binary score values.
     """
     log_section("NSForest: Plot Histograms")
 
-    cluster_header_safe = cluster_header.replace(" ", "_")
-    prefix = f"{organ}_{first_author}_{year}_{cluster_header_safe}"
+    prefix = get_output_prefix( organ, first_author, year, cluster_header, embedding, dataset_version_id )
 
     logger.info(f"Loading medians: {medians_csv}")
     df_medians = pd.read_csv(medians_csv, index_col=0)

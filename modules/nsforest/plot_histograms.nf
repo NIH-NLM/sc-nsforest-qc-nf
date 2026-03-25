@@ -17,7 +17,7 @@
  *   Flat filenames: {organ}_{first_author}_{year}_{cluster_header_safe}_hist_nonzero_*.svg
  */
 process plot_histograms_process {
-    tag "plot_histograms_${meta.organ}_${meta.first_author}_${meta.year}"
+    tag "plot_histograms_${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
     label 'nsforest'
     publishDir "${params.outdir}",
         mode: params.publish_mode
@@ -27,7 +27,7 @@ process plot_histograms_process {
 
     output:
     tuple val(meta),
-          path("${meta.organ}_${meta.first_author}_${meta.year}*.{svg,html,log}"),
+          path("*.{svg,html,log}"),
           emit: histograms
 
     script:
@@ -38,6 +38,8 @@ process plot_histograms_process {
         --cluster-header "${meta.author_cell_type}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
-        --year "${meta.year}"
+        --year "${meta.year}" \
+        --embedding "${meta.embedding}" \
+	--dataset-version-id "${meta.dataset_version_id}"
     """
 }

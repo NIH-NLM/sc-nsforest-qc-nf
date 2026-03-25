@@ -5,20 +5,21 @@ Corresponds to DEMO_NS-Forest_workflow.py: Section 3 prep
 Uses ns.pp.prep_medians() then ns.pp.prep_binary_scores() in memory.
 
 Saves:
-  {organ}_{first_author}_{year}_{cluster_header}_binary_scores.csv
-  {organ}_{first_author}_{year}_{cluster_header}_binary_scores.pkl
+  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_binary_scores.csv
+  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_binary_scores.pkl
 """
 
 import nsforest as ns
 
 from .common_utils import (
+    get_output_prefix,
     load_h5ad,
     log_section,
     logger
 )
 
 
-def run_prep_binary_scores(h5ad_path, cluster_header, organ, first_author, year):
+def run_prep_binary_scores(h5ad_path, cluster_header, organ, first_author, year, embedding, dataset_version_id):
     """
     Compute binary scores per cluster.
 
@@ -27,8 +28,7 @@ def run_prep_binary_scores(h5ad_path, cluster_header, organ, first_author, year)
     """
     log_section("NSForest: Prep Binary Scores")
 
-    cluster_header_safe = cluster_header.replace(" ", "_")
-    prefix = f"{organ}_{first_author}_{year}_{cluster_header_safe}"
+    prefix = get_output_prefix( organ, first_author, year, cluster_header, embedding, dataset_version_id )
 
     adata = load_h5ad(h5ad_path, cluster_header)
     adata_prep = adata.copy()

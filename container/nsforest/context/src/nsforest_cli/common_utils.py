@@ -11,9 +11,12 @@ logger = logging.getLogger(__name__)
 
 # in common_utils.py
 
-def get_output_prefix(organ, first_author, year, cluster_header):
-    output_prefix = f"{organ}_{first_author}_{year}_{cluster_header.replace(' ', '_')}"
-    return output_prefix 
+def get_output_prefix(organ, first_author, year, cluster_header, embedding="", dataset_version_id=""):
+    """Build standardized output filename prefix with embedding and vid suffix for uniqueness."""
+    cluster_header_safe = cluster_header.replace(" ", "_")
+    embedding_safe = embedding.replace(" ", "_") if embedding else "unknown"
+    vid_suffix = f"_{dataset_version_id[-6:]}" if dataset_version_id and len(dataset_version_id) >= 6 else ""
+    return f"{organ}_{first_author}_{year}_{cluster_header_safe}_{embedding_safe}{vid_suffix}"
 
     
 def load_h5ad(h5ad_path, cluster_header):

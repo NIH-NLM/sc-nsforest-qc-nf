@@ -19,7 +19,7 @@
  *                   {organ}_{first_author}_{year}_{cluster_header_safe}_annotation.json
  */
 process compute_silhouette_process {
-    tag "compute_silhouette_${meta.organ}_${meta.first_author}_${meta.year}"
+    tag "compute_silhouette_${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
     label 'scsilhouette'
     containerOptions '--entrypoint ""'
     publishDir "${params.outdir}",
@@ -30,7 +30,7 @@ process compute_silhouette_process {
 
     output:
     tuple val(meta),
-          path("${meta.organ}_${meta.first_author}_${meta.year}_*.{csv,json,log}", optional: true),
+          path("*.{csv,json,log}", optional: true),
           emit: results
 
     script:
@@ -42,6 +42,8 @@ process compute_silhouette_process {
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
         --year "${meta.year}" \
+	--embedding "${meta.embedding}" \
+	--dataset-version-id "${meta.dataset_version_id}" \
         --disease "${meta.disease}" \
         --save-scores \
         --save-cluster-summary \

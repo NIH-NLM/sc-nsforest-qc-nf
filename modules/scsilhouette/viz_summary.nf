@@ -20,7 +20,7 @@
  *   Flat filenames: {organ}_{first_author}_{year}_{cluster_header_safe}_*.{csv,svg,html,json}
  */
 process viz_summary_process {
-    tag "viz_summary_${meta.organ}_${meta.first_author}_${meta.year}"
+    tag "viz_summary_${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
     label 'scsilhouette'
     containerOptions '--entrypoint ""'
     publishDir "${params.outdir}",
@@ -35,7 +35,7 @@ process viz_summary_process {
 
     output:
     tuple val(meta),
-          path("${meta.organ}_${meta.first_author}_${meta.year}_*.{csv,svg,html,json,log}", optional: true),
+          path("*.{csv,svg,html,json,log}", optional: true),
           emit: plots
 
     script:
@@ -55,6 +55,7 @@ process viz_summary_process {
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
         --year "${meta.year}" \
+	--dataset-version-id "${meta.dataset_version_id}" \
         --embedding-key "${meta.embedding}" \
         ${doi_flag} \
         ${collection_flag} \

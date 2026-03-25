@@ -18,7 +18,7 @@
  *   Flat filenames: {organ}_{first_author}_{year}_{cluster_header_safe}_distribution_*.{html,svg}
  */
 process viz_distribution_process {
-    tag "viz_distribution_${meta.organ}_${meta.first_author}_${meta.year}"
+    tag "viz_distribution_${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${dataset_version_id}"
     label 'scsilhouette'
     containerOptions '--entrypoint ""'
     publishDir "${params.outdir}",
@@ -32,7 +32,7 @@ process viz_distribution_process {
 
     output:
     tuple val(meta),
-          path("${meta.organ}_${meta.first_author}_${meta.year}_*.{csv,svg,html,json}", optional: true),
+          path("*.{csv,svg,html,json}", optional: true),
           emit: plots
 
     script:
@@ -42,6 +42,8 @@ process viz_distribution_process {
         --cluster-header "${meta.author_cell_type}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
-        --year "${meta.year}"
+        --year "${meta.year}" \
+	--embedding "${meta.embedding}" \
+	--dataset-version-id "${meta.dataset_version_id}"
     """
 }

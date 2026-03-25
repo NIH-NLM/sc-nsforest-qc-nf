@@ -15,7 +15,7 @@
  *   Flat filenames: {organ}_{first_author}_{year}_{cluster_header}_cluster_statistics.csv
  */
 process cluster_stats_process {
-    tag "cluster_stats_${meta.organ}_${meta.first_author}_${meta.year}"
+    tag "cluster_stats_${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
     label 'nsforest'
     publishDir "${params.outdir}",
         mode: params.publish_mode
@@ -25,16 +25,18 @@ process cluster_stats_process {
 
     output:
     tuple val(meta),
-          path("${meta.organ}_${meta.first_author}_${meta.year}_*.{csv,svg,html,log}", optional: true),
+          path("*.{csv,svg,html,log}", optional: true),
           emit: results
 
     script:
     """
-    nsforest-cli cluster-stats \\
-        --h5ad-path ${h5ad} \\
-        --cluster-header "${meta.author_cell_type}" \\
-        --organ "${meta.organ}" \\
-        --first-author "${meta.first_author}" \\
-        --year "${meta.year}"
+    nsforest-cli cluster-stats \
+        --h5ad-path "${h5ad}" \
+        --cluster-header "${meta.author_cell_type}" \
+        --organ "${meta.organ}" \
+        --first-author "${meta.first_author}" \
+        --year "${meta.year}" \
+	--embedding "${meta.embedding}" \
+	--dataset-version-id "${meta.dataset_version_id}"
     """
 }

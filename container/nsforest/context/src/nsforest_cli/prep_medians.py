@@ -5,20 +5,21 @@ Corresponds to DEMO_NS-Forest_workflow.py: Section 3 prep
 Uses ns.pp.prep_medians() to filter positive genes and compute medians.
 
 Saves:
-  {organ}_{first_author}_{year}_{cluster_header}_medians.csv
-  {organ}_{first_author}_{year}_{cluster_header}_medians.pkl
+  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_medians.csv
+  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_medians.pkl
 """
 
 import nsforest as ns
 
 from .common_utils import (
+    get_output_prefix,
     load_h5ad,
     log_section,
     logger
 )
 
 
-def run_prep_medians(h5ad_path, cluster_header, organ, first_author, year):
+def run_prep_medians(h5ad_path, cluster_header, organ, first_author, year, embedding, dataset_version_id):
     """
     Compute median expression per cluster.
 
@@ -26,8 +27,7 @@ def run_prep_medians(h5ad_path, cluster_header, organ, first_author, year):
     """
     log_section("NSForest: Prep Medians")
 
-    cluster_header_safe = cluster_header.replace(" ", "_")
-    prefix = f"{organ}_{first_author}_{year}_{cluster_header_safe}"
+    prefix = get_output_prefix( organ, first_author, year, cluster_header, embedding, dataset_version_id )
 
     adata = load_h5ad(h5ad_path, cluster_header)
     adata_prep = adata.copy()
