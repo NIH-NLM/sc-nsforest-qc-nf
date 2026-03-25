@@ -63,7 +63,7 @@ psutil==5.9.8
 ptyprocess==0.7.0
 pure-eval==0.2.2
 py-cpuinfo==9.0.0
-Pygments==2.18.0
+Pygments>=2.19.0
 pynndescent==0.5.11
 pyparsing==3.0.9
 PySocks==1.7.1
