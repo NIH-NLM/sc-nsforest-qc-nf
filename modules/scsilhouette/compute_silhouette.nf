@@ -42,7 +42,6 @@ process compute_silhouette_process {
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
         --year "${meta.year}" \
-	--embedding "${meta.embedding}" \
 	--dataset-version-id "${meta.dataset_version_id}" \
         --disease "${meta.disease}" \
         --save-scores \
