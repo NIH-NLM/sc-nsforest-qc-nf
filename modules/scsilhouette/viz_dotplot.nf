@@ -39,7 +39,6 @@ process viz_dotplot_process {
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
         --year "${meta.year}" \
-	--embedding "${meta.embedding}" \
 	--dataset-version-id "${meta.dataset_version_id}"
     """
 }
