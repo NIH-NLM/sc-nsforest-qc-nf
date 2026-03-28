@@ -7,7 +7,7 @@ Loads adata_filtered.h5ad, reads medians and binary_scores CSVs into varm,
 then calls nsforesting.NSForest() with cluster_list for parallelization.
 
 Saves:
-  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_results.csv
+  {organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}_results.csv
 """
 
 import pandas as pd
@@ -22,7 +22,7 @@ from .common_utils import (
 
 
 def run_nsforest(h5ad_path, medians_csv, binary_scores_csv, cluster_header,
-                 organ, first_author, year, embedding, dataset_version_id,
+                 organ, first_author, journal, year, embedding, dataset_version_id,
                  cluster_list=None, n_trees=1000, n_genes_eval=6):
     """
     Run NSForest for a batch of clusters.
@@ -37,7 +37,7 @@ def run_nsforest(h5ad_path, medians_csv, binary_scores_csv, cluster_header,
     """
     log_section("NSForest: Run NSForest")
 
-    prefix = get_output_prefix( organ, first_author, year, cluster_header, embedding, dataset_version_id )
+    prefix = get_output_prefix( organ, first_author, journal, year, cluster_header, embedding, dataset_version_id )
 
     # Load filtered adata
     adata_prep = load_h5ad(h5ad_path, cluster_header)

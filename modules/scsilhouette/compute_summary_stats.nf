@@ -7,7 +7,7 @@
  * Input:
  * ------
  * @param tuple:
- *   - meta:             Map with organ, first_author, year, author_cell_type, embedding, doi, etc.
+ *   - meta:             Map with organ, first_author, journal, year, author_cell_type, embedding, doi, etc.
  *   - silhouette_scores:{prefix}_silhouette_scores.csv
  *   - cluster_summary:  {prefix}_cluster_summary.csv
  *   - annotation:       {prefix}_annotation.json
@@ -16,12 +16,12 @@
  * Output:
  * -------
  * @emit summary: tuple(meta, {prefix}_dataset_summary.csv)
- *   Contains: organ, first_author, year, cluster_header, n_clusters, n_cells,
+ *   Contains: organ, first_author, journal, year, cluster_header, n_clusters, n_cells,
  *             median/mean/std silhouette, quality tier counts, median/mean F-score,
  *             doi, collection_name, dataset_title, journal
  */
 process compute_summary_stats_process {
-    tag "compute_summary_stats_${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
+    tag "compute_summary_stats_${meta.organ}_${meta.first_author}_${meta.journal}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
     label 'scsilhouette'
     containerOptions '--entrypoint ""'
     publishDir "${params.outdir}",
@@ -48,6 +48,7 @@ process compute_summary_stats_process {
         --cluster-header "${meta.author_cell_type}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
+	--journal "${meta.journal}" \
         --year "${meta.year}" \
         --embedding-key "${meta.embedding}" 
     """

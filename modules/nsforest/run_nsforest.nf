@@ -5,7 +5,7 @@
  * Each cluster batch processed independently (one vs all).
  */
 process run_nsforest_process {
-    tag "run_nsforest_${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}_${cluster}"
+    tag "run_nsforest_${meta.organ}_${meta.first_author}_${meta.journal}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}_${cluster}"
     label 'nsforest'
 
     input:
@@ -25,6 +25,7 @@ process run_nsforest_process {
         --cluster-header "${meta.author_cell_type}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
+	--journal "${meta.journal}" \
         --year "${meta.year}" \
 	--embedding "${meta.embedding}" \
 	--dataset-version-id "${meta.dataset_version_id}" \

@@ -8,7 +8,7 @@
  * Input:
  * ------
  * @param tuple:
- *   - meta:             Map with organ, first_author, year, author_cell_type, embedding, doi, etc.
+ *   - meta:             Map with organ, first_author, journal, year, author_cell_type, embedding, doi, etc.
  *   - silhouette_scores:{prefix}_silhouette_scores.csv
  *   - cluster_summary:  {prefix}_cluster_summary.csv
  *   - annotation:       {prefix}_annotation.json
@@ -17,10 +17,10 @@
  * Output:
  * -------
  * @emit plots: tuple(meta, [summary SVG/HTML/CSV, dataset_summary CSV])
- *   Flat filenames: {organ}_{first_author}_{year}_{cluster_header_safe}_*.{csv,svg,html,json}
+ *   Flat filenames: {organ}_{first_author}_{journal}_{year}_{cluster_header_safe}_*.{csv,svg,html,json}
  */
 process viz_summary_process {
-    tag "viz_summary_${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
+    tag "viz_summary_${meta.organ}_${meta.first_author}_${meta.journal}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
     label 'scsilhouette'
     containerOptions '--entrypoint ""'
     publishDir "${params.outdir}",
@@ -39,42 +39,24 @@ process viz_summary_process {
           emit: plots
 
     script:
-    def prefix            = "${meta.organ}_${meta.first_author}_${meta.year}"
-    def fscore_flag       = nsforest_results.name != 'NO_FILE' ? "--fscore-path ${nsforest_results}" : ""
-    def doi_flag          = meta.doi             ? "--doi \"${meta.doi}\""                         : ""
-    def collection_flag   = meta.collection_name ? "--collection-name \"${meta.collection_name}\"" : ""
-    def dataset_flag      = meta.dataset_title   ? "--dataset-title \"${meta.dataset_title}\""     : ""
-    def journal_flag      = meta.journal         ? "--journal \"${meta.journal}\""                 : ""
-    def coll_url_flag     = meta.collection_url  ? "--collection-url \"${meta.collection_url}\""   : ""
-    def explorer_url_flag = meta.explorer_url    ? "--explorer-url \"${meta.explorer_url}\""       : ""
-    def h5ad_url_flag     = meta.h5ad_url        ? "--h5ad-url \"${meta.h5ad_url}\""               : ""
     """
     scsilhouette viz-summary \
         --silhouette-score-path ${silhouette_scores} \
+	--silhouette-score-col ${silhouette_score_col} \
         --cluster-header "${meta.author_cell_type}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
+	--journal "${meta.journal}" \
         --year "${meta.year}" \
 	--dataset-version-id "${meta.dataset_version_id}" \
         --embedding-key "${meta.embedding}" \
-        ${doi_flag} \
-        ${collection_flag} \
-        ${dataset_flag} \
-        ${journal_flag} \
-        ${coll_url_flag} \
-        ${explorer_url_flag} \
-        ${h5ad_url_flag} \
-        ${fscore_flag}
-
-    # Ensure all new output files have organ_author_year prefix
-    for f in *.csv *.svg *.html *.json; do
-        [ -f "\$f" ] || continue
-        [ -L "\$f" ] && continue
-        case "\$f" in
-            ${prefix}_*) ;;
-            NO_FILE) ;;
-            *) mv "\$f" "${prefix}_\$f" 2>/dev/null || true ;;
-        esac
-    done
+	--fscore-path "${nsforest_results}" 
+	--doi "${meta.doi}" \
+	--collection-name "${meta.collection_name}" \
+	--dataset-title "${meta.dataset_title}" \
+	--journal "${meta.journal}" \
+	--collection_url "${meta.collection_url}" \
+	--explorer_url "${meta.explorer_url}" \
+	--h5ad_url "${meta.h5ad_url}" 
     """
 }

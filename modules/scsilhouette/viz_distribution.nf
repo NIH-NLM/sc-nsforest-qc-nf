@@ -7,7 +7,7 @@
  * Input:
  * ------
  * @param tuple:
- *   - meta:            Map with organ, first_author, year, author_cell_type
+ *   - meta:            Map with organ, first_author, journal, year, author_cell_type
  *   - silhouette_scores: {prefix}_silhouette_scores.csv
  *   - cluster_summary: {prefix}_cluster_summary.csv
  *   - annotation:      {prefix}_annotation.json
@@ -15,10 +15,10 @@
  * Output:
  * -------
  * @emit plots: tuple(meta, [distribution HTML and SVG])
- *   Flat filenames: {organ}_{first_author}_{year}_{cluster_header_safe}_distribution_*.{html,svg}
+ *   Flat filenames: {organ}_{first_author}_{journal}_{year}_{cluster_header_safe}_{embedding_safe}_{vid}_distribution_*.{html,svg}
  */
 process viz_distribution_process {
-    tag "viz_distribution_${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${dataset_version_id}"
+    tag "viz_distribution_${meta.organ}_${meta.first_author}_${meta.journal}_${meta.year}_${meta.embedding}_${dataset_version_id}"
     label 'scsilhouette'
     containerOptions '--entrypoint ""'
     publishDir "${params.outdir}",
@@ -42,6 +42,7 @@ process viz_distribution_process {
         --cluster-header "${meta.author_cell_type}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
+	--journal "${meta.journal}" \
         --year "${meta.year}" \
 	--embedding "${meta.embedding}" \
 	--dataset-version-id "${meta.dataset_version_id}"

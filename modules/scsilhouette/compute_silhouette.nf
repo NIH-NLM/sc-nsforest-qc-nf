@@ -8,18 +8,18 @@
  * Input:
  * ------
  * @param tuple:
- *   - meta: Map with organ, first_author, year, author_cell_type, embedding, disease
+ *   - meta: Map with organ, first_author, journal, year, author_cell_type, embedding, disease, dataset_version_id
  *   - h5ad: Path to adata_filtered.h5ad
  *
  * Output:
  * -------
  * @emit results: tuple(meta, [silhouette_scores.csv, cluster_summary.csv, annotation.json])
- *   Flat filenames: {organ}_{first_author}_{year}_{cluster_header_safe}_silhouette_scores.csv
- *                   {organ}_{first_author}_{year}_{cluster_header_safe}_cluster_summary.csv
- *                   {organ}_{first_author}_{year}_{cluster_header_safe}_annotation.json
+ *   Flat filenames: {organ}_{first_author}_{journal}_{year}_{cluster_header_safe}_{embedding_safe}_{vid}_silhouette_scores.csv
+ *                   {organ}_{first_author}_{journal}_{year}_{cluster_header_safe}_{embedding_safe}_{vid}_cluster_summary.csv
+ *                   {organ}_{first_author}_{journal}_{year}_{cluster_header_safe}_{embedding_safe}_{vid}_annotation.json
  */
 process compute_silhouette_process {
-    tag "compute_silhouette_${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
+    tag "compute_silhouette_${meta.organ}_${meta.first_author}_${meta.journal}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
     label 'scsilhouette'
     containerOptions '--entrypoint ""'
     publishDir "${params.outdir}",
@@ -41,6 +41,7 @@ process compute_silhouette_process {
         --embedding-key "${meta.embedding}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
+	--journal "${meta.journal}" \
         --year "${meta.year}" \
 	--dataset-version-id "${meta.dataset_version_id}" \
         --disease "${meta.disease}" \

@@ -49,7 +49,7 @@ def compute_cluster_statistics(adata, cluster_header):
     return stats_df
 
 
-def run_cluster_stats(h5ad_path, cluster_header, organ, first_author, year, embedding, dataset_version_id):
+def run_cluster_stats(h5ad_path, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id):
     """
     Main function to compute cluster statistics.
     
@@ -68,7 +68,7 @@ def run_cluster_stats(h5ad_path, cluster_header, organ, first_author, year, embe
     log_section("NSForest: Cluster Statistics")
     
     # Create output directory
-    output_prefix = get_output_prefix(organ, first_author, year, cluster_header, embedding, dataset_version_id)
+    output_prefix = get_output_prefix(organ, first_author, journal, year, cluster_header, embedding, dataset_version_id)
 
     # Load data
     adata = load_h5ad(h5ad_path, cluster_header)

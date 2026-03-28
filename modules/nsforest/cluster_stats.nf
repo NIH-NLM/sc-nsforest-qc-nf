@@ -12,10 +12,10 @@
  * Output:
  * -------
  * @emit results: tuple(meta, [cluster_statistics CSV])
- *   Flat filenames: {organ}_{first_author}_{year}_{cluster_header}_cluster_statistics.csv
+ *   Flat filenames: {organ}_{first_author}_{journal}_{year}_{cluster_header}_{vid}_cluster_statistics.csv
  */
 process cluster_stats_process {
-    tag "cluster_stats_${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
+    tag "cluster_stats_${meta.organ}_${meta.first_author}_${meta.year}_${meta.journal}_${meta.embedding}_${meta.dataset_version_id}"
     label 'nsforest'
     publishDir "${params.outdir}",
         mode: params.publish_mode
@@ -35,6 +35,7 @@ process cluster_stats_process {
         --cluster-header "${meta.author_cell_type}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
+	--journal "${meta.journal}" \
         --year "${meta.year}" \
 	--embedding "${meta.embedding}" \
 	--dataset-version-id "${meta.dataset_version_id}"

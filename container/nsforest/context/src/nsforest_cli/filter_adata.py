@@ -293,7 +293,7 @@ def filter_by_min_cluster_size(adata, cluster_header, min_size=5):
 # Main entry point
 # =============================================================================
 
-def run_filter_adata(h5ad_path, cluster_header, organ, first_author, year, embedding, dataset_version_id,
+def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id,
                      filter_normal=False,
                      uberon_json=None,
                      disease_json=None,
@@ -329,7 +329,7 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, year, embed
     """
     log_section("NSForest: Filter AnnData")
 
-    prefix                = get_output_prefix( organ, first_author, year, cluster_header, embedding, dataset_version_id)
+    prefix                = get_output_prefix( organ, first_author, journal, year, cluster_header, embedding, dataset_version_id)
     filtered_h5ad_name    = f"{prefix}_adata_filtered.h5ad"
 
     logger.info(f"Loading: {h5ad_path}")

@@ -13,10 +13,10 @@
  * Output:
  * -------
  * @emit plots: tuple(meta, [dotplot HTML and SVG])
- *   Flat filenames: {organ}_{first_author}_{year}_{cluster_header_safe}_dotplot_{embedding_key}.{html,svg}
+ *   Flat filenames: {organ}_{first_author}_{journal}_{year}_{cluster_header_safe}_dotplot_{embedding_key}.{html,svg}
  */
 process viz_dotplot_process {
-    tag "viz_dotplot_${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
+    tag "viz_dotplot_${meta.organ}_${meta.first_author}_${meta.journal}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
     label 'scsilhouette'
     containerOptions '--entrypoint ""'
     publishDir "${params.outdir}",
@@ -38,6 +38,7 @@ process viz_dotplot_process {
         --cluster-header "${meta.author_cell_type}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
+	--journal "${meta.journal}" \
         --year "${meta.year}" \
 	--dataset-version-id "${meta.dataset_version_id}"
     """

@@ -28,13 +28,13 @@ from .gene_mapping_utils import (
 )
 
 
-def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, year, embedding, dataset_version_id):
+def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id):
     """
     Create NSForest visualization plots with gene symbol mapping.
     """
     log_section("NSForest: Plotting")
 
-    prefix = get_output_prefix( organ, first_author, year, cluster_header, embedding, dataset_version_id )
+    prefix = get_output_prefix( organ, first_author, journal, year, cluster_header, embedding, dataset_version_id )
 
     # Load results
     logger.info(f"Loading results: {results_csv}")

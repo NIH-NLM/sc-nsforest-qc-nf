@@ -7,14 +7,14 @@
  * Input:
  * ------
  * @param tuple:
- *   - meta:             Map with organ, first_author, year, author_cell_type
+ *   - meta:             Map with organ, first_author, journal, year, author_cell_type, embedding, vid
  *   - medians_csv:      {prefix}_medians.csv
  *   - binary_scores_csv:{prefix}_binary_scores.csv
  *
  * Output:
  * -------
  * @emit histograms: tuple(meta, [hist_nonzero_*.svg])
- *   Flat filenames: {organ}_{first_author}_{year}_{cluster_header_safe}_hist_nonzero_*.svg
+ *   Flat filenames: {organ}_{first_author}_{journal}_{year}_{cluster_header_safe}_{embedding}_{vid}_hist_nonzero_*.svg
  */
 process plot_histograms_process {
     tag "plot_histograms_${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
@@ -38,6 +38,7 @@ process plot_histograms_process {
         --cluster-header "${meta.author_cell_type}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
+	--journal "${meta.journal}" \
         --year "${meta.year}" \
         --embedding "${meta.embedding}" \
 	--dataset-version-id "${meta.dataset_version_id}"

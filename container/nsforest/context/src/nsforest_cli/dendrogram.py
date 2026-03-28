@@ -30,7 +30,7 @@ def run_dendrogram(h5ad_path, cluster_header, organ, first_author, year, embeddi
     """
     log_section("NSForest: Dendrogram")
 
-    prefix = get_output_prefix( organ, first_author, year, cluster_header, embedding, dataset_version_id )
+    prefix = get_output_prefix( organ, first_author, journal, year, cluster_header, embedding, dataset_version_id )
 
     adata = load_h5ad(h5ad_path, cluster_header)
 

@@ -11,7 +11,7 @@
  * Input:
  * ------
  * @param tuple:
- *   - meta:         Map with organ, first_author, year, author_cell_type, filter
+ *   - meta:         Map with organ, first_author, journal, year, author_cell_type, embedding, vid, filter
  *   - h5ad:         Path to input h5ad (downloaded from CellxGene)
  *   - uberon_json:  Path to uberon_{organ}.json from cellxgene-harvester resolve-uberon
  *   - disease_json: Path to disease_normal.json from cellxgene-harvester resolve-disease
@@ -20,8 +20,8 @@
  * Output:
  * -------
  * @emit results: tuple(meta, adata_filtered.h5ad, [stats CSVs and SVGs])
- *   Flat filenames: {organ}_{first_author}_{year}_adata_filtered.h5ad
- *                   {organ}_{first_author}_{year}_{cluster_header_safe}_*.{csv,svg}
+ *   Flat filenames: {organ}_{first_author}_{journal}_{year}_{cluster_header_safe}_{embedding_safe}_{vid}_adata_filtered.h5ad
+ *                   {organ}_{first_author}_{journal}_{year}_{cluster_header_safe}_{embedding_safe}_{vid}*.{csv,svg}
  */
 process filter_adata_process {
     tag "filter_adata_${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
@@ -50,6 +50,7 @@ process filter_adata_process {
         --cluster-header "${meta.author_cell_type}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
+	--journal "${meta.journal}" \
         --year "${meta.year}" \
         ${filter_flag} \
         --uberon ${uberon_json} \

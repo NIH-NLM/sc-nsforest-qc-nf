@@ -24,13 +24,13 @@ from .common_utils import (
 )
 
 
-def run_merge_nsforest_results(partial_files, cluster_header, organ, first_author, year, embedding, dataset_version_id):
+def run_merge_nsforest_results(partial_files, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id):
     """
     Merge partial NSForest results CSV files and save csv + pkl + marker files.
     """
     log_section("NSForest: Merge NSForest Results")
 
-    prefix = get_output_prefix( organ, first_author, year, cluster_header, embedding, dataset_version_id )
+    prefix = get_output_prefix( organ, first_author, journal, year, cluster_header, embedding, dataset_version_id )
 
     logger.info(f"Merging {len(partial_files)} partial NSForest results files...")
 

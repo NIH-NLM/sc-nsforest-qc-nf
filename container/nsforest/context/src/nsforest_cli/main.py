@@ -15,6 +15,7 @@ def cluster_stats_command(
     cluster_header: str = typer.Option(..., help="Column name for clusters"),
     organ: str = typer.Option(..., help="Organ/tissue"),
     first_author: str = typer.Option(..., help="First author"),
+    journal: str = typer.Option(..., help="Journal"),
     year: str = typer.Option(..., help="Publication year"),
     embedding: str = typer.Option("", help="Embedding key"),
     dataset_version_id: str = typer.Option("", help="Dataset version ID"),
@@ -22,7 +23,7 @@ def cluster_stats_command(
 ):
     """Compute cluster statistics."""
     from .cluster_stats import run_cluster_stats
-    run_cluster_stats(h5ad_path, cluster_header, organ, first_author, year, embedding, dataset_version_id)
+    run_cluster_stats(h5ad_path, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
 
 @app.command("dendrogram")
 def dendrogram_command(
@@ -30,6 +31,7 @@ def dendrogram_command(
     cluster_header: str = typer.Option(..., help="Column name for clusters"),
     organ: str = typer.Option(..., help="Organ/tissue"),
     first_author: str = typer.Option(..., help="First author"),
+    journal: str = typer.Option(..., help="Journal"),
     year: str = typer.Option(..., help="Publication year"),
     embedding: str = typer.Option("", help="Embedding key"),
     dataset_version_id: str = typer.Option("", help="Dataset version ID"),
@@ -37,7 +39,7 @@ def dendrogram_command(
 ):
     """Generate dendrogram and cluster statistics."""
     from .dendrogram import run_dendrogram
-    run_dendrogram(h5ad_path, cluster_header, organ, first_author, year, embedding, dataset_version_id)
+    run_dendrogram(h5ad_path, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
 
 @app.command("filter-adata")
 def filter_adata_command(
@@ -45,6 +47,7 @@ def filter_adata_command(
     cluster_header: str = typer.Option(..., help="Column name for clusters"),
     organ: str = typer.Option(..., help="Organ/tissue"),
     first_author: str = typer.Option(..., help="First author"),
+    journal: str = typer.Option(..., help="Journal"),
     year: str = typer.Option(..., help="Publication year"),
     embedding: str = typer.Option("", help="Embedding key"),
     dataset_version_id: str = typer.Option("", help="Dataset version ID"),
@@ -64,6 +67,7 @@ def filter_adata_command(
         cluster_header     = cluster_header,
         organ              = organ,
         first_author       = first_author,
+        journal            = journal,
         year               = year,
         embedding          = embedding,
         dataset_version_id = dataset_version_id,
@@ -83,6 +87,7 @@ def merge_nsforest_results_command(
     cluster_header: str = typer.Option(..., help="Column name for clusters"),
     organ: str = typer.Option(..., help="Organ/tissue"),
     first_author: str = typer.Option(..., help="First author"),
+    journal: str = typer.Option(..., help="Journal"),
     year: str = typer.Option(..., help="Publication year"),
     embedding: str = typer.Option("", help="Embedding key"),
     dataset_version_id: str = typer.Option("", help="Dataset version ID"),
@@ -91,7 +96,7 @@ def merge_nsforest_results_command(
     """Merge partial NSForest results files and save csv + pkl."""
     from .merge_nsforest_results import run_merge_nsforest_results
     files = partial_files.split(',')
-    run_merge_nsforest_results(files, cluster_header, organ, first_author, year, embedding, dataset_version_id)
+    run_merge_nsforest_results(files, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
 
 @app.command("plot-histograms")
 def plot_histograms_command(
@@ -100,6 +105,7 @@ def plot_histograms_command(
     cluster_header: str = typer.Option(..., help="Column name for clusters"),
     organ: str = typer.Option(..., help="Organ/tissue"),
     first_author: str = typer.Option(..., help="First author"),
+    journal: str = typer.Option(..., help="Journal"),
     year: str = typer.Option(..., help="Publication year"),
     embedding: str = typer.Option("", help="Embedding key"),
     dataset_version_id: str = typer.Option("", help="Dataset version ID"),
@@ -107,7 +113,7 @@ def plot_histograms_command(
 ):
     """Plot histograms of non-zero median and binary score values."""
     from .plot_histograms import run_plot_histograms
-    run_plot_histograms(medians_csv, binary_scores_csv, cluster_header, organ, first_author, year,
+    run_plot_histograms(medians_csv, binary_scores_csv, cluster_header, organ, first_author, journal, year,
                         embedding, dataset_version_id)
 
 @app.command("plots")
@@ -117,6 +123,7 @@ def plots_command(
     cluster_header: str = typer.Option(..., help="Column name for clusters"),
     organ: str = typer.Option(..., help="Organ/tissue"),
     first_author: str = typer.Option(..., help="First author"),
+    journal: str = typer.Option(..., help="Journal"),
     year: str = typer.Option(..., help="Publication year"),
     embedding: str = typer.Option("", help="Embedding key"),
     dataset_version_id: str = typer.Option("", help="Dataset version ID"),
@@ -124,7 +131,7 @@ def plots_command(
 ):
     """Create NSForest visualization plots with gene symbol mapping."""
     from .plots import run_plots
-    run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, year, embedding, dataset_version_id)
+    run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
 
 @app.command("prep-binary-scores")
 def prep_binary_scores_command(
@@ -132,6 +139,7 @@ def prep_binary_scores_command(
     cluster_header: str = typer.Option(..., help="Column name for clusters"),
     organ: str = typer.Option(..., help="Organ/tissue"),
     first_author: str = typer.Option(..., help="First author"),
+    journal: str = typer.Option(..., help="Journal"),
     year: str = typer.Option(..., help="Publication year"),
     embedding: str = typer.Option("", help="Embedding key"),
     dataset_version_id: str = typer.Option("", help="Dataset version ID"),
@@ -139,7 +147,7 @@ def prep_binary_scores_command(
 ):
     """Compute binary scores per cluster. Saves binary_scores csv + pkl."""
     from .prep_binary_scores import run_prep_binary_scores
-    run_prep_binary_scores(h5ad_path, cluster_header, organ, first_author, year, embedding, dataset_version_id)
+    run_prep_binary_scores(h5ad_path, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
 
 
 @app.command("prep-medians")
@@ -148,6 +156,7 @@ def prep_medians_command(
     cluster_header: str = typer.Option(..., help="Column name for clusters"),
     organ: str = typer.Option(..., help="Organ/tissue"),
     first_author: str = typer.Option(..., help="First author"),
+    journal: str = typer.Option(..., help="Journal"),
     year: str = typer.Option(..., help="Publication year"),
     embedding: str = typer.Option("", help="Embedding key"),
     dataset_version_id: str = typer.Option("", help="Dataset version ID"),
@@ -155,7 +164,7 @@ def prep_medians_command(
 ):
     """Compute median expression per cluster. Saves medians csv + pkl."""
     from .prep_medians import run_prep_medians
-    run_prep_medians(h5ad_path, cluster_header, organ, first_author, year, embedding, dataset_version_id)
+    run_prep_medians(h5ad_path, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
 
 @app.command("run-nsforest")
 def run_nsforest_command(
@@ -165,6 +174,7 @@ def run_nsforest_command(
     cluster_header: str = typer.Option(..., help="Column name for clusters"),
     organ: str = typer.Option(..., help="Organ/tissue"),
     first_author: str = typer.Option(..., help="First author"),
+    journal: str = typer.Option(..., help="Journal"),
     year: str = typer.Option(..., help="Publication year"),
     embedding: str = typer.Option("", help="Embedding key"),
     dataset_version_id: str = typer.Option("", help="Dataset version ID"),
@@ -176,7 +186,7 @@ def run_nsforest_command(
     from .run_nsforest import run_nsforest
     clusters = cluster_list.split(',') if cluster_list else None
     run_nsforest(h5ad_path, medians_csv, binary_scores_csv, cluster_header,
-                 organ, first_author, year, embedding, dataset_version_id, clusters, n_trees, n_genes_eval)
+                 organ, first_author, journal, year, embedding, dataset_version_id, clusters, n_trees, n_genes_eval)
 
 
 if __name__ == "__main__":

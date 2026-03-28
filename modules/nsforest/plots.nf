@@ -7,17 +7,17 @@
  * Input:
  * ------
  * @param tuple:
- *   - meta:        Map with organ, first_author, year, author_cell_type
+ *   - meta:        Map with organ, first_author, journal, year, author_cell_type, embedding, vid
  *   - h5ad:        Path to adata_filtered.h5ad
  *   - results_csv: {prefix}_results.csv from merge_nsforest_results_process
  *
  * Output:
  * -------
  * @emit plots: tuple(meta, [boxplots, scatter plots, dotplots as SVG/HTML])
- *   Flat filenames: {organ}_{first_author}_{year}_{cluster_header_safe}_*.{svg,html}
+ *   Flat filenames: {organ}_{first_author}_{journal}_{year}_{cluster_header_safe}_{embedding_safe}_{vid}*.{svg,html}
  */
 process plots_process {
-    tag "plots_${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
+    tag "plots_${meta.organ}_${meta.first_author}_${meta.journal}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
     label 'nsforest'
     publishDir "${params.outdir}",
         mode: params.publish_mode
@@ -38,6 +38,7 @@ process plots_process {
         --cluster-header "${meta.author_cell_type}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
+	--journal "${meta.journal}" \
         --year "${meta.year}" \
         --embedding "${meta.embedding}" \
 	--dataset-version-id "${meta.dataset_version_id}"

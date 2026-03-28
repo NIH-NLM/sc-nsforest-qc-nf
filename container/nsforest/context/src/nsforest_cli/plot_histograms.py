@@ -21,14 +21,14 @@ from .common_utils import (
 )
 
 
-def run_plot_histograms(medians_csv, binary_scores_csv, cluster_header, organ, first_author, year,
+def run_plot_histograms(medians_csv, binary_scores_csv, cluster_header, organ, first_author, journal, year,
                         embedding, dataset_version_id):
     """
     Create histograms of non-zero median and binary score values.
     """
     log_section("NSForest: Plot Histograms")
 
-    prefix = get_output_prefix( organ, first_author, year, cluster_header, embedding, dataset_version_id )
+    prefix = get_output_prefix( organ, first_author, journal, year, cluster_header, embedding, dataset_version_id )
 
     logger.info(f"Loading medians: {medians_csv}")
     df_medians = pd.read_csv(medians_csv, index_col=0)
