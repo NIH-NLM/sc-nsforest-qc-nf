@@ -9,8 +9,8 @@
  *   e.g. 2026-mar-06-skin-of-body-Wiedemann-2023-sc_nsforest_qc_nf
  *
  * Platform notes:
- *   CloudOS: publishDir files land at s3://.../jobs/{id}/results/results/{label}/
- *            derived by replacing /work with /results/results in workflow.workDir
+ *   CloudOS: publishDir files land at s3://.../jobs/{id}/results/{label}/
+ *            derived by replacing /work with /results in workflow.workDir
  */
 process publish_results_process {
     tag "publish_results_${meta.organ}_${meta.first_author}_${meta.year}"
@@ -35,7 +35,7 @@ process publish_results_process {
     def report            = "publish_report_${organ}_${first_author}_${year}.txt"
     def run_id            = meta.session_id
     def sc_nsforest_qc_nf = "sc-nsforest-qc-nf"
-    def dest_dir          = "data/prod/${sc_nsforest_qc_nf}/${organ}/${organ}-${first_author}-${year}-${vid}/${run_id}/results"
+    def dest_dir          = "data/prod/${organ}/${sc_nsforest_qc_nf}/results/${run_id}/${organ}-${first_author}-${year}-${vid}/"
     """
     ls -lh
 

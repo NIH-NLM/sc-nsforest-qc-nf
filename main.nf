@@ -19,15 +19,17 @@ include { viz_dotplot_process }            from './modules/scsilhouette/viz_dotp
 include { compute_summary_stats_process }  from './modules/scsilhouette/compute_summary_stats.nf'
 include { viz_summary_process }            from './modules/scsilhouette/viz_summary.nf'
 
-params.batch_size       = 10
-params.datasets_csv     = null
-params.organ            = null
-params.uberon_json      = null
-params.disease_json     = null
-params.hsapdv_json      = null
-params.min_cluster_size = 5
-params.outdir           = './results'
-params.publish_mode     = 'copy'
+params.batch_size        = 10
+params.datasets_csv      = null
+params.filter_obs_column = ''
+params.filter_obs_value  = ''
+params.organ             = null
+params.uberon_json       = null
+params.disease_json      = null
+params.hsapdv_json       = null
+params.min_cluster_size  = 5
+params.outdir            = './'
+params.publish_mode      = 'copy'
 
 workflow {
     log.info "workflow.workDir    : ${workflow.workDir}"
@@ -71,6 +73,8 @@ workflow {
                 embedding:                          row.embedding,
                 disease:                            row.disease,
                 filter:                             row.filter_normal,
+                filter_obs_column:                  params.filter_obs_column,
+                filter_obs_value:                   params.filter_obs_value,
                 doi:                                row.doi,
                 collection_name:                    row.collection_name,
                 dataset_title:                      row.dataset_title,
@@ -100,7 +104,10 @@ workflow {
 
     // Convenience: filtered h5ad only channel
     filtered_h5ad_ch = filter_output_ch.results
-        .map { items -> tuple(items[0], items[1]) }
+        .map { items -> 
+            def meta = items[0] + [filtered_h5ad_s3: items[1].toUriString()]
+            tuple(meta, items[1]) 
+        }
 
     // Step 1: Dendrogram
     dendrogram_output_ch = dendrogram_process(filtered_h5ad_ch)

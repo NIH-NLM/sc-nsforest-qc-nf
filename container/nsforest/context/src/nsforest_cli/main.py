@@ -59,6 +59,9 @@ def filter_adata_command(
     tissue_ontology_term_id: str = typer.Option(None, help="Pipe-separated UBERON term IDs from CSV row"),
     disease_ontology_term_id: str = typer.Option(None, help="Pipe-separated disease ontology term IDs from CSV row"),
     development_stage_ontology_term_id: str = typer.Option(None, help="Pipe-separated HsapDv term IDs from CSV row"),
+    filter_obs_column: str = typer.Option('', help="obs column to filter on (e.g., Dataset)"),
+    filter_obs_value: str = typer.Option('', help="Value to keep in filter_obs_column (e.g., 'Tosti et al. 2021')"),
+
 ):
     """Filter adata by tissue, disease, age, and minimum cluster size."""
     from .filter_adata import run_filter_adata
@@ -72,6 +75,8 @@ def filter_adata_command(
         embedding          = embedding,
         dataset_version_id = dataset_version_id,
         filter_normal      = filter_normal,
+        filter_obs_column  = filter_obs_column or None,
+        filter_obs_value   = filter_obs_value or None,
         uberon_json        = str(uberon)  if uberon  else None,
         disease_json       = str(disease) if disease else None,
         hsapdv_json        = str(hsapdv)  if hsapdv  else None,

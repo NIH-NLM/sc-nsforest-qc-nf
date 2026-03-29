@@ -43,6 +43,8 @@ process filter_adata_process {
 
     script:
     def filter_flag     = meta.filter == "True" ? "--filter-normal" : ""
+    def obs_col_flag    = meta.filter_obs_column ? "--filter-obs-column '${meta.filter_obs_column}'" : ""
+    def obs_val_flag    = meta.filter_obs_value  ? "--filter-obs-value '${meta.filter_obs_value}'"   : ""
     def min_cluster_val = params.min_cluster_size ?: 5
     """
     nsforest-cli filter-adata \
@@ -58,6 +60,9 @@ process filter_adata_process {
         --hsapdv ${hsapdv_json} \
         --min-cluster-size ${min_cluster_val} \
         --embedding "${meta.embedding}" \
-	--dataset-version-id "${meta.dataset_version_id}"
+	--dataset-version-id "${meta.dataset_version_id}" \
+	${obs_col_flag} \
+        ${obs_val_flag}
+
     """
 }

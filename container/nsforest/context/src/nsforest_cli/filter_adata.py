@@ -301,7 +301,10 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
                      min_cluster_size=5,
                      row_uberon_ids=None,
                      row_disease_ids=None,
-                     row_hsapdv_ids=None):
+                     row_hsapdv_ids=None,
+                     filter_obs_column=None,
+                     filter_obs_value=None
+):
     """
     Filter adata and create before/after statistics.
 
@@ -341,16 +344,34 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
 
     logger.info("\n=== Applying Filters ===")
 
-    logger.info("\n[1/4] Tissue filter")
+    logger.info("\n[1/5] Tissue filter")
     adata = filter_by_tissue(adata, uberon_json, row_ids=row_uberon_ids)
 
-    logger.info("\n[2/4] Disease filter")
+    logger.info("\n[2/5] Disease filter")
     adata = filter_by_disease(adata, disease_json, filter_normal, row_ids=row_disease_ids)
 
-    logger.info("\n[3/4] Age filter")
+    logger.info("\n[3/5] Age filter")
     adata = filter_by_age(adata, hsapdv_json, filter_normal, row_ids=row_hsapdv_ids)
 
-    logger.info("\n[4/4] Min cluster size filter")
+    logger.info("\n[4/5] Obs column filter")
+    if filter_obs_column and filter_obs_value:
+        col = filter_obs_column
+        val = filter_obs_value
+        if col not in adata.obs.columns:
+            raise ValueError(
+                f"filter_obs_column '{col}' not found in adata.obs. "
+                f"Available: {list(adata.obs.columns)}"
+            )
+        n_before = adata.n_obs
+        adata = adata[adata.obs[col] == val].copy()
+        logger.info(f"Obs filter adata.obs['{col}'] == '{val}': {n_before} -> {adata.n_obs} cells "
+                    f"({n_before - adata.n_obs} removed)")
+        if adata.n_obs == 0:
+            raise ValueError(f"No cells remaining after filtering '{col}' == '{val}'")
+    else:
+        logger.info("No obs column filter requested — skipping")
+
+    logger.info("\n[5/5] Min cluster size filter")
     adata = filter_by_min_cluster_size(adata, cluster_header, min_cluster_size)
 
     logger.info(f"\nFinal filtered data: {adata.n_obs} cells, {adata.n_vars} genes, "
