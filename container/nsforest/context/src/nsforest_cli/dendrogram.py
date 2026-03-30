@@ -24,7 +24,7 @@ from .common_utils import (
 )
 
 
-def run_dendrogram(h5ad_path, cluster_header, organ, first_author, year, embedding, dataset_version_id):
+def run_dendrogram(h5ad_path, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id):
     """
     Generate dendrogram and cluster statistics.
     """
