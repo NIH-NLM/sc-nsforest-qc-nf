@@ -17,6 +17,7 @@ matplotlib.use("Agg")
 
 import json
 import pandas as pd
+import scanpy as sc
 import nsforest as ns
 
 from .common_utils import (
@@ -57,7 +58,7 @@ def load_obo_labels(json_path: str) -> dict:
 # Before-filter statistics
 # =============================================================================
 
-def create_stats_before_filter(adata, cluster_header, prefix):
+def create_stats_before_filter(adata, cluster_header, prefix, embedding="X_pca"):
     """Create dendrogram and stats BEFORE filtering."""
     logger.info("Creating BEFORE FILTER statistics...")
 
@@ -65,6 +66,11 @@ def create_stats_before_filter(adata, cluster_header, prefix):
     logger.info(f"Before filter - Total cells: {adata.n_obs}, Clusters: {n_clusters}")
 
     try:
+        # Ensure X_pca exists — ns.pp.dendrogram hardcodes use_rep="X_pca"
+        # but its guard is buggy when other keys (e.g. X_umap) are in obsm.
+        if "X_pca" not in adata.obsm:
+            logger.info("X_pca not found in obsm — computing PCA for dendrogram")
+            sc.pp.pca(adata)
         ns.pp.dendrogram(
             adata, cluster_header,
             tl_kwargs={"optimal_ordering": True}, save="svg",
@@ -340,7 +346,7 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
     logger.info(f"Original data: {adata.n_obs} cells, {adata.n_vars} genes, "
                 f"{adata.obs[cluster_header].nunique()} clusters")
 
-    create_stats_before_filter(adata, cluster_header, prefix)
+    create_stats_before_filter(adata, cluster_header, prefix, embedding)
 
     logger.info("\n=== Applying Filters ===")
 
@@ -382,6 +388,10 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
     n_clusters = adata.obs[cluster_header].nunique()
 
     try:
+        # Ensure X_pca exists — ns.pp.dendrogram hardcodes use_rep="X_pca"
+        if "X_pca" not in adata.obsm:
+            logger.info("X_pca not found in obsm — computing PCA for dendrogram")
+            sc.pp.pca(adata)
         ns.pp.dendrogram(
             adata, cluster_header,
             tl_kwargs={"optimal_ordering": True}, save="svg",
