@@ -42,7 +42,6 @@ process viz_summary_process {
     """
     scsilhouette viz-summary \
         --silhouette-score-path ${silhouette_scores} \
-	--silhouette-score-col ${silhouette_score_col} \
         --cluster-header "${meta.author_cell_type}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
