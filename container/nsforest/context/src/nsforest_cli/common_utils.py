@@ -16,7 +16,7 @@ def get_output_prefix(organ, first_author, journal, year, cluster_header, embedd
     journal_safe = journal.replace(" ", "_") if journal else "unknown"
     cluster_header_safe = cluster_header.replace(" ", "_")
     embedding_safe = embedding.replace(" ", "_") if embedding else "unknown"
-    vid_suffix = f"_{dataset_version_id[-6:]}" if dataset_version_id and len(dataset_version_id) >= 6 else ""
+    vid_suffix = f"{dataset_version_id[-6:]}" if dataset_version_id and len(dataset_version_id) >= 6 else ""
     return f"{organ}_{first_author}_{journal_safe}_{year}_{cluster_header_safe}_{embedding_safe}_{vid_suffix}"
 
     
