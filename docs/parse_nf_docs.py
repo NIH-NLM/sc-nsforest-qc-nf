@@ -296,7 +296,7 @@ def main():
             out_path.write_text(rst_content, encoding='utf-8')
             print(f"Written: {out_path}  ({len(processes)} processes)")
 
-        index_entries.append(f"nextflow/{group_name}_modules")
+        index_entries.append(f"{group_name}_modules")
 
     # Write the nextflow index page
     nextflow_index = "Nextflow Workflow Modules\n=========================\n\n"

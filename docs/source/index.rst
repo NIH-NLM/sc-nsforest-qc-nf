@@ -33,12 +33,6 @@ It is part of the `NIH NLM Cell Knowledge Network <https://github.com/NIH-NLM/ce
 
    modules
 
-.. toctree::
-   :maxdepth: 1
-   :caption: More
-
-   changelog
-
 Related Projects
 ----------------
 
