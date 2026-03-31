@@ -54,8 +54,8 @@ process viz_summary_process {
         --collection-name "${meta.collection_name}" \
         --dataset-title "${meta.dataset_title}" \
         --journal "${meta.journal}" \
-        --collection_url "${meta.collection_url}" \
-        --explorer_url "${meta.explorer_url}" \
-        --h5ad_url "${meta.h5ad_url}" 
+        --collection-url "${meta.collection_url}" \
+        --explorer-url "${meta.explorer_url}" \
+        --h5ad-url "${meta.h5ad_url}" 
     """
 }
