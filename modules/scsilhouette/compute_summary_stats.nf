@@ -40,16 +40,12 @@ process compute_summary_stats_process {
           emit: summary
 
     script:
+    def metadata_json = groovy.json.JsonOutput.toJson(meta)
     """
+    echo '${metadata_json}' > metadata.json
     scsilhouette compute-summary-stats \
-        --cluster-summary "${cluster_summary}" \
-        --nsforest-results "${nsforest_results}" \
-	--metadata "${annotation}" \
-        --cluster-header "${meta.author_cell_type}" \
-        --organ "${meta.organ}" \
-        --first-author "${meta.first_author}" \
-	--journal "${meta.journal}" \
-        --year "${meta.year}" \
-        --embedding-key "${meta.embedding}" 
+    --cluster-summary ${cluster_summary} \
+    --nsforest-results ${nsforest_results} \
+    --metadata metadata.json
     """
 }
