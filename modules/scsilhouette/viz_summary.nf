@@ -45,17 +45,17 @@ process viz_summary_process {
         --cluster-header "${meta.author_cell_type}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
-	--journal "${meta.journal}" \
+        --journal "${meta.journal}" \
         --year "${meta.year}" \
-	--dataset-version-id "${meta.dataset_version_id}" \
+        --dataset-version-id "${meta.dataset_version_id}" \
         --embedding-key "${meta.embedding}" \
-	--fscore-path "${nsforest_results}" 
-	--doi "${meta.doi}" \
-	--collection-name "${meta.collection_name}" \
-	--dataset-title "${meta.dataset_title}" \
-	--journal "${meta.journal}" \
-	--collection_url "${meta.collection_url}" \
-	--explorer_url "${meta.explorer_url}" \
-	--h5ad_url "${meta.h5ad_url}" 
+        --fscore-path "${nsforest_results}" \
+        --doi "${meta.doi}" \
+        --collection-name "${meta.collection_name}" \
+        --dataset-title "${meta.dataset_title}" \
+        --journal "${meta.journal}" \
+        --collection_url "${meta.collection_url}" \
+        --explorer_url "${meta.explorer_url}" \
+        --h5ad_url "${meta.h5ad_url}" 
     """
 }
