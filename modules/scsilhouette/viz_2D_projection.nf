@@ -1,5 +1,5 @@
 /**
- * Viz Dotplot Module
+ * Viz 2D_Projection Module
  *
  * Generates an embedding scatter plot (UMAP/t-SNE/etc.) coloured by
  * cluster identity, saved as both HTML (interactive) and SVG.
@@ -12,11 +12,11 @@
  *
  * Output:
  * -------
- * @emit plots: tuple(meta, [dotplot HTML and SVG])
- *   Flat filenames: {organ}_{first_author}_{journal}_{year}_{cluster_header_safe}_dotplot_{embedding_key}.{html,svg}
+ * @emit plots: tuple(meta, [2D_projection HTML and SVG])
+ *   Flat filenames: {organ}_{first_author}_{journal}_{year}_{cluster_header_safe}_{embedding_key}_2D_projection.{html,svg}
  */
-process viz_dotplot_process {
-    tag "viz_dotplot_${meta.organ}_${meta.first_author}_${meta.journal}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
+process viz_2D_projection_process {
+    tag "viz_2D_projection_${meta.organ}_${meta.first_author}_${meta.journal}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
     label 'scsilhouette'
     containerOptions '--entrypoint ""'
     publishDir "${params.outdir}",
@@ -32,7 +32,7 @@ process viz_dotplot_process {
 
     script:
     """
-    scsilhouette viz-dotplot \
+    scsilhouette viz-2D-projection \
         --h5ad-path ${h5ad} \
         --embedding-key "${meta.embedding}" \
         --cluster-header "${meta.author_cell_type}" \
