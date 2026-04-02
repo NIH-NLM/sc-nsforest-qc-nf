@@ -15,7 +15,7 @@ include { plots_process }                  from './modules/nsforest/plots.nf'
 include { publish_results_process }        from './modules/publish/publish_results.nf'
 include { run_nsforest_process }           from './modules/nsforest/run_nsforest.nf'
 include { viz_distribution_process }       from './modules/scsilhouette/viz_distribution.nf'
-include { viz_dotplot_process }            from './modules/scsilhouette/viz_dotplot.nf'
+include { viz_2D_projection_process }      from './modules/scsilhouette/viz_2D_projection.nf'
 include { compute_summary_stats_process }  from './modules/scsilhouette/compute_summary_stats.nf'
 include { viz_summary_process }            from './modules/scsilhouette/viz_summary.nf'
 
@@ -199,8 +199,8 @@ workflow {
         }
     )
 
-    // Step 8c: viz_dotplot
-    viz_dotplot_process(filtered_h5ad_ch)
+    // Step 8c: viz_2D_projection
+    viz_2D_projection_process(filtered_h5ad_ch)
 
     // Step 8d: compute_summary_stats
     compute_summary_stats_process(
@@ -236,7 +236,7 @@ workflow {
 		merge_nsforest_results_process.out.complete.map { items -> tuple(items[0], [items[1], items[2], items[3], items[4]].flatten())},
 		plot_histograms_process.out.histograms.map      { meta, files -> tuple(meta, files) },
                 compute_silhouette_process.out.results.map      { meta, files -> tuple(meta, files) },
-                viz_dotplot_process.out.plots.map               { meta, files -> tuple(meta, files) },
+                viz_2D_projection_process.out.plots.map               { meta, files -> tuple(meta, files) },
                 viz_distribution_process.out.plots.map          { meta, files -> tuple(meta, files) },
                 viz_summary_process.out.plots.map               { meta, files -> tuple(meta, files) },
                 compute_summary_stats_process.out.summary.map  { meta, files -> tuple(meta, files) },
