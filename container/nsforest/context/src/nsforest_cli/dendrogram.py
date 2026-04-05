@@ -41,9 +41,10 @@ def run_dendrogram(h5ad_path, cluster_header, organ, first_author, journal, year
 
     logger.info("Creating dendrogram...")
     # Scale figure height with number of clusters so rotated labels are not clipped
-    fig_width = max(12, n_clusters * 0.5)
-    fig_height = max(4, n_clusters * 0.2)
-    figsize = (fig_width, fig_height)
+    max_label_len = max(len(str(label)) for label in adata.obs[cluster_header].unique())
+    fig_width  = max(14, n_clusters * 0.8)
+    fig_height = max(8,  max_label_len * 0.12)
+
     logger.info(f"Dendrogram figsize: {figsize}")
     try:
         ns.pp.dendrogram(
