@@ -1,0 +1,46 @@
+{
+  "queries": [
+    "endometriosis",
+    "normal"
+  ],
+  "root_terms": [
+    {
+      "obo_id": "MONDO:0005011",
+      "label": "endometriosis"
+    },
+    {
+      "obo_id": "PATO:0000461",
+      "label": "normal"
+    }
+  ],
+  "obo_ids": [
+    "MONDO:0005011",
+    "MONDO:0005572",
+    "MONDO:0005567",
+    "MONDO:0024586",
+    "PATO:0000461"
+  ],
+  "terms": [
+    {
+      "obo_id": "MONDO:0005011",
+      "label": "endometriosis"
+    },
+    {
+      "obo_id": "MONDO:0005572",
+      "label": "endometriosis of ovary"
+    },
+    {
+      "obo_id": "MONDO:0005567",
+      "label": "endometriosis of peritoneum"
+    },
+    {
+      "obo_id": "MONDO:0024586",
+      "label": "endometriosis of uterus"
+    },
+    {
+      "obo_id": "PATO:0000461",
+      "label": "normal"
+    }
+  ],
+  "total": 5
+}
