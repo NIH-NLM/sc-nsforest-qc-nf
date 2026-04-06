@@ -44,6 +44,7 @@ def run_dendrogram(h5ad_path, cluster_header, organ, first_author, journal, year
     max_label_len = max(len(str(label)) for label in adata.obs[cluster_header].unique())
     fig_width  = max(14, n_clusters * 0.8)
     fig_height = max(8,  max_label_len * 0.12)
+    figsize    = (fig_width, fig_height)
 
     logger.info(f"Dendrogram figsize: {figsize}")
     try:
