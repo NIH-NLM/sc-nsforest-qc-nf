@@ -1,0 +1,89 @@
+{
+  "queries": [
+    "endometrium",
+    "peritoneum",
+    "ovary"
+  ],
+  "root_terms": [
+    {
+      "obo_id": "UBERON:0001272",
+      "label": "endometrium",
+      "level": "root"
+    },
+    {
+      "obo_id": "UBERON:0001295",
+      "label": "peritoneum",
+      "level": "root"
+    },
+    {
+      "obo_id": "UBERON:0000992",
+      "label": "ovary",
+      "level": "root"
+    }
+  ],
+  "obo_ids": [
+    "UBERON:0001272",
+    "UBERON:0001295",
+    "UBERON:0000992",
+    "UBERON:0004801",
+    "UBERON:0006958",
+    "UBERON:0000473",
+    "UBERON:0001250",
+    "UBERON:0012276",
+    "UBERON:0001273",
+    "UBERON:0001274"
+  ],
+  "terms": [
+    {
+      "obo_id": "UBERON:0001272",
+      "label": "endometrium",
+      "level": "root"
+    },
+    {
+      "obo_id": "UBERON:0001295",
+      "label": "peritoneum",
+      "level": "root"
+    },
+    {
+      "obo_id": "UBERON:0000992",
+      "label": "ovary",
+      "level": "root"
+    },
+    {
+      "obo_id": "UBERON:0004801",
+      "label": "endometrial gland",
+      "level": "child"
+    },
+    {
+      "obo_id": "UBERON:0006958",
+      "label": "endometrial stroma",
+      "level": "child"
+    },
+    {
+      "obo_id": "UBERON:0000473",
+      "label": "uterine cavity",
+      "level": "child"
+    },
+    {
+      "obo_id": "UBERON:0001250",
+      "label": "rectouterine pouch",
+      "level": "child"
+    },
+    {
+      "obo_id": "UBERON:0012276",
+      "label": "parietal peritoneum",
+      "level": "child"
+    },
+    {
+      "obo_id": "UBERON:0001273",
+      "label": "endometrium of uterine horn",
+      "level": "child"
+    },
+    {
+      "obo_id": "UBERON:0001274",
+      "label": "zona compacta of endometrium",
+      "level": "child"
+    }
+  ],
+  "total": 10
+}
