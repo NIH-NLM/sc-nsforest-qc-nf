@@ -145,10 +145,9 @@ def filter_by_tissue(adata, uberon_json=None, row_ids=None):
 
     id_col = "tissue_ontology_term_id"
     if id_col not in adata.obs.columns:
-        raise ValueError(
-            f"'{id_col}' not found in adata.obs. "
-            "This column is required for UBERON-based tissue filtering. "
-            "Ensure the h5ad file originates from CellxGene."
+        logger.warning(
+            f"'{id_col}' not found in adata.obs — skipping tissue filter. "
+            "This is expected for non-CellXGene h5ad files."
         )
 
     if row_ids:
@@ -188,11 +187,11 @@ def filter_by_disease(adata, disease_json=None, filter_normal=False, row_ids=Non
 
     id_col = "disease_ontology_term_id"
     if id_col not in adata.obs.columns:
-        raise ValueError(
-            f"'{id_col}' not found in adata.obs. "
-            "This column is required for disease filtering. "
-            "Ensure the h5ad file originates from CellxGene."
+        logger.warning(
+            f"'{id_col}' not found in adata.obs — skipping disease filter. "
+            "This is expected for non-CellXGene h5ad files."
         )
+        return adata
 
     if row_ids:
         obo_ids = set(t.strip() for t in row_ids.split("|") if t.strip())
@@ -231,12 +230,12 @@ def filter_by_age(adata, hsapdv_json=None, filter_normal=False, row_ids=None):
 
     id_col = "development_stage_ontology_term_id"
     if id_col not in adata.obs.columns:
-        raise ValueError(
-            f"'{id_col}' not found in adata.obs. "
-            "This column is required for age filtering. "
-            "Ensure the h5ad file originates from CellxGene."
+        logger.warning(
+            f"'{id_col}' not found in adata.obs — skipping age filter. "
+            "This is expected for non-CellXGene h5ad files."
         )
-
+        return adata
+    
     if row_ids:
         obo_ids = set(t.strip() for t in row_ids.split("|") if t.strip())
         logger.info(f"  Age filter (row-specific): {sorted(obo_ids)}")
