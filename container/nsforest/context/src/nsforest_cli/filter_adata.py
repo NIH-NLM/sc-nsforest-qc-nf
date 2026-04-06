@@ -149,6 +149,7 @@ def filter_by_tissue(adata, uberon_json=None, row_ids=None):
             f"'{id_col}' not found in adata.obs — skipping tissue filter. "
             "This is expected for non-CellXGene h5ad files."
         )
+        return adata
 
     if row_ids:
         obo_ids = set(t.strip() for t in row_ids.split("|") if t.strip())
