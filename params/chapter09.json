@@ -1,0 +1,9 @@
+{
+  "datasets_csv":     "data/endometriosis_Tan_2022.csv",
+  "organ":            "endometrium",
+  "uberon_json":      "data/uberon_endometrium.json",
+  "disease_json":     "data/disease_endometriosis.json",
+  "hsapdv_json":      "data/hsapdv_reproductive_age.json",
+  "publish_repo":     "adeslatt/elements-of-style-workflows",
+  "publish_dest_dir": "docs/chapter-09/results"
+}
