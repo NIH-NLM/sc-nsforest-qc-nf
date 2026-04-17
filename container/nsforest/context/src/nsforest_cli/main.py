@@ -25,6 +25,34 @@ def cluster_stats_command(
     from .cluster_stats import run_cluster_stats
     run_cluster_stats(h5ad_path, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
 
+@app.command("cluster-cid-mapping")
+def cluster_cid_mapping_command(
+    h5ad_path: Path = typer.Option(..., help="Path to h5ad file"),
+    cluster_header: str = typer.Option(..., help="Column name for clusters"),
+    organ: str = typer.Option(..., help="Organ/tissue"),
+    first_author: str = typer.Option(..., help="First author"),
+    journal: str = typer.Option(..., help="Journal"),
+    year: str = typer.Option(..., help="Publication year"),
+    embedding: str = typer.Option("", help="Embedding key"),
+    dataset_version_id: str = typer.Option("", help="Dataset version ID"),
+    cid_column: str = typer.Option(
+        "cell_type_ontology_term_id",
+        help="obs column holding current cell-ontology term ID",
+    ),
+    default_skos: str = typer.Option(
+        "",
+        help='Value to pre-populate in skos column: "", "exact", or "related"',
+    ),
+):
+    """Emit cluster -> cell_ontology_id mapping CSV (cluster_name, skos, manual_mapped_cid, cell_ontology_id)."""
+    from .cluster_cid_mapping import run_cluster_cid_mapping
+    run_cluster_cid_mapping(
+        h5ad_path, cluster_header, organ, first_author, journal, year,
+        embedding, dataset_version_id,
+        cid_column=cid_column,
+        default_skos=default_skos,
+    )
+
 @app.command("dendrogram")
 def dendrogram_command(
     h5ad_path: Path = typer.Option(..., help="Path to h5ad file"),

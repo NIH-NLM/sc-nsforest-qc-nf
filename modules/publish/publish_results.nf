@@ -50,8 +50,8 @@ process publish_results_process {
     echo "=========================================="
 
     echo "publish complete: ${organ} ${first_author} ${year} branch: ${branch}" > ${report}
-    git clone --depth 1 ${repo_url} cell-kn
-    cd cell-kn
+    git clone --depth 1 ${repo_url} publish-repo
+    cd publish-repo
 
     git config user.email "adeslatt@scitechcon.org"
     git config user.name  "adeslatt"
