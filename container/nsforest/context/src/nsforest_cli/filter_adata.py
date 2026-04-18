@@ -8,6 +8,8 @@ All filtering uses ontology term ID columns only - no text matching:
   - Disease : disease_ontology_term_id  IN  PATO/MONDO obo_ids  (disease_json)
   - Age     : development_stage_ontology_term_id IN HsapDv obo_ids (hsapdv_json)
               Age threshold is encoded in the JSON at resolve time.
+
+Additionally, add gene_symbols to all the ensgs and store the new variable in the adata object
 """
 
 # Force non-interactive backend before any other imports that might trigger a display.
@@ -26,7 +28,10 @@ from .common_utils import (
     log_section,
     logger
 )
-
+from .gene_mapping_utils import (
+    load_gene_mapping,
+    add_gene_symbols_to_adata
+)
 
 # =============================================================================
 # Ontology JSON loaders
@@ -428,7 +433,16 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
         "n_obs": [adata.n_obs], "n_vars": [adata.n_vars], "n_clusters": [n_clusters]
     }).to_csv(f"{prefix}_summary_normal.csv", index=False)
 
+    # Add gene symbols into adata.var so every downstream step has them for free
+
+    ensg_to_symbol = load_gene_mapping()
+    if ensg_to_symbol:
+        adata = add_gene_symbols_to_adata(adata, ensg_to_symbol)
+    else:
+        logger.warning("No gene mapping available — adata.var['gene_symbol'] not populated")
+
     adata.write_h5ad(filtered_h5ad_name)
     logger.info(f"Saved filtered h5ad: {filtered_h5ad_name}")
 
     logger.info("\nFilter complete!")
+

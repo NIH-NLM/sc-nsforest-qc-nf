@@ -48,4 +48,13 @@ def run_prep_binary_scores(h5ad_path, cluster_header, organ, first_author, journ
     logger.info(f"Saved: {prefix}_binary_scores.csv")
     logger.info(f"Saved: {prefix}_binary_scores.pkl")
 
+    if 'gene_symbol' in adata.var.columns:
+        sym_map = dict(zip(adata.var_names, adata.var['gene_symbol']))
+        
+    df_binary_scores_symbols = df_binary_scores.rename(index=lambda g: sym_map.get(g, g))
+    df_binary_scores_symbols.to_csv(f"{prefix}_binary_scores_symbols.csv")
+    df_binary_scores_symbols.to_pickle(f"{prefix}_binary_scores_symbols.pkl")
+    logger.info(f"Saved: {prefix}_binary_scores_symbols.csv")
+    logger.info(f"Saved: {prefix}_binary_scores_symbols.pkl")
+    
     logger.info("Prep binary scores complete!")
