@@ -9,8 +9,8 @@ process prep_binary_scores_process {
 
     output:
     tuple val(meta),
-          path("*binary_scores.csv"),
-          path("*binary_scores.pkl"),
+          path("*.csv"),
+          path("*.pkl"),
           emit: complete
 
     script:

@@ -37,7 +37,7 @@ process filter_adata_process {
 
     output:
     tuple val(meta),
-          path("*_adata_filtered.h5ad"),
+          path("*adata_filtered.h5ad"),
           path("*.{csv,svg,log}", optional: true),
           emit: results
 

@@ -9,8 +9,8 @@ process prep_medians_process {
 
     output:
     tuple val(meta),
-          path("*medians.csv"),
-          path("*medians.pkl"),
+          path("*.csv"),
+          path("*.pkl"),
           emit: complete
 
     script:

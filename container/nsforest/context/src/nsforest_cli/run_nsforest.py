@@ -86,19 +86,5 @@ def run_nsforest(h5ad_path, medians_csv, binary_scores_csv, cluster_header,
 
     results.to_csv(output_csv, index=False)
     logger.info(f"Saved: {output_csv}")
-
-    # Symbol variant of the partial results
-    if 'gene_symbol' in adata_prep.var.columns:
-        sym_map = dict(zip(adata_prep.var_names, adata_prep.var['gene_symbol']))
-        results_symbols = results.copy()
-        results_symbols['NSForest_markers'] = [
-            [sym_map.get(g, g) for g in markers]
-            for markers in results_symbols['NSForest_markers']
-        ]
-        symbols_csv = output_csv.replace('.csv', '_symbols.csv')
-        results_symbols.to_csv(symbols_csv, index=False)
-        logger.info(f"Saved: {symbols_csv}")
-    else:
-        logger.warning("adata.var['gene_symbol'] missing — skipping _symbols output")
     
     logger.info("NSForest complete!")

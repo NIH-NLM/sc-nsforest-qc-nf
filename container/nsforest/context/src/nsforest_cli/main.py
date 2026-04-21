@@ -117,6 +117,7 @@ def filter_adata_command(
 @app.command("merge-nsforest-results")
 def merge_nsforest_results_command(
     partial_files: str = typer.Option(..., help="Comma-separated list of partial results CSV files"),
+    filtered_h5ad: Path = typer.Option(..., help="Path to adata_filtered.h5ad (for gene_symbol mapping)"),
     cluster_header: str = typer.Option(..., help="Column name for clusters"),
     organ: str = typer.Option(..., help="Organ/tissue"),
     first_author: str = typer.Option(..., help="First author"),
@@ -129,7 +130,7 @@ def merge_nsforest_results_command(
     """Merge partial NSForest results files and save csv + pkl."""
     from .merge_nsforest_results import run_merge_nsforest_results
     files = partial_files.split(',')
-    run_merge_nsforest_results(files, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
+    run_merge_nsforest_results(files, filtered_h5ad, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
 
 @app.command("plot-histograms")
 def plot_histograms_command(

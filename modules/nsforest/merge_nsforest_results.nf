@@ -4,7 +4,9 @@ process merge_nsforest_results_process {
     publishDir "${params.outdir}", mode: params.publish_mode
 
     input:
-    tuple val(meta), path(partial_csvs, stageAs: "partial_??.csv")
+    tuple val(meta),
+          path(partial_csvs, stageAs: "partial_??.csv"),
+          path(filtered_h5ad)
 
     output:
     tuple val(meta),
@@ -13,17 +15,21 @@ process merge_nsforest_results_process {
           path("*markers*.csv", optional: true),
           path("*gene_selection.csv", optional: true),
           emit: complete
+    path "*results_symbols.csv", optional: true
+    path "*results_symbols.pkl", optional: true
+    path "*gene_selection_symbols.csv", optional: true
 
     script:
     """
     nsforest-cli merge-nsforest-results \
         --partial-files ${partial_csvs.join(',')} \
+        --filtered-h5ad ${filtered_h5ad} \
         --cluster-header "${meta.author_cell_type}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
-	--journal "${meta.journal}" \
+        --journal "${meta.journal}" \
         --year "${meta.year}" \
         --embedding "${meta.embedding}" \
-	--dataset-version-id "${meta.dataset_version_id}"
+        --dataset-version-id "${meta.dataset_version_id}"
     """
 }

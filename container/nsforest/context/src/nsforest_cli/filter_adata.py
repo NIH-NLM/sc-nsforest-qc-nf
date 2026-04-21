@@ -397,42 +397,22 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
         if "X_pca" not in adata.obsm:
             logger.info("X_pca not found in obsm — computing PCA for dendrogram")
             sc.pp.pca(adata)
+        # Populate adata.uns['dendrogram_' + cluster_header] for downstream consumers.
+        # SVG + CSVs are emitted by dendrogram.py (see modules/nsforest/dendrogram.nf).
         ns.pp.dendrogram(
             adata, cluster_header,
-            tl_kwargs={"optimal_ordering": True}, save="svg",
-            output_folder="",
-            outputfilename_suffix=prefix
+            tl_kwargs={"optimal_ordering": True}, save=False,
         )
     except ValueError as e:
         if "negative distances" in str(e):
             logger.warning(f"Optimal ordering failed — retrying without: {e}")
             ns.pp.dendrogram(
                 adata, cluster_header,
-                tl_kwargs={"optimal_ordering": False}, save="svg",
-                output_folder="",
-                outputfilename_suffix=prefix
+                tl_kwargs={"optimal_ordering": False}, save=False,
             )
         else:
             raise
-
-    cluster_counts   = adata.obs[cluster_header].value_counts()
-    df_cluster_sizes = pd.DataFrame({
-        "cluster": cluster_counts.index.tolist(),
-        "count":   cluster_counts.values
-    })
-    df_cluster_sizes.to_csv(f"{prefix}_cluster_sizes.csv", index=False)
-
-    cluster_order = [
-        x.strip() for x in adata.uns["dendrogram_" + cluster_header]["categories_ordered"]
-    ]
-    pd.DataFrame({"cluster_order": cluster_order}).to_csv(
-        f"{prefix}_cluster_order.csv", index=False
-    )
-
-    pd.DataFrame({
-        "n_obs": [adata.n_obs], "n_vars": [adata.n_vars], "n_clusters": [n_clusters]
-    }).to_csv(f"{prefix}_summary_normal.csv", index=False)
-
+        
     # Add gene symbols into adata.var so every downstream step has them for free
 
     ensg_to_symbol = load_gene_mapping()

@@ -20,7 +20,6 @@ Saves:
 """
 
 import ast
-import os
 
 import pandas as pd
 
@@ -30,8 +29,76 @@ from .common_utils import (
     logger
 )
 
+def _write_results(results_df, prefix, suffix="", adata=None):
+    """Write results csv/pkl and the four marker files for one flavor.
 
-def run_merge_nsforest_results(partial_files, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id):
+    If ``adata`` is supplied and has an ``adata.var['gene_symbol']`` column, the
+    ``NSForest_markers`` column is first converted from ENSG lists to gene-symbol
+    lists. Unmapped genes stay as ENSG. If ``adata`` is supplied but the column is
+    missing, the symbol-flavored outputs are skipped with a warning — we don't
+    silently write ENSG markers into files tagged ``_symbols``.
+    """
+    if adata is not None:
+        if 'gene_symbol' not in adata.var.columns:
+            logger.warning(
+                f"adata.var['gene_symbol'] missing — skipping '{suffix}' outputs"
+            )
+            return
+        sym_map = dict(zip(adata.var_names, adata.var['gene_symbol']))
+        results_df = results_df.copy()
+        results_df['NSForest_markers'] = [
+            (
+                [sym_map.get(g, g) for g in (ast.literal_eval(m) if isinstance(m, str) else m)]
+                if not pd.isna(m) else m
+            )
+            for m in results_df['NSForest_markers']
+        ]
+
+    results_df.to_csv(f"{prefix}_results{suffix}.csv", index=False)
+    results_df.to_pickle(f"{prefix}_results{suffix}.pkl")
+    logger.info(f"Saved: {prefix}_results{suffix}.csv")
+    logger.info(f"Saved: {prefix}_results{suffix}.pkl")
+
+    markers_df = results_df[['clusterName', 'NSForest_markers', 'f_score']].copy()
+    markers_df.to_csv(f"{prefix}_markers{suffix}.csv", index=False)
+    logger.info(f"Saved: {prefix}_markers{suffix}.csv")
+
+    if 'onTarget' in results_df.columns:
+        ontarget_df = results_df[results_df['onTarget'] > 0][
+            ['clusterName', 'NSForest_markers', 'f_score', 'onTarget', 'precision', 'recall']
+        ].copy()
+        ontarget_df.to_csv(f"{prefix}_markers_onTarget{suffix}.csv", index=False)
+        logger.info(f"Saved: {prefix}_markers_onTarget{suffix}.csv")
+
+        ontarget_supp = results_df[results_df['onTarget'] > 0].copy()
+        ontarget_supp.to_csv(f"{prefix}_markers_onTarget_supp{suffix}.csv", index=False)
+        logger.info(f"Saved: {prefix}_markers_onTarget_supp{suffix}.csv")
+
+    all_markers = []
+    for _, row in results_df.iterrows():
+        markers = row['NSForest_markers']
+        if pd.isna(markers):
+            continue
+        if isinstance(markers, str):
+            markers = ast.literal_eval(markers)
+        for gene in markers:
+            all_markers.append({'clusterName': row['clusterName'], 'gene': gene})
+
+    gene_sel_df = pd.DataFrame(all_markers)
+    gene_sel_df.to_csv(f"{prefix}_gene_selection{suffix}.csv", index=False)
+    logger.info(f"Saved: {prefix}_gene_selection{suffix}.csv")
+
+def run_merge_nsforest_results(
+        partial_files,
+        filtered_h5ad,
+        cluster_header,
+        organ,
+        first_author,
+        journal,
+        year,
+        embedding,
+        dataset_version_id,
+):
     """
     Merge partial NSForest results CSV files and save csv + pkl + marker files.
     """
@@ -59,82 +126,14 @@ def run_merge_nsforest_results(partial_files, cluster_header, organ, first_autho
     else:
         results = pd.concat(dfs, axis=0, ignore_index=True)
 
+     # ENSG flavor
+    _write_results(results, prefix)
+
+    # Symbol flavor
+    if not results.empty:
+        adata = load_h5ad(filtered_h5ad, cluster_header)
+        _write_results(results, prefix, suffix="_symbols", adata=adata)
+
     logger.info(f"Complete results: {results.shape}")
-
-    results.to_csv(f"{prefix}_results.csv", index=False)
-    results.to_pickle(f"{prefix}_results.pkl")
-    logger.info(f"Saved: {prefix}_results.csv")
-    logger.info(f"Saved: {prefix}_results.pkl")
-
-    # --- Merge symbol-keyed partials ---
-    sym_dfs = []
-    for filepath in partial_files:
-        sym_path = str(filepath).replace('.csv', '_symbols.csv')
-        if not os.path.exists(sym_path):
-            continue
-        try:
-            df = pd.read_csv(sym_path)
-            if df.empty:
-                logger.warning(f"Skipping empty symbol partial: {sym_path}")
-                continue
-            sym_dfs.append(df)
-        except pd.errors.EmptyDataError:
-            logger.warning(f"Skipping empty symbol partial: {sym_path}")
-            continue
-        
-    if sym_dfs:
-        results_symbols = pd.concat(sym_dfs, axis=0, ignore_index=True)
-        results_symbols.to_csv(f"{prefix}_results_symbols.csv", index=False)
-        results_symbols.to_pickle(f"{prefix}_results_symbols.pkl")
-        logger.info(f"Saved: {prefix}_results_symbols.csv")
-        logger.info(f"Saved: {prefix}_results_symbols.pkl")
-    else:
-        logger.warning("No _symbols partial files found — skipping symbol merge")
-        results_symbols = None
-
-    # --- Generate supplementary marker files ---
-    def _write_marker_files(results_df, suffix=""):
-        """
-        Emit markers.csv, markers_onTarget.csv, markers_onTarget_supp.csv, gene_selection.csv
-        for a given results DataFrame. `suffix` is inserted before `.csv`.
-        """
-
-        markers_df = results_df[['clusterName', 'NSForest_markers', 'f_score']].copy()
-        markers_df.to_csv(f"{prefix}_markers{suffix}.csv", index=False)
-        logger.info(f"Saved: {prefix}_markers{suffix}.csv")
-
-        if 'onTarget' in results_df.columns:
-            ontarget_df = results_df[results_df['onTarget'] > 0][
-                ['clusterName', 'NSForest_markers', 'f_score', 'onTarget', 'precision', 'recall']
-            ].copy()
-            ontarget_df.to_csv(f"{prefix}_markers_onTarget{suffix}.csv", index=False)
-            logger.info(f"Saved: {prefix}_markers_onTarget{suffix}.csv")
-
-            ontarget_supp = results_df[results_df['onTarget'] > 0].copy()
-            ontarget_supp.to_csv(f"{prefix}_markers_onTarget_supp{suffix}.csv", index=False)
-            logger.info(f"Saved: {prefix}_markers_onTarget_supp{suffix}.csv")
-
-        all_markers = []
-        for _, row in results_df.iterrows():
-            markers = row['NSForest_markers']
-            if pd.isna(markers):
-                continue
-            if isinstance(markers, str):
-                markers = ast.literal_eval(markers)
-
-            for gene in markers:
-                all_markers.append({'clusterName': row['clusterName'], 'gene': gene})
-
-                gene_sel_df = pd.DataFrame(all_markers)
-                gene_sel_df.to_csv(f"{prefix}_gene_selection{suffix}.csv", index=False)
-                logger.info(f"Saved: {prefix}_gene_selection{suffix}.csv")
-
-            # ENSG outputs (unchanged behavior)
-            _write_marker_files(results, "")
-
-            # Symbol outputs (new)
-            if results_symbols is not None:
-                _write_marker_files(results_symbols, "_symbols")
-
-            logger.info("Merge NSForest results complete!")
+    logger.info("Merge and write NSForest results complete!")
 

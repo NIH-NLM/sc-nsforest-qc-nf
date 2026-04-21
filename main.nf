@@ -3,6 +3,7 @@
 nextflow.enable.dsl=2
 
 include { cluster_stats_process }          from './modules/nsforest/cluster_stats.nf'
+include { cluster_cid_mapping_process }    from './modules/nsforest/cluster_cid_mapping.nf'
 include { compute_silhouette_process }     from './modules/scsilhouette/compute_silhouette.nf'
 include { dendrogram_process }             from './modules/nsforest/dendrogram.nf'
 include { download_h5ad_process }          from './modules/nsforest/download_h5ad.nf'
@@ -114,6 +115,9 @@ workflow {
 
     // Step 1b: Cluster statistics
     cluster_stats_output_ch = cluster_stats_process(filtered_h5ad_ch)
+
+    // Step 1c: Cluster -> cell ontology ID mapping (4-column manual curation sheet)
+    cluster_cid_mapping_output_ch = cluster_cid_mapping_process(filtered_h5ad_ch)
     
     // Step 2a: Prep medians — runs once per dataset on full filtered h5ad
     prep_medians_output_ch = prep_medians_process(filtered_h5ad_ch)
@@ -152,11 +156,13 @@ workflow {
 
     nsforest_output_ch = run_nsforest_process(nsforest_input_ch)
 
-    // Step 5: Merge NSForest results
-    merged_nsforest_ch = merge_nsforest_results_process(
-        nsforest_output_ch.partial.groupTuple()
-    )
+    // Step 5: Merge NSForest results (ENSG merge + symbol derivation from filtered h5ad)
+    merge_input_ch = nsforest_output_ch.partial.groupTuple()
+        .map { meta, file_lists -> tuple(meta, file_lists.flatten()) }
+        .join(filtered_h5ad_ch)
 
+    merged_nsforest_ch = merge_nsforest_results_process(merge_input_ch)
+    
     // Step 6: Plots
     plots_process(
         filtered_h5ad_ch
@@ -229,17 +235,18 @@ workflow {
 		dendrogram_process.out.stats.map                { items -> tuple(items[0], [items[1], items[2]].flatten())},
 	        dendrogram_process.out.results.map              { meta, files -> tuple(meta, files) },
 		cluster_stats_process.out.results.map           { meta, files -> tuple(meta, files) },
-		filter_adata_process.out.results.map            { items -> tuple(items[0], [items[1], items[2]].flatten())},
+                cluster_cid_mapping_process.out.results.map     { meta, files -> tuple(meta, files) },
+                filter_adata_process.out.results.map            { items -> tuple(items[0], [items[1], items[2]].flatten())},
 		plots_process.out.plots.map                     { meta, files -> tuple(meta, files) },
 		prep_binary_scores_process.out.complete.map     { items -> tuple(items[0], [items[1], items[2]].flatten())},
 		prep_medians_process.out.complete.map           { items -> tuple(items[0], [items[1], items[2]].flatten())},
 		merge_nsforest_results_process.out.complete.map { items -> tuple(items[0], [items[1], items[2], items[3], items[4]].flatten())},
 		plot_histograms_process.out.histograms.map      { meta, files -> tuple(meta, files) },
                 compute_silhouette_process.out.results.map      { meta, files -> tuple(meta, files) },
-                viz_2D_projection_process.out.plots.map               { meta, files -> tuple(meta, files) },
+                viz_2D_projection_process.out.plots.map         { meta, files -> tuple(meta, files) },
                 viz_distribution_process.out.plots.map          { meta, files -> tuple(meta, files) },
                 viz_summary_process.out.plots.map               { meta, files -> tuple(meta, files) },
-                compute_summary_stats_process.out.summary.map  { meta, files -> tuple(meta, files) },
+                compute_summary_stats_process.out.summary.map   { meta, files -> tuple(meta, files) },
             )
 	    .map { meta, file_lists ->
 	        tuple(meta, file_lists instanceof List ? file_lists.flatten() : [file_lists])
