@@ -16,6 +16,7 @@ Additionally, add gene_symbols to all the ensgs and store the new variable in th
 # Required for headless execution in Nextflow / Docker containers.
 import matplotlib
 matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 import json
 import pandas as pd
@@ -76,12 +77,21 @@ def create_stats_before_filter(adata, cluster_header, prefix, embedding="X_pca")
         if "X_pca" not in adata.obsm:
             logger.info("X_pca not found in obsm — computing PCA for dendrogram")
             sc.pp.pca(adata)
+        # Render the figure via nsforest/scanpy but save it ourselves.
+        # ns.pp.dendrogram(save="svg") routes through scanpy's savefig_or_show,
+        # which in scanpy 1.9.6 + matplotlib 3.8.0 crashes with
+        # "'bool' object has no attribute 'write'" inside PIL's PNG backend.
         ns.pp.dendrogram(
             adata, cluster_header,
-            tl_kwargs={"optimal_ordering": True}, save="svg",
-            output_folder="",
-            outputfilename_suffix=prefix + "_before_filter"
+            tl_kwargs={"optimal_ordering": True},
+            pl_kwargs={"show": False},
+            save=False,
         )
+        plt.savefig(
+            f"_{prefix}_before_filter.svg",
+            format="svg", bbox_inches="tight",
+        )
+        plt.close()
     except ValueError as e:
         if "negative distances" in str(e):
             logger.warning(f"Dendrogram failed ({e}) — computing with clamped distances")
