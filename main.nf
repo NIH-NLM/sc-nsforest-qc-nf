@@ -127,20 +127,15 @@ workflow {
 
     // Step 3: Plot histograms
     plot_histograms_process(
-        prep_medians_output_ch.complete
-            .map { meta, medians_csv, medians_pkl -> tuple(meta, medians_csv) }
-            .join(
-                prep_binary_scores_output_ch.complete
-                    .map { meta, binary_csv, binary_pkl -> tuple(meta, binary_csv) }
-            )
-            .map { meta, medians_csv, binary_csv -> tuple(meta, medians_csv, binary_csv) }
+        prep_medians_output_ch.csv
+	    .join(prep_binary_scores_output_ch.csv)
     )
 
     // Step 4: Scatter run_nsforest by cluster batch
     def batchSize = params.batch_size ?: 10
     nsforest_input_ch = filtered_h5ad_ch
-        .join(prep_medians_output_ch.complete.map { meta, medians_csv, medians_pkl -> tuple(meta, medians_csv) })
-        .join(prep_binary_scores_output_ch.complete.map { meta, binary_csv, binary_pkl -> tuple(meta, binary_csv) })
+        .join(prep_medians_output_ch.csv)
+        .join(prep_binary_scores_output_ch.csv)
         .join(dendrogram_output_ch.stats.map { meta, h5ad, cluster_order_csv -> tuple(meta, cluster_order_csv) })
         .flatMap { meta, h5ad, medians_csv, binary_csv, cluster_order_files ->
             def cluster_order_csv = cluster_order_files instanceof List
@@ -238,8 +233,14 @@ workflow {
                 cluster_cid_mapping_process.out.results.map     { meta, files -> tuple(meta, files) },
                 filter_adata_process.out.results.map            { items -> tuple(items[0], [items[1], items[2]].flatten())},
 		plots_process.out.plots.map                     { meta, files -> tuple(meta, files) },
-		prep_binary_scores_process.out.complete.map     { items -> tuple(items[0], [items[1], items[2]].flatten())},
-		prep_medians_process.out.complete.map           { items -> tuple(items[0], [items[1], items[2]].flatten())},
+                prep_binary_scores_process.out.csv,
+                prep_binary_scores_process.out.csv_symbols,
+                prep_binary_scores_process.out.pkl,
+                prep_binary_scores_process.out.pkl_symbols,
+                prep_medians_process.out.csv,
+                prep_medians_process.out.csv_symbols,
+                prep_medians_process.out.pkl,
+                prep_medians_process.out.pkl_symbols,
 		merge_nsforest_results_process.out.complete.map { items -> tuple(items[0], [items[1], items[2], items[3], items[4]].flatten())},
 		plot_histograms_process.out.histograms.map      { meta, files -> tuple(meta, files) },
                 compute_silhouette_process.out.results.map      { meta, files -> tuple(meta, files) },

@@ -6,7 +6,9 @@ Uses ns.pp.prep_medians() to filter positive genes and compute medians.
 
 Saves:
   {organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}_medians.csv
+  {organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}_medians_symbols.csv
   {organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}_medians.pkl
+  {organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}_medians_symbols.pkl
 """
 
 import nsforest as ns
