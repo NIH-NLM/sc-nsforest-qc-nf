@@ -6,7 +6,9 @@ Uses ns.pp.prep_medians() then ns.pp.prep_binary_scores() in memory.
 
 Saves:
   {organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}_binary_scores.csv
+  {organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}_binary_scores_symbols.csv
   {organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}_binary_scores.pkl
+  {organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}_binary_scores_symbols.pkl
 """
 
 import nsforest as ns
