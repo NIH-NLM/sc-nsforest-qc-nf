@@ -13,9 +13,6 @@ Saves:
 import matplotlib
 matplotlib.use("Agg")
 
-import glob
-import os
-
 import pandas as pd
 import nsforest as ns
 
@@ -65,11 +62,12 @@ def run_dendrogram(h5ad_path, cluster_header, organ, first_author, journal, year
                 adata,
                 cluster_header,
                 tl_kwargs={"optimal_ordering": True},
-                save="svg",
-                output_folder="",
-                outputfilename_suffix=prefix,
+                pl_kwargs={"show": False},
+                save=False,
                 figsize=figsize
             )
+            plt.savefig(f"{prefix}_dendrogram.svg")
+            plt.close()
             
         except ValueError as e:
             if "negative distances" in str(e):
@@ -78,31 +76,16 @@ def run_dendrogram(h5ad_path, cluster_header, organ, first_author, journal, year
                     adata,
                     cluster_header,
                     tl_kwargs={"optimal_ordering": False},
-                    save="svg",
-                    output_folder="",
-                    outputfilename_suffix=prefix,
+                    pl_kwargs={"show": False},
+                    save=False,
                     figsize=figsize
                 )
+                plt.savefig(f"{prefix}_dendrogram.svg")
+                plt.close()
+
             else:
                 raise
 
-    # NSForest saves the dendrogram with a variable name (e.g. dendrogram_{prefix}.svg).
-    # Glob for any *.svg that isn't already our target, then normalize to {prefix}_dendrogram.svg.
-    dst = f"{prefix}_dendrogram.svg"
-    if os.path.exists(dst):
-        logger.info(f"Saved: {dst}")
-    else:
-        candidates = [s for s in glob.glob("dendrogram*.svg") if s != dst]
-        if candidates:
-            if len(candidates) > 1:
-                logger.warning(f"Multiple dendrogram SVG candidates found: {candidates} — using first")
-            src = candidates[0]
-            os.rename(src, dst)
-            logger.info(f"Renamed: {src} -> {dst}")
-            logger.info(f"Saved: {dst}")
-        else:
-            logger.warning(f"No dendrogram SVG found to rename to {dst}")
-        
     # Cluster sizes
     cluster_counts   = adata.obs[cluster_header].value_counts()
     df_cluster_sizes = pd.DataFrame({

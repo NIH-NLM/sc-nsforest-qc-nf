@@ -155,10 +155,7 @@ workflow {
     // Step 6: Plots
     plots_process(
         filtered_h5ad_ch
-            .join(
-                merged_nsforest_ch.complete.map { meta, results_csv, results_pkl, marker_csvs, gene_sel -> tuple(meta, results_csv) }
-            )
-            .map { meta, h5ad, results_csv -> tuple(meta, h5ad, results_csv) }
+            .join(merged_nsforest_ch.results_csv)
     )
 
     // Step 7: Compute silhouette
@@ -166,32 +163,20 @@ workflow {
 
     // Step 8a: viz_summary
     viz_summary_process(
-        silhouette_output_ch.results
-            .map { meta, files ->
-                def flist      = files instanceof List ? files : [files]
-                def scores     = flist.find { it.name.endsWith('_silhouette_scores.csv') }
-                def summary    = flist.find { it.name.endsWith('_cluster_summary.csv') }
-                def annotation = flist.find { it.name.endsWith('_annotation.json') }
-                tuple(meta, scores, summary, annotation)
-            }
-            .join(
-                merged_nsforest_ch.complete.map { meta, results_csv, results_pkl, marker_csvs, gene_sel -> tuple(meta, results_csv) },
-                remainder: true
-            )
+        silhouette_output_ch.scores
+            .join(silhouette_output_ch.cluster_summary)
+            .join(silhouette_output_ch.annotation)
+            .join(merged_nsforest_ch.results_csv)
             .map { meta, scores, summary, annotation, nsforest_csv ->
                 tuple(meta, scores, summary, annotation, nsforest_csv ?: file('NO_FILE'))
             }
     )
-
+    
     // Step 8b: viz_distribution
     viz_distribution_process(
-        silhouette_output_ch.results.map { meta, files ->
-            def flist      = files instanceof List ? files : [files]
-            def scores     = flist.find { it.name.endsWith('_silhouette_scores.csv') }
-            def summary    = flist.find { it.name.endsWith('_cluster_summary.csv') }
-            def annotation = flist.find { it.name.endsWith('_annotation.json') }
-            tuple(meta, scores, summary, annotation)
-        }
+        silhouette_output_ch.scores
+            .join(silhouette_output_ch.cluster_summary)
+            .join(silhouette_output_ch.annotation)
     )
 
     // Step 8c: viz_2D_projection
@@ -199,18 +184,10 @@ workflow {
 
     // Step 8d: compute_summary_stats
     compute_summary_stats_process(
-        silhouette_output_ch.results
-            .map { meta, files ->
-                def flist      = files instanceof List ? files : [files]
-                def scores     = flist.find { it.name.endsWith('_silhouette_scores.csv') }
-                def summary    = flist.find { it.name.endsWith('_cluster_summary.csv') }
-                def annotation = flist.find { it.name.endsWith('_annotation.json') }
-                tuple(meta, scores, summary, annotation)
-            }
-            .join(
-                merged_nsforest_ch.complete.map { meta, results_csv, results_pkl, marker_csvs, gene_sel -> tuple(meta, results_csv) },
-                remainder: true
-            )
+        silhouette_output_ch.scores
+            .join(silhouette_output_ch.cluster_summary)
+            .join(silhouette_output_ch.annotation)
+            .join(merged_nsforest_ch.results_csv)
             .map { meta, scores, summary, annotation, nsforest_csv ->
                 tuple(meta, scores, summary, annotation, nsforest_csv ?: file('NO_FILE'))
             }
