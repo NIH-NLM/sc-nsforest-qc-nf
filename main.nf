@@ -244,7 +244,6 @@ workflow {
                 viz_summary_process.out.plots,
                 compute_summary_stats_process.out.summary,
             )
-	    publish_results_process(all_files_ch.groupTuple())
             .flatMap { meta, files ->
                 def fileList = (files instanceof List) ? files.flatten() : [files]
                 fileList.collect { f -> tuple(meta, f) }
