@@ -104,11 +104,7 @@ workflow {
     )
 
     // Convenience: filtered h5ad only channel
-    filtered_h5ad_ch = filter_output_ch.results
-        .map { items -> 
-            def meta = items[0] + [filtered_h5ad_s3: items[1].toUriString()]
-            tuple(meta, items[1]) 
-        }
+    filtered_h5ad_ch = filter_output_ch.h5ad
 
     // Step 1: Dendrogram
     dendrogram_output_ch = dendrogram_process(filtered_h5ad_ch)
@@ -133,14 +129,12 @@ workflow {
 
     // Step 4: Scatter run_nsforest by cluster batch
     def batchSize = params.batch_size ?: 10
+
     nsforest_input_ch = filtered_h5ad_ch
         .join(prep_medians_output_ch.csv)
         .join(prep_binary_scores_output_ch.csv)
-        .join(dendrogram_output_ch.stats.map { meta, h5ad, cluster_order_csv -> tuple(meta, cluster_order_csv) })
-        .flatMap { meta, h5ad, medians_csv, binary_csv, cluster_order_files ->
-            def cluster_order_csv = cluster_order_files instanceof List
-                ? cluster_order_files.find { it.name.endsWith('_cluster_order.csv') }
-                : cluster_order_files
+        .join(dendrogram_output_ch.cluster_order)
+        .flatMap { meta, h5ad, medians_csv, binary_csv, cluster_order_csv ->
             def clusters = cluster_order_csv
                 .splitCsv(header: true)
                 .collect { it.cluster_order }
@@ -148,7 +142,7 @@ workflow {
                 tuple(meta, h5ad, medians_csv, binary_csv, batch.join(','))
             }
         }
-
+	
     nsforest_output_ch = run_nsforest_process(nsforest_input_ch)
 
     // Step 5: Merge NSForest results (ENSG merge + symbol derivation from filtered h5ad)
@@ -161,10 +155,7 @@ workflow {
     // Step 6: Plots
     plots_process(
         filtered_h5ad_ch
-            .join(
-                merged_nsforest_ch.complete.map { meta, results_csv, results_pkl, marker_csvs, gene_sel -> tuple(meta, results_csv) }
-            )
-            .map { meta, h5ad, results_csv -> tuple(meta, h5ad, results_csv) }
+            .join(merged_nsforest_ch.results_csv)
     )
 
     // Step 7: Compute silhouette
@@ -172,32 +163,20 @@ workflow {
 
     // Step 8a: viz_summary
     viz_summary_process(
-        silhouette_output_ch.results
-            .map { meta, files ->
-                def flist      = files instanceof List ? files : [files]
-                def scores     = flist.find { it.name.endsWith('_silhouette_scores.csv') }
-                def summary    = flist.find { it.name.endsWith('_cluster_summary.csv') }
-                def annotation = flist.find { it.name.endsWith('_annotation.json') }
-                tuple(meta, scores, summary, annotation)
-            }
-            .join(
-                merged_nsforest_ch.complete.map { meta, results_csv, results_pkl, marker_csvs, gene_sel -> tuple(meta, results_csv) },
-                remainder: true
-            )
+        silhouette_output_ch.scores
+            .join(silhouette_output_ch.cluster_summary)
+            .join(silhouette_output_ch.annotation)
+            .join(merged_nsforest_ch.results_csv)
             .map { meta, scores, summary, annotation, nsforest_csv ->
                 tuple(meta, scores, summary, annotation, nsforest_csv ?: file('NO_FILE'))
             }
     )
-
+    
     // Step 8b: viz_distribution
     viz_distribution_process(
-        silhouette_output_ch.results.map { meta, files ->
-            def flist      = files instanceof List ? files : [files]
-            def scores     = flist.find { it.name.endsWith('_silhouette_scores.csv') }
-            def summary    = flist.find { it.name.endsWith('_cluster_summary.csv') }
-            def annotation = flist.find { it.name.endsWith('_annotation.json') }
-            tuple(meta, scores, summary, annotation)
-        }
+        silhouette_output_ch.scores
+            .join(silhouette_output_ch.cluster_summary)
+            .join(silhouette_output_ch.annotation)
     )
 
     // Step 8c: viz_2D_projection
@@ -205,18 +184,10 @@ workflow {
 
     // Step 8d: compute_summary_stats
     compute_summary_stats_process(
-        silhouette_output_ch.results
-            .map { meta, files ->
-                def flist      = files instanceof List ? files : [files]
-                def scores     = flist.find { it.name.endsWith('_silhouette_scores.csv') }
-                def summary    = flist.find { it.name.endsWith('_cluster_summary.csv') }
-                def annotation = flist.find { it.name.endsWith('_annotation.json') }
-                tuple(meta, scores, summary, annotation)
-            }
-            .join(
-                merged_nsforest_ch.complete.map { meta, results_csv, results_pkl, marker_csvs, gene_sel -> tuple(meta, results_csv) },
-                remainder: true
-            )
+        silhouette_output_ch.scores
+            .join(silhouette_output_ch.cluster_summary)
+            .join(silhouette_output_ch.annotation)
+            .join(merged_nsforest_ch.results_csv)
             .map { meta, scores, summary, annotation, nsforest_csv ->
                 tuple(meta, scores, summary, annotation, nsforest_csv ?: file('NO_FILE'))
             }
@@ -227,12 +198,17 @@ workflow {
         all_files_ch = Channel
             .empty()
             .mix(
-		dendrogram_process.out.stats.map                { items -> tuple(items[0], [items[1], items[2]].flatten())},
-	        dendrogram_process.out.results.map              { meta, files -> tuple(meta, files) },
-		cluster_stats_process.out.results.map           { meta, files -> tuple(meta, files) },
-                cluster_cid_mapping_process.out.results.map     { meta, files -> tuple(meta, files) },
-                filter_adata_process.out.results.map            { items -> tuple(items[0], [items[1], items[2]].flatten())},
-		plots_process.out.plots.map                     { meta, files -> tuple(meta, files) },
+	        dendrogram_process.out.cluster_order,
+		dendrogram_process.out.cluster_sizes,
+		dendrogram_process.out.summary,
+		dendrogram_process.out.svg,
+		cluster_stats_process.out.results,
+                cluster_cid_mapping_process.out.results,
+		filter_adata_process.out.cluster_sizes,
+		filter_adata_process.out.cluster_order,
+		filter_adata_process.out.summary,
+		filter_adata_process.out.svg,
+		plots_process.out.plots,
                 prep_binary_scores_process.out.csv,
                 prep_binary_scores_process.out.csv_symbols,
                 prep_binary_scores_process.out.pkl,
@@ -241,18 +217,27 @@ workflow {
                 prep_medians_process.out.csv_symbols,
                 prep_medians_process.out.pkl,
                 prep_medians_process.out.pkl_symbols,
-		merge_nsforest_results_process.out.complete.map { items -> tuple(items[0], [items[1], items[2], items[3], items[4]].flatten())},
-		plot_histograms_process.out.histograms.map      { meta, files -> tuple(meta, files) },
-                compute_silhouette_process.out.results.map      { meta, files -> tuple(meta, files) },
-                viz_2D_projection_process.out.plots.map         { meta, files -> tuple(meta, files) },
-                viz_distribution_process.out.plots.map          { meta, files -> tuple(meta, files) },
-                viz_summary_process.out.plots.map               { meta, files -> tuple(meta, files) },
-                compute_summary_stats_process.out.summary.map   { meta, files -> tuple(meta, files) },
+		merge_nsforest_results_process.out.results_csv,
+		merge_nsforest_results_process.out.results_csv_symbols,
+		merge_nsforest_results_process.out.results_pkl,
+		merge_nsforest_results_process.out.results_pkl_symbols,
+		merge_nsforest_results_process.out.markers,
+		merge_nsforest_results_process.out.markers_symbols,
+		merge_nsforest_results_process.out.markers_ontarget,
+		merge_nsforest_results_process.out.markers_ontarget_symbols,
+		merge_nsforest_results_process.out.markers_ontarget_supp,
+		merge_nsforest_results_process.out.markers_ontarget_supp_symbols,
+		merge_nsforest_results_process.out.gene_selection,
+		merge_nsforest_results_process.out.gene_selection_symbols,
+		plot_histograms_process.out.histograms,
+                compute_silhouette_process.out.results,
+                viz_2D_projection_process.out.plots,
+                viz_distribution_process.out.plots,
+                viz_summary_process.out.plots,
+                compute_summary_stats_process.out.summary,
             )
-	    .map { meta, file_lists ->
-	        tuple(meta, file_lists instanceof List ? file_lists.flatten() : [file_lists])
-            }
-        publish_results_process(all_files_ch.groupTuple().map { meta, files -> tuple(meta, files.flatten().unique { it.name }) })
+	    .map { meta, file -> tuple(meta, [file]) }
+	    publish_results_process(all_files_ch.groupTuple())
     } else {
         log.warn "WARNING: --github_token not set — skipping publish step"
     }

@@ -9,15 +9,18 @@ process merge_nsforest_results_process {
           path(filtered_h5ad)
 
     output:
-    tuple val(meta),
-          path("*results.csv"),
-          path("*results.pkl"),
-          path("*markers*.csv", optional: true),
-          path("*gene_selection.csv", optional: true),
-          emit: complete
-    path "*results_symbols.csv", optional: true
-    path "*results_symbols.pkl", optional: true
-    path "*gene_selection_symbols.csv", optional: true
+    tuple val(meta), path("*_results.csv"),                       emit: results_csv
+    tuple val(meta), path("*_results_symbols.csv"),               emit: results_csv_symbols, optional: true
+    tuple val(meta), path("*_results.pkl"),                       emit: results_pkl
+    tuple val(meta), path("*_results_symbols.pkl"),               emit: results_pkl_symbols, optional: true
+    tuple val(meta), path("*_markers.csv"),                       emit: markers
+    tuple val(meta), path("*_markers_symbols.csv"),               emit: markers_symbols, optional: true
+    tuple val(meta), path("*_markers_onTarget.csv"),              emit: markers_ontarget
+    tuple val(meta), path("*_markers_onTarget_symbols.csv"),      emit: markers_ontarget_symbols, optional: true
+    tuple val(meta), path("*_markers_onTarget_supp.csv"),         emit: markers_ontarget_supp
+    tuple val(meta), path("*_markers_onTarget_supp_symbols.csv"), emit: markers_ontarget_supp_symbols, optional: true
+    tuple val(meta), path("*_gene_selection.csv"),                emit: gene_selection
+    tuple val(meta), path("*_gene_selection_symbols.csv"),        emit: gene_selection_symbols, optional: true
 
     script:
     """
