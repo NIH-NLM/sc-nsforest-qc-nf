@@ -87,6 +87,12 @@ workflow {
                 tissue_ontology_term_id:            row.tissue_ontology_term_id,
                 disease_ontology_term_id:           row.disease_ontology_term_id,
                 development_stage_ontology_term_id: row.development_stage_ontology_term_id,
+		tissue_ontology_summary:            row.tissue_ontology_summary,
+		assay_ontology_summary:             row.assay_ontology_summary,
+		cell_type_ontology_summary:         row.cell_type_ontology_summary,
+		disease_ontology_summary:           row.disease_ontology_summary,
+		sex_ontology_summary:               row.sex_ontology_summary,
+		development_stage_summary:          row.development_stage_summary,
                 session_id:                         workflow.sessionId.toString()[-6..-1],
             ]
             tuple(meta, row.h5ad_url)
