@@ -244,9 +244,13 @@ workflow {
                 viz_summary_process.out.plots,
                 compute_summary_stats_process.out.summary,
             )
-	    .map { meta, file -> tuple(meta, [file]) }
 	    publish_results_process(all_files_ch.groupTuple())
-    } else {
+            .flatMap { meta, files ->
+                def fileList = (files instanceof List) ? files.flatten() : [files]
+                fileList.collect { f -> tuple(meta, f) }
+            }
+        publish_results_process(all_files_ch.groupTuple())
+	} else {
         log.warn "WARNING: --github_token not set — skipping publish step"
     }
 }
