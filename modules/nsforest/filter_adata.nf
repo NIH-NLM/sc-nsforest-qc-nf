@@ -36,10 +36,12 @@ process filter_adata_process {
     path hsapdv_json
 
     output:
-    tuple val(meta),
-          path("*adata_filtered.h5ad"),
-          path("*.{csv,svg,log}", optional: true),
-          emit: results
+    tuple val(meta), path("*adata_filtered.h5ad"),               emit: h5ad
+    tuple val(meta), path("*_cluster_sizes_before_filter.csv"),  emit: cluster_sizes
+    tuple val(meta), path("*_cluster_order_before_filter.csv"),  emit: cluster_order
+    tuple val(meta), path("*_summary_before_filter.csv"),        emit: summary
+    tuple val(meta), path("*_before_filter.svg"),                emit: svg
+    
 
     script:
     def filter_flag     = meta.filter == "True" ? "--filter-normal" : ""

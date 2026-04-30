@@ -104,11 +104,7 @@ workflow {
     )
 
     // Convenience: filtered h5ad only channel
-    filtered_h5ad_ch = filter_output_ch.results
-        .map { items -> 
-            def meta = items[0] + [filtered_h5ad_s3: items[1].toUriString()]
-            tuple(meta, items[1]) 
-        }
+    filtered_h5ad_ch = filter_output_ch.h5ad
 
     // Step 1: Dendrogram
     dendrogram_output_ch = dendrogram_process(filtered_h5ad_ch)
@@ -231,7 +227,10 @@ workflow {
 		dendrogram_process.out.svg,
 		cluster_stats_process.out.results,
                 cluster_cid_mapping_process.out.results,
-                filter_adata_process.out.results.map            { items -> tuple(items[0], [items[1], items[2]].flatten())},
+		filter_adata_process.out.cluster_sizes,
+		filter_adata_process.out.cluster_order,
+		filter_adata_process.out.summary,
+		filter_adata_process.out.svg,
 		plots_process.out.plots,
                 prep_binary_scores_process.out.csv,
                 prep_binary_scores_process.out.csv_symbols,
@@ -241,7 +240,18 @@ workflow {
                 prep_medians_process.out.csv_symbols,
                 prep_medians_process.out.pkl,
                 prep_medians_process.out.pkl_symbols,
-		merge_nsforest_results_process.out.complete.map { items -> tuple(items[0], [items[1], items[2], items[3], items[4]].flatten())},
+		merge_nsforest_results_process.out.results_csv,
+		merge_nsforest_results_process.out.results_csv_symbols,
+		merge_nsforest_results_process.out.results_pkl,
+		merge_nsforest_results_process.out.results_pkl_symbols,
+		merge_nsforest_results_process.out.markers,
+		merge_nsforest_results_process.out.markers_symbols,
+		merge_nsforest_results_process.out.markers_ontarget,
+		merge_nsforest_results_process.out.markers_ontarget_symbols,
+		merge_nsforest_results_process.out.markers_ontarget_supp,
+		merge_nsforest_results_process.out.markers_ontarget_supp_symbols,
+		merge_nsforest_results_process.out.gene_selection,
+		merge_nsforest_results_process.out.gene_selection_symbols,
 		plot_histograms_process.out.histograms,
                 compute_silhouette_process.out.results,
                 viz_2D_projection_process.out.plots,
@@ -249,10 +259,8 @@ workflow {
                 viz_summary_process.out.plots,
                 compute_summary_stats_process.out.summary,
             )
-	    .map { meta, file_lists ->
-	        tuple(meta, file_lists instanceof List ? file_lists.flatten() : [file_lists])
-            }
-        publish_results_process(all_files_ch.groupTuple().map { meta, files -> tuple(meta, files.flatten().unique { it.name }) })
+	    .map { meta, file -> tuple(meta, [file]) }
+	    publish_results_process(all_files_ch.groupTuple())
     } else {
         log.warn "WARNING: --github_token not set — skipping publish step"
     }
