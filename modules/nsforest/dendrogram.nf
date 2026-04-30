@@ -26,13 +26,10 @@ process dendrogram_process {
     tuple val(meta), path(h5ad)
 
     output:
-    tuple val(meta),
-          path(h5ad),
-          path("*.csv"),
-          emit: stats
-    tuple val(meta),
-          path("*.{csv,svg,html,log}", optional: true),
-          emit: results
+    tuple val(meta), path("*_cluster_order.csv"),  emit: cluster_order
+    tuple val(meta), path("*_cluster_sizes.csv"),  emit: cluster_sizes
+    tuple val(meta), path("*_summary_normal.csv"), emit: summary
+    tuple val(meta), path("*_dendrogram.svg"),     emit: svg
 
     script:
     """

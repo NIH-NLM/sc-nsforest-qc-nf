@@ -133,14 +133,12 @@ workflow {
 
     // Step 4: Scatter run_nsforest by cluster batch
     def batchSize = params.batch_size ?: 10
+
     nsforest_input_ch = filtered_h5ad_ch
         .join(prep_medians_output_ch.csv)
         .join(prep_binary_scores_output_ch.csv)
-        .join(dendrogram_output_ch.stats.map { meta, h5ad, cluster_order_csv -> tuple(meta, cluster_order_csv) })
-        .flatMap { meta, h5ad, medians_csv, binary_csv, cluster_order_files ->
-            def cluster_order_csv = cluster_order_files instanceof List
-                ? cluster_order_files.find { it.name.endsWith('_cluster_order.csv') }
-                : cluster_order_files
+        .join(dendrogram_output_ch.cluster_order)
+        .flatMap { meta, h5ad, medians_csv, binary_csv, cluster_order_csv ->
             def clusters = cluster_order_csv
                 .splitCsv(header: true)
                 .collect { it.cluster_order }
@@ -148,7 +146,7 @@ workflow {
                 tuple(meta, h5ad, medians_csv, binary_csv, batch.join(','))
             }
         }
-
+	
     nsforest_output_ch = run_nsforest_process(nsforest_input_ch)
 
     // Step 5: Merge NSForest results (ENSG merge + symbol derivation from filtered h5ad)
@@ -227,12 +225,14 @@ workflow {
         all_files_ch = Channel
             .empty()
             .mix(
-		dendrogram_process.out.stats.map                { items -> tuple(items[0], [items[1], items[2]].flatten())},
-	        dendrogram_process.out.results.map              { meta, files -> tuple(meta, files) },
-		cluster_stats_process.out.results.map           { meta, files -> tuple(meta, files) },
-                cluster_cid_mapping_process.out.results.map     { meta, files -> tuple(meta, files) },
+	        dendrogram_process.out.cluster_order,
+		dendrogram_process.out.cluster_sizes,
+		dendrogram_process.out.summary,
+		dendrogram_process.out.svg,
+		cluster_stats_process.out.results,
+                cluster_cid_mapping_process.out.results,
                 filter_adata_process.out.results.map            { items -> tuple(items[0], [items[1], items[2]].flatten())},
-		plots_process.out.plots.map                     { meta, files -> tuple(meta, files) },
+		plots_process.out.plots,
                 prep_binary_scores_process.out.csv,
                 prep_binary_scores_process.out.csv_symbols,
                 prep_binary_scores_process.out.pkl,
@@ -242,12 +242,12 @@ workflow {
                 prep_medians_process.out.pkl,
                 prep_medians_process.out.pkl_symbols,
 		merge_nsforest_results_process.out.complete.map { items -> tuple(items[0], [items[1], items[2], items[3], items[4]].flatten())},
-		plot_histograms_process.out.histograms.map      { meta, files -> tuple(meta, files) },
-                compute_silhouette_process.out.results.map      { meta, files -> tuple(meta, files) },
-                viz_2D_projection_process.out.plots.map         { meta, files -> tuple(meta, files) },
-                viz_distribution_process.out.plots.map          { meta, files -> tuple(meta, files) },
-                viz_summary_process.out.plots.map               { meta, files -> tuple(meta, files) },
-                compute_summary_stats_process.out.summary.map   { meta, files -> tuple(meta, files) },
+		plot_histograms_process.out.histograms,
+                compute_silhouette_process.out.results,
+                viz_2D_projection_process.out.plots,
+                viz_distribution_process.out.plots,
+                viz_summary_process.out.plots,
+                compute_summary_stats_process.out.summary,
             )
 	    .map { meta, file_lists ->
 	        tuple(meta, file_lists instanceof List ? file_lists.flatten() : [file_lists])
