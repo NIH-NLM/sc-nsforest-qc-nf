@@ -80,7 +80,7 @@ workflow {
                 doi:                                row.doi,
                 collection_name:                    row.collection_name,
                 dataset_title:                      row.dataset_title,
-                dataset_version_id:            row.dataset_version_id,
+                dataset_version_id:                 row.dataset_version_id,
                 journal:                            row.journal,
                 collection_url:                     row.collection_url,
                 explorer_url:                       row.explorer_url,
@@ -131,7 +131,7 @@ workflow {
     // Step 3: Plot histograms
     plot_histograms_process(
         prep_medians_output_ch.csv
-        .join(prep_binary_scores_output_ch.csv)
+            .join(prep_binary_scores_output_ch.csv)
     )
 
     // Step 4: Scatter run_nsforest by cluster batch
