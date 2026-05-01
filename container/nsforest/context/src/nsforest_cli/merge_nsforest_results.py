@@ -78,7 +78,7 @@ def _write_results(results_df, prefix, suffix="", adata=None):
     all_markers = []
     for _, row in results_df.iterrows():
         markers = row['NSForest_markers']
-        if pd.isna(markers):
+        if not isinstance(markers, (list, str)) and pd.isna(markers):
             continue
         if isinstance(markers, str):
             markers = ast.literal_eval(markers)
