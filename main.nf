@@ -191,12 +191,14 @@ workflow {
 
     // Step 8d: compute_summary_stats
     compute_summary_stats_process(
-        silhouette_output_ch.scores
+        filtered_h5ad_ch
+            .join(silhouette_output_ch.scores)
             .join(silhouette_output_ch.cluster_summary)
             .join(silhouette_output_ch.annotation)
             .join(merged_nsforest_ch.results_csv)
-            .map { meta, scores, summary, annotation, nsforest_csv ->
-                tuple(meta, scores, summary, annotation, nsforest_csv ?: file('NO_FILE'))
+            .map { meta, h5ad, scores, cluster_summary, annotation, nsforest_csv ->
+	        def new_meta = meta + [filtered_h5ad_path: h5ad.toUriString()]
+                tuple(new_meta, scores, cluster_summary, annotation, nsforest_csv ?: file('NO_FILE'))
             }
     )
 
