@@ -25,6 +25,7 @@ import pandas as pd
 
 from .common_utils import (
     get_output_prefix,
+    load_h5ad,
     log_section,
     logger
 )
