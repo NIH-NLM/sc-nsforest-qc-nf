@@ -2,12 +2,13 @@
 
 nextflow.enable.dsl=2
 
-include { cluster_stats_process }          from './modules/nsforest/cluster_stats.nf'
 include { cluster_cid_mapping_process }    from './modules/nsforest/cluster_cid_mapping.nf'
+include { cluster_stats_process }          from './modules/nsforest/cluster_stats.nf'
 include { compute_silhouette_process }     from './modules/scsilhouette/compute_silhouette.nf'
 include { dendrogram_process }             from './modules/nsforest/dendrogram.nf'
 include { download_h5ad_process }          from './modules/nsforest/download_h5ad.nf'
 include { filter_adata_process }           from './modules/nsforest/filter_adata.nf'
+include { generate_s3_manifest_process }   from './modules/publish/generate_s3_manifest.nf'
 include { merge_nsforest_results_process } from './modules/nsforest/merge_nsforest_results.nf'
 include { prep_medians_process }           from './modules/nsforest/prep_medians.nf'
 include { prep_binary_scores_process }     from './modules/nsforest/prep_binary_scores.nf'
@@ -15,9 +16,9 @@ include { plot_histograms_process }        from './modules/nsforest/plot_histogr
 include { plots_process }                  from './modules/nsforest/plots.nf'
 include { publish_results_process }        from './modules/publish/publish_results.nf'
 include { run_nsforest_process }           from './modules/nsforest/run_nsforest.nf'
-include { viz_distribution_process }       from './modules/scsilhouette/viz_distribution.nf'
-include { viz_2D_projection_process }      from './modules/scsilhouette/viz_2D_projection.nf'
 include { compute_summary_stats_process }  from './modules/scsilhouette/compute_summary_stats.nf'
+include { viz_2D_projection_process }      from './modules/scsilhouette/viz_2D_projection.nf'
+include { viz_distribution_process }       from './modules/scsilhouette/viz_distribution.nf'
 include { viz_summary_process }            from './modules/scsilhouette/viz_summary.nf'
 
 params.batch_size        = 10
@@ -79,7 +80,7 @@ workflow {
                 doi:                                row.doi,
                 collection_name:                    row.collection_name,
                 dataset_title:                      row.dataset_title,
-		dataset_version_id:		    row.dataset_version_id,
+                dataset_version_id:            row.dataset_version_id,
                 journal:                            row.journal,
                 collection_url:                     row.collection_url,
                 explorer_url:                       row.explorer_url,
@@ -87,12 +88,12 @@ workflow {
                 tissue_ontology_term_id:            row.tissue_ontology_term_id,
                 disease_ontology_term_id:           row.disease_ontology_term_id,
                 development_stage_ontology_term_id: row.development_stage_ontology_term_id,
-		tissue_ontology_summary:            row.tissue_ontology_summary,
-		assay_ontology_summary:             row.assay_ontology_summary,
-		cell_type_ontology_summary:         row.cell_type_ontology_summary,
-		disease_ontology_summary:           row.disease_ontology_summary,
-		sex_ontology_summary:               row.sex_ontology_summary,
-		development_stage_summary:          row.development_stage_summary,
+                tissue_ontology_summary:            row.tissue_ontology_summary,
+                assay_ontology_summary:             row.assay_ontology_summary,
+                cell_type_ontology_summary:         row.cell_type_ontology_summary,
+                disease_ontology_summary:           row.disease_ontology_summary,
+                sex_ontology_summary:               row.sex_ontology_summary,
+                development_stage_summary:          row.development_stage_summary,
                 session_id:                         workflow.sessionId.toString()[-6..-1],
             ]
             tuple(meta, row.h5ad_url)
@@ -106,7 +107,7 @@ workflow {
         downloaded_ch.h5ad,
         uberon_ch,
         disease_ch,
-	hsapdv_ch
+        hsapdv_ch
     )
 
     // Convenience: filtered h5ad only channel
@@ -130,7 +131,7 @@ workflow {
     // Step 3: Plot histograms
     plot_histograms_process(
         prep_medians_output_ch.csv
-	    .join(prep_binary_scores_output_ch.csv)
+        .join(prep_binary_scores_output_ch.csv)
     )
 
     // Step 4: Scatter run_nsforest by cluster batch
@@ -148,7 +149,7 @@ workflow {
                 tuple(meta, h5ad, medians_csv, binary_csv, batch.join(','))
             }
         }
-	
+
     nsforest_output_ch = run_nsforest_process(nsforest_input_ch)
 
     // Step 5: Merge NSForest results (ENSG merge + symbol derivation from filtered h5ad)
@@ -199,57 +200,70 @@ workflow {
             }
     )
 
-    // Step 9: Publish
+    // Step 9: Publish + S3 Manifest
+    def s3_results_base = workflow.workDir.parent.toUriString() + '/results'
+
+    publish_base_ch = Channel
+        .empty()
+        .mix(
+            dendrogram_process.out.cluster_order,
+            dendrogram_process.out.cluster_sizes,
+            dendrogram_process.out.summary,
+            dendrogram_process.out.svg,
+            cluster_stats_process.out.results,
+            cluster_cid_mapping_process.out.results,
+            filter_adata_process.out.cluster_sizes,
+            filter_adata_process.out.cluster_order,
+            filter_adata_process.out.summary,
+            filter_adata_process.out.svg,
+            plots_process.out.plots,
+            prep_binary_scores_process.out.csv,
+            prep_binary_scores_process.out.csv_symbols,
+            prep_binary_scores_process.out.pkl,
+            prep_binary_scores_process.out.pkl_symbols,
+            prep_medians_process.out.csv,
+            prep_medians_process.out.csv_symbols,
+            prep_medians_process.out.pkl,
+            prep_medians_process.out.pkl_symbols,
+            merge_nsforest_results_process.out.results_csv,
+            merge_nsforest_results_process.out.results_csv_symbols,
+            merge_nsforest_results_process.out.results_pkl,
+            merge_nsforest_results_process.out.results_pkl_symbols,
+            merge_nsforest_results_process.out.markers,
+            merge_nsforest_results_process.out.markers_symbols,
+            merge_nsforest_results_process.out.markers_ontarget,
+            merge_nsforest_results_process.out.markers_ontarget_symbols,
+            merge_nsforest_results_process.out.markers_ontarget_supp,
+            merge_nsforest_results_process.out.markers_ontarget_supp_symbols,
+            merge_nsforest_results_process.out.gene_selection,
+            merge_nsforest_results_process.out.gene_selection_symbols,
+            plot_histograms_process.out.histograms,
+            compute_silhouette_process.out.scores,
+            compute_silhouette_process.out.cluster_summary,
+            compute_silhouette_process.out.annotation,
+            viz_2D_projection_process.out.plots,
+            viz_distribution_process.out.plots,
+            viz_summary_process.out.plots,
+            compute_summary_stats_process.out.summary,
+        )
+        .flatMap { meta, files ->
+            def fileList = (files instanceof List) ? files.flatten() : [files]
+            fileList.collect { f -> tuple(meta, f) }
+        }
+
+    // Step 9a: S3 manifest — always, includes h5ad, runs once across all datasets
+    generate_s3_manifest_process(
+        publish_base_ch
+            .mix(filtered_h5ad_ch)
+            .map { meta, f -> f }
+            .collect(),
+        s3_results_base
+    )
+
+    // Step 9b: GitHub publish — conditional
     if (params.github_token) {
-        all_files_ch = Channel
-            .empty()
-            .mix(
-	        dendrogram_process.out.cluster_order,
-		dendrogram_process.out.cluster_sizes,
-		dendrogram_process.out.summary,
-		dendrogram_process.out.svg,
-		cluster_stats_process.out.results,
-                cluster_cid_mapping_process.out.results,
-		filter_adata_process.out.cluster_sizes,
-		filter_adata_process.out.cluster_order,
-		filter_adata_process.out.summary,
-		filter_adata_process.out.svg,
-		plots_process.out.plots,
-                prep_binary_scores_process.out.csv,
-                prep_binary_scores_process.out.csv_symbols,
-                prep_binary_scores_process.out.pkl,
-                prep_binary_scores_process.out.pkl_symbols,
-                prep_medians_process.out.csv,
-                prep_medians_process.out.csv_symbols,
-                prep_medians_process.out.pkl,
-                prep_medians_process.out.pkl_symbols,
-		merge_nsforest_results_process.out.results_csv,
-		merge_nsforest_results_process.out.results_csv_symbols,
-		merge_nsforest_results_process.out.results_pkl,
-		merge_nsforest_results_process.out.results_pkl_symbols,
-		merge_nsforest_results_process.out.markers,
-		merge_nsforest_results_process.out.markers_symbols,
-		merge_nsforest_results_process.out.markers_ontarget,
-		merge_nsforest_results_process.out.markers_ontarget_symbols,
-		merge_nsforest_results_process.out.markers_ontarget_supp,
-		merge_nsforest_results_process.out.markers_ontarget_supp_symbols,
-		merge_nsforest_results_process.out.gene_selection,
-		merge_nsforest_results_process.out.gene_selection_symbols,
-		plot_histograms_process.out.histograms,
-		compute_silhouette_process.out.scores,
-		compute_silhouette_process.out.cluster_summary,
-		compute_silhouette_process.out.annotation,
-                viz_2D_projection_process.out.plots,
-                viz_distribution_process.out.plots,
-                viz_summary_process.out.plots,
-                compute_summary_stats_process.out.summary,
-            )
-            .flatMap { meta, files ->
-                def fileList = (files instanceof List) ? files.flatten() : [files]
-                fileList.collect { f -> tuple(meta, f) }
-            }
-        publish_results_process(all_files_ch.groupTuple())
-	} else {
+        publish_results_process(publish_base_ch.groupTuple())
+    } else {
         log.warn "WARNING: --github_token not set — skipping publish step"
     }
 }

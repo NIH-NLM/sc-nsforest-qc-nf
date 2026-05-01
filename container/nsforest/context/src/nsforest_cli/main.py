@@ -9,22 +9,6 @@ from pathlib import Path
 
 app = typer.Typer(help="NSForest workflow commands")
 
-@app.command("cluster-stats")
-def cluster_stats_command(
-    h5ad_path: Path = typer.Option(..., help="Path to h5ad file"),
-    cluster_header: str = typer.Option(..., help="Column name for clusters"),
-    organ: str = typer.Option(..., help="Organ/tissue"),
-    first_author: str = typer.Option(..., help="First author"),
-    journal: str = typer.Option(..., help="Journal"),
-    year: str = typer.Option(..., help="Publication year"),
-    embedding: str = typer.Option("", help="Embedding key"),
-    dataset_version_id: str = typer.Option("", help="Dataset version ID"),
-
-):
-    """Compute cluster statistics."""
-    from .cluster_stats import run_cluster_stats
-    run_cluster_stats(h5ad_path, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
-
 @app.command("cluster-cid-mapping")
 def cluster_cid_mapping_command(
     h5ad_path: Path = typer.Option(..., help="Path to h5ad file"),
@@ -52,6 +36,22 @@ def cluster_cid_mapping_command(
         cid_column=cid_column,
         default_skos=default_skos,
     )
+
+@app.command("cluster-stats")
+def cluster_stats_command(
+    h5ad_path: Path = typer.Option(..., help="Path to h5ad file"),
+    cluster_header: str = typer.Option(..., help="Column name for clusters"),
+    organ: str = typer.Option(..., help="Organ/tissue"),
+    first_author: str = typer.Option(..., help="First author"),
+    journal: str = typer.Option(..., help="Journal"),
+    year: str = typer.Option(..., help="Publication year"),
+    embedding: str = typer.Option("", help="Embedding key"),
+    dataset_version_id: str = typer.Option("", help="Dataset version ID"),
+
+):
+    """Compute cluster statistics."""
+    from .cluster_stats import run_cluster_stats
+    run_cluster_stats(h5ad_path, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
 
 @app.command("dendrogram")
 def dendrogram_command(
@@ -113,6 +113,14 @@ def filter_adata_command(
         row_disease_ids    = disease_ontology_term_id,
         row_hsapdv_ids     = development_stage_ontology_term_id,
     )
+
+@app.command("generate-s3-manifest")
+def generate_s3_manifest_command(
+    s3_base: str = typer.Option(..., help="S3 results base path (e.g. s3://bucket/.../jobs/{id}/results)"),
+):
+    """Generate master_s3_manifest.csv listing all output files and their S3 paths."""
+    from .generate_s3_manifest import run_generate_s3_manifest
+    run_generate_s3_manifest(s3_base)
 
 @app.command("merge-nsforest-results")
 def merge_nsforest_results_command(
