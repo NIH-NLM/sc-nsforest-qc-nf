@@ -197,7 +197,7 @@ workflow {
             .join(silhouette_output_ch.annotation)
             .join(merged_nsforest_ch.results_csv)
             .map { meta, h5ad, scores, cluster_summary, annotation, nsforest_csv ->
-            def new_meta = meta + [filtered_h5ad_path: h5ad.toUriString()]
+                def new_meta = meta + [filtered_h5ad_path: h5ad.toUriString()]
                 tuple(new_meta, scores, cluster_summary, annotation, nsforest_csv ?: file('NO_FILE'))
             }
     )
