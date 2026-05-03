@@ -264,8 +264,18 @@ workflow {
 
     // Step 9b: GitHub publish — conditional
     if (params.github_token) {
-        publish_results_process(publish_base_ch.groupTuple())
+        publish_results_process(
+            publish_base_ch
+                .map { meta, f ->
+                    def clean = meta.findAll { k, v -> k != 'filtered_h5ad_path' }
+                    tuple(clean, f)
+                }
+                .groupTuple()
+                .map { meta, file_lists -> tuple(meta, file_lists.flatten()) }
+                .combine(generate_s3_manifest_process.out.manifest)
+                .map { meta, files, manifest -> tuple(meta, files + [manifest]) }
+        )
     } else {
-        log.warn "WARNING: --github_token not set — skipping publish step"
+        log.warn "WARNING: --github_token not set -- skipping publish step"
     }
 }

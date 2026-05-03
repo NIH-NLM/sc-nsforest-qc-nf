@@ -13,30 +13,27 @@
  *            derived by replacing /work with /results in workflow.workDir
  */
 process publish_results_process {
-    tag "publish_results_${meta.organ}_${meta.first_author}_${meta.year}"
+    tag "publish_results"
     label 'publish'
 
     input:
     tuple val(meta), path('*')
 
     output:
-    path "publish_report_${meta.organ}_${meta.first_author}_${meta.year}.txt", emit: report
+    path "publish_report.txt", emit: report
 
     script:
-    def today             = new java.text.SimpleDateFormat("yyyy-MMM-dd").format(new Date()).toLowerCase()
-    def organ             = meta.organ
-    def first_author      = meta.first_author
-    def year              = meta.year
-    def vid               = meta.dataset_version_id[-6..-1]
-    def organSlug         = organ.replace('_', '-')
-    def branch            = "${today}-${organSlug}-${first_author}-${year}-${vid}-sc_nsforest_qc_nf"
-    def label             = "outputs_${organ}_${first_author}_${year}"
-    def repo              = params.publish_repo ?: 'NIH-NLM/cell-kn'
-    def repo_url          = "https://\${GITHUB_TOKEN}@github.com/${repo}.git"
-    def report            = "publish_report_${organ}_${first_author}_${year}.txt"
-    def run_id            = meta.session_id
-    def sc_nsforest_qc_nf = "sc-nsforest-qc-nf"
-    def dest_dir          = params.publish_dest_dir ?: "data/prod/${organ}/${sc_nsforest_qc_nf}/results/${run_id}/${organ}-${first_author}-${year}-${vid}/"
+    def today     = new java.text.SimpleDateFormat("yyyy-MMM-dd").format(new Date()).toLowerCase()
+    def organ     = params.organ
+    def organSlug = organ.replace('_', '-')
+    def firstAuth = meta.first_author
+    def authSlug  = firstAuth.replace(' ', '-').replace(',', '')
+    def year      = meta.year
+    def vid       = meta.dataset_version_id.toString()[-6..-1]
+    def branch    = "${today}-${organSlug}-${authSlug}-${year}-sc_nsforest_qc_nf"
+    def dest_dir  = params.publish_dest_dir ?: "data/prod/${organ}/${firstAuth}/${year}/${vid}/sc-nsforest-qc-nf/results/${today}/"
+    def repo      = params.publish_repo ?: 'NIH-NLM/cell-kn'
+    def repo_url  = "https://\${GITHUB_TOKEN}@github.com/${repo}.git"
     """
     ls -lh
 
@@ -44,18 +41,21 @@ process publish_results_process {
 
     echo "=========================================="
     echo " organ  : ${organ}"
-    echo " author : ${first_author}"
+    echo " author : ${firstAuth}"
     echo " year   : ${year}"
+    echo " vid    : ${vid}"
     echo " branch : ${branch}"
+    echo " dest   : ${dest_dir}"
     echo "=========================================="
 
-    echo "publish complete: ${organ} ${first_author} ${year} branch: ${branch}" > ${report}
+    echo "publish complete: ${organ} ${firstAuth} ${year} ${vid} branch: ${branch}" > publish_report.txt
+
     git clone --depth 1 ${repo_url} publish-repo
     cd publish-repo
 
-    git config user.email "adeslatt@scitechcon.org"
-    git config user.name  "adeslatt"
-    git checkout -b ${branch}
+    git checkout -b ${branch} 2>/dev/null || git checkout ${branch}
+    git config user.email "sc-nsforest-qc-nf@noreply.github.com"
+    git config user.name  "sc-nsforest-qc-nf"
 
     mkdir -p ${dest_dir}
 
@@ -68,8 +68,7 @@ process publish_results_process {
     done
 
     git add ${dest_dir}/
-    git commit -m "workflow: publish ${organ} ${first_author} ${year} ${vid} results (${today})"
-
+    git commit -m "workflow: publish ${organ} ${firstAuth} ${year} ${vid} results (${today})"
     git push --force origin ${branch}
     """
 }
