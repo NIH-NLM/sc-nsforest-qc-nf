@@ -5,8 +5,9 @@
  * from workflow.workDir (works on CloudOS and other platforms).
  *
  * Branch naming:
- *   {YYYY}-{mon}-{DD}-{organ}-{first_author}-{year}-sc_nsforest_qc_nf
- *   e.g. 2026-mar-06-skin-of-body-Wiedemann-2023-sc_nsforest_qc_nf
+ *   {YYYY}-{mon}-{DD}}-{session id [-6..-1]}-${organSlug}-sc_nsforest_qc_nf
+ *   one branch per organ 
+ *   e.g. 2026-mar-06-abcde-kidney-sc_nsforest_qc_nf
  *
  * Platform notes:
  *   CloudOS: publishDir files land at s3://.../jobs/{id}/results/{label}/
@@ -32,8 +33,8 @@ process publish_results_process {
     def journal   = meta.journal
     def vid       = meta.dataset_version_id.toString()[-6..-1]
     def sid       = workflow.sessionId.toString()[-6..-1]
-    def branch    = "${today}-${sid}-${organSlug}}-sc_nsforest_qc_nf"
-    def dest_dir  = params.publish_dest_dir ?: "data/prod/${organ}/sc-nsforest-qc-nf/results/$today-${sid}/${organ}-${firstAuth}-${journal}-${year}-${vid}"
+    def branch    = "${today}-${sid}-${organSlug}-sc_nsforest_qc_nf"
+    def dest_dir  = params.publish_dest_dir ?: "data/prod/${organ}/sc-nsforest-qc-nf/results/${today}-${sid}/${organ}-${firstAuth}-${journal}-${year}-${vid}"
     def repo      = params.publish_repo ?: 'NIH-NLM/cell-kn'
     def repo_url  = "https://\${GITHUB_TOKEN}@github.com/${repo}.git"
     """
