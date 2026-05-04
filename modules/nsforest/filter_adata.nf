@@ -31,9 +31,9 @@ process filter_adata_process {
         pattern: "*.{h5ad,csv,svg,log}"
     input:
     tuple val(meta), path(h5ad)
-    path uberon_json
-    path disease_json
-    path hsapdv_json
+    path (uberon_json,  stageAs: 'uberon.json')
+    path (disease_json, stageAs: 'disease.json')
+    path (hsapdv_json,  stageAs: 'hsapdv.json')
 
     output:
     tuple val(meta), path("*adata_filtered.h5ad"),               emit: h5ad
