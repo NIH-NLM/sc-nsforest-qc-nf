@@ -47,6 +47,7 @@ process publish_results_process {
     echo " author : ${firstAuth}"
     echo " year   : ${year}"
     echo " vid    : ${vid}"
+    echo " sid    : ${sid}"
     echo " branch : ${branch}"
     echo " dest   : ${dest_dir}"
     echo "=========================================="
@@ -56,22 +57,21 @@ process publish_results_process {
     git clone --depth 1 ${repo_url} publish-repo
     cd publish-repo
 
-    git checkout -b ${branch} 2>/dev/null || git checkout ${branch}
     git config user.email "sc-nsforest-qc-nf@noreply.github.com"
     git config user.name  "sc-nsforest-qc-nf"
+    git fetch --depth=1 origin ${branch}:${branch} 2>/dev/null || true
+    git checkout ${branch} 2>/dev/null || git checkout -b ${branch}
 
-    mkdir -p ${dest_dir}
+    mkdir -p "${dest_dir}"
+    cp -L ../*.html ../*.log ../*.svg ../*.pkl ../*.json ../*.csv "${dest_dir}/" 2>/dev/null || true
 
-    cp -L ../*.html ../*.log ../*.svg ../*.pkl ../*.json ../*.csv ${dest_dir}/ 2>/dev/null || true
-
-    # Compress files larger than 50MB
-    find ${dest_dir} -type f -size +50M | while read f; do
+    find "${dest_dir}" -type f -size +50M | while read f; do
         tar czf "\${f}.tar.gz" -C "\$(dirname "\$f")" "\$(basename "\$f")"
         rm "\$f"
     done
 
-    git add ${dest_dir}/
+    git add "${dest_dir}/"
     git commit -m "workflow: publish ${organ} ${firstAuth} ${year} ${vid} results (${today})"
-    git push --force origin ${branch}
+    git push origin ${branch}
     """
 }
