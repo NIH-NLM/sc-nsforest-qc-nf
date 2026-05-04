@@ -17,18 +17,21 @@
 process generate_s3_manifest_process {
     tag "generate_s3_manifest"
     label 'nsforest'
-    publishDir "${params.outdir}",
-        mode: params.publish_mode
+    publishDir "${params.outdir}", mode: params.publish_mode
 
     input:
-    path('*')
+    val file_names   // list of published filenames — sequences after all publishDir writes
     val s3_base
 
     output:
     path "master_s3_manifest.csv", emit: manifest
 
     script:
+    def names_str = file_names.unique().sort().join('\n')
     """
+    cat > file_names.txt << 'NAMES_EOF'
+${names_str}
+NAMES_EOF
     nsforest-cli generate-s3-manifest --s3-base "${s3_base}"
     """
 }

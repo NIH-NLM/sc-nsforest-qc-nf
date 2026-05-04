@@ -253,15 +253,15 @@ workflow {
             fileList.collect { f -> tuple(meta, f) }
         }
 
-    // Step 9a: S3 manifest — always, includes h5ad, runs once across all datasets
+    // Step 9a: S3 manifest — collect names as strings, no file staging
     generate_s3_manifest_process(
         publish_base_ch
             .mix(filtered_h5ad_ch)
-            .map { meta, f -> f }
+            .map { meta, f -> f.name }
             .collect(),
         s3_results_base
     )
-
+    
     // Step 9b: GitHub publish — conditional
     if (params.github_token) {
         publish_results_process(
