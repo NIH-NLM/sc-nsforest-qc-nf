@@ -68,6 +68,10 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journ
     adata = load_h5ad(h5ad_path, cluster_header)
     adata = add_gene_symbols_to_adata(adata, ensg_to_symbol)
 
+    # some cells in adata.obs[cluster_header] have NaN (float) instead of a string label.
+    # The dendrogram reorder will fail because it cant join floats as strings...
+    adata = adata[adata.obs[cluster_header].notna()].copy()
+    adata.obs[cluster_header] = adata.obs[cluster_header].astype(str)
     # Dotplot
     ns.pl.dotplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                   gene_symbols='gene_symbol', save="svg", output_folder="",
