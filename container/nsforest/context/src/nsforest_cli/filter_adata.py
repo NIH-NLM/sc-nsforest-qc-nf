@@ -348,6 +348,14 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
 
     logger.info(f"Loading: {h5ad_path}")
     adata = load_h5ad(h5ad_path, cluster_header)
+    # Sanitize cluster names — strip quote characters that break filenames and CloudOS bash eval
+    adata.obs[cluster_header] = (
+        adata.obs[cluster_header]
+        .astype(str)
+        .str.replace('"', '', regex=False)
+        .str.replace("'", '', regex=False)
+        .str.strip()
+    )
     logger.info(f"Original data: {adata.n_obs} cells, {adata.n_vars} genes, "
                 f"{adata.obs[cluster_header].nunique()} clusters")
 
