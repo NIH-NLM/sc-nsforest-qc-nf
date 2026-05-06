@@ -40,7 +40,7 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journ
     logger.info(f"Loading results: {results_csv}")
 
     results = pd.read_csv(results_csv)
-    results = results.dropna(subset=['NSForest_markers', cluster_header])
+    results = results.dropna(subset=['NSForest_markers', 'clusterName'])
     results = results[results['NSForest_markers'].str.strip() != '[]']
 
     if results.empty:
