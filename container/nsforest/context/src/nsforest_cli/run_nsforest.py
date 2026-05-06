@@ -79,7 +79,8 @@ def run_nsforest(h5ad_path, medians_csv, binary_scores_csv, cluster_header,
 
     # Save partial results — unique filename per batch
     if cluster_list:
-        cluster_safe = cluster_list[0].replace(' ', '_').replace('/', '-')
+        # in case there is a problem with a stray quote - clean it up before output
+        cluster_safe = cluster_list[0].replace('"', '').replace("'", '').replace(' ', '_').replace('/', '-')
         output_csv = f"{prefix}_results_{cluster_safe}.csv"
     else:
         output_csv = f"{prefix}_results.csv"
