@@ -18,6 +18,7 @@ process run_nsforest_process {
 
     script:
     """
+    # v2 - sanitized cluster filenames
     nsforest-cli run-nsforest \
         --h5ad-path ${h5ad} \
         --medians-csv ${medians_csv} \
