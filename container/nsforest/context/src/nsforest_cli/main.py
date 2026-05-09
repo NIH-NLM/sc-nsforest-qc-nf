@@ -53,6 +53,25 @@ def cluster_stats_command(
     from .cluster_stats import run_cluster_stats
     run_cluster_stats(h5ad_path, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
 
+@app.command("concat-h5ad")
+def concat_h5ad_command(
+    inputs: str = typer.Option("", help="Comma-separated h5ad input paths (or use --inputs-file)"),
+    output: Path = typer.Option(..., help="Output h5ad path"),
+    inputs_file: Path = typer.Option(None, help="Text file with one h5ad path per line"),
+    join: str = typer.Option("outer", help="'outer' (union of vars, fill missing with zero) or 'inner' (intersection)"),
+    label: str = typer.Option("source_file", help="obs column name recording the source file per cell"),
+):
+    """Concatenate h5ad files on disk (streaming, low RAM) using anndata.experimental.concat_on_disk."""
+    from .concat_h5ad import run_concat_h5ad
+    if inputs_file:
+        paths = [line.strip() for line in inputs_file.read_text().splitlines() if line.strip()]
+    elif inputs:
+        paths = [p.strip() for p in inputs.split(",") if p.strip()]
+    else:
+        raise typer.BadParameter("Provide either --inputs or --inputs-file")
+    run_concat_h5ad(paths, output, join=join, label=label)
+
+
 @app.command("dendrogram")
 def dendrogram_command(
     h5ad_path: Path = typer.Option(..., help="Path to h5ad file"),
