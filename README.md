@@ -100,7 +100,9 @@ nextflow run main.nf \
     --datasets_csv homo_sapiens_kidney_harvester_final.csv \
     --organ kidney \
     --uberon_json uberon_kidney.json \
-    --outdir results/kidney
+    --disease disease_normal.json \
+    --hsapdv hsapdv_15.json
+    --github_token {{$secret_github_token}}
 ```
 
 ### All parameters
@@ -219,7 +221,7 @@ results/
 Both containers are built for `linux/amd64`. On Apple Silicon Macs, add the `--platform` flag when pulling:
 ```bash
 docker pull --platform linux/amd64 ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest:latest
-docker pull --platform linux/amd64 ghcr.io/nih-nlm/scsilhouette:1.0
+docker pull --platform linux/amd64 ghcr.io/nih-nlm/scsilhouette:latest
 ```
 
 Nextflow will handle this automatically when running the pipeline with Docker on Apple Silicon.
@@ -227,6 +229,74 @@ Nextflow will handle this automatically when running the pipeline with Docker on
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+The float32 calculation
+
+3.2M cells × 20K genes = 3,200,000 × 20,000 = 6.4 × 10¹⁰ entries
+float32 = 4 bytes per entry
+6.4 × 10¹⁰ × 4 = 2.56 × 10¹¹ bytes = 256 GB
+That's the dense matrix size — every cell × gene cell stored. The actual h5ad on disk is much smaller because scRNA matrices are >90% zeros and stored sparse (CSR/CSC: just the nonzeros + indices). Sparse in-memory is typically 10-25 GB for a 3M-cell dataset. The OOM happens when something quietly densifies a slice (e.g. .toarray(), certain scanpy functions, casting through pandas).
+
+Quick reckoner: dense bytes = cells × genes × dtype_bytes. float64 doubles it; int32 is the same; bool is 1 byte.
+
+2. Significant digits for F-β in NSForest
+
+There are two different things people mean by "significant digits" here:
+
+A. Numerical precision — basically irrelevant. F-β is computed from integer TP/FP/FN counts:
+
+F_β = (1 + β²) · TP / ((1 + β²) · TP + β² · FN + FP)
+NSForest uses β = 0.5 (precision-weighted). The only floating-point step is the final division, so float32 gives ~7 decimal digits of numerical accuracy. Not your concern.
+
+B. Statistical precision — this is what actually matters and depends on cluster size N. Treating precision P and recall R as binomial proportions, the standard error of F-β by error propagation is:
+
+| Symbol | Name | Meaning |
+| ------ | ---- | ------- |
+| σ | sigma (lowercase) | standard deviation of one variable |
+| σ² | sigma squared | variance |
+| Σ | sigma (uppercase) | summation operator |
+| μ | mu | mean or expected value |
+| β | beta | the parameter in F-β (user sets this; NS-Forest uses 0.5 |
+| ∂ | partial | partial derivative |
+
+
+σ²(F_β) ≈ (∂F/∂P)² · σ²(P) + (∂F/∂R)² · σ²(R)
+where:
+  σ²(P) = P(1−P) / N_pred_pos
+  σ²(R) = R(1−R) / N_actual_pos
+  ∂F/∂P = (1+β²) · R² / (β²·P + R)²
+  ∂F/∂R = (1+β²) · β² · P² / (β²·P + R)²
+
+Rule of thumb: meaningful digits ≈ ½ · log₁₀(N_smallest_cluster).
+
+100 cells → ~1 sig digit (e.g., 0.7)
+10,000 cells → ~2 sig digits (e.g., 0.74)
+1M cells → ~3 sig digits (0.743)
+So if your smallest cluster has 50-100 cells, reporting F-β to 4 decimals is theater.
+
+The practical answer: don't derive it analytically. Bootstrap. Run NSForest's evaluation step on B=100 resamples (with replacement) of the test cells per cluster and report the 2.5/97.5 percentiles of F-β. That captures the actual uncertainty including any non-binomial structure (correlated genes, etc.) that the closed-form ignores. For NSForest specifically, the bootstrap is one wrapper around their existing per-cluster evaluation — much less work than stepping through the variance algebra and gives you proper CIs.
+
+## AWS Instance-type suffix details
+
+| Suffix | What changes | When to pick it |
+| ————-- | ——————————–- | ——————————————- |
+| r5 | Intel Xeon Skylake/cascade Lake, EBS-only, standard networking. Baseline | Default; what most docs assume |
+| r5a | AMD EPYC instead of Intel.  ~10% cheaper.  Slightly lower single-core performance on some workloads | Cost savings when you don't depend on Intel specific instructions |
+| r5ad | AMD + NVMe instance-store SSD attached locally. | AMD pricing + you want fast ephermeral scratch (data lost on stop) |
+| r5b | Intel + EBS-optimized with much higher EBS bandwidth (up to 60 Gbps vs ~14 Gpbs on r5 | EBS throughput is your bottleneck == e.g., reading huge h5ad files off gp3 fast. |
+| r5d | Intel + NVMe instance-store SSD | Need fast local scratch, prefer Intel |
+| r5n | Intel + enhanced networking (up to 100 Gbps). | Lots of S3 / cross AZ traffic |
+| r5dn | Intel + NVMe + enhanced networking | Both: heavy network and heavy local-scratch I/O |
+
+## TMI and TLDR
+
+Cross-AZ traffic — "AZ" stands for Availability Zone. An AWS region (e.g., us-east-1, "Northern Virginia") is split into several physically separate datacenters called Availability Zones (us-east-1a, us-east-1b, us-east-1c, ...). Each zone has its own power, cooling, and networking. Cross-AZ traffic means data moving between two AZs inside the same region — e.g., from your EC2 instance in us-east-1a to a database in us-east-1b. AWS charges $0.01 per GB in each direction for this, and latency is ~1-2 ms vs ~0.1 ms within a single AZ. By contrast, EC2 → S3 inside the same region is free and stays inside AWS's backbone. Practical implication: keep your interactive instance, your S3 bucket, and any other working storage in the same region, and ideally launch the instance in the AZ closest to where your bucket replicates.
+
+AVX-512 — Advanced Vector eXtensions, 512-bit edition. A set of CPU instructions that Intel added to its Xeon server chips starting around 2017. The idea: instead of doing one floating-point multiply per cycle, the CPU does 16 multiplies at once on a 512-bit-wide register (16 × 32-bit floats = 512 bits). This is a form of SIMD (Single Instruction, Multiple Data). Numerical libraries like numpy, MKL, OpenBLAS can use AVX-512 to accelerate matrix multiplication, FFTs, and similar work — typically 1.5-2× faster than the previous AVX2 (256-bit). Why it matters for instance choice: AMD EPYC processors (the "a" suffix on AWS instances) lacked AVX-512 until 2022. So picking r5a over r5 saved ~10% on cost but gave up AVX-512 speedups for numerically intensive code. As of the latest AMD generation, this is no longer a meaningful gap — but legacy code paths and older AMD instance types still don't have it.
+
+AMD EPYC — AMD's server CPU brand, the competitor to Intel's Xeon. "EPYC" is just the marketing name (read "epic"). Pronounced like the English word. EPYC chips are typically denser (more CPU cores per socket) and cheaper per core than equivalent Xeons, with strong memory bandwidth. The trade-off historically was per-core performance (Intel was a bit faster on single-threaded code) and instruction-set features (no AVX-512 until recently). On AWS, the a in r5a / m5a / c5a means "AMD EPYC inside instead of Intel Xeon" — same vCPU count, same RAM, ~10% cheaper. For most bioinformatics work (which is heavily parallel and bottlenecked by I/O or memory bandwidth, not single-thread speed), EPYC is fine.
+
+NVMe — Non-Volatile Memory Express. A protocol for talking to SSDs directly over the PCIe bus (the same bus that connects GPUs and high-speed network cards), bypassing the older SATA disk interface. The result: NVMe SSDs deliver millions of operations per second and 3-7 GB/s of sequential throughput, vs SATA SSDs at ~500 MB/s. On AWS, "instance store" SSDs on d-suffixed instances (e.g., r5d, r5ad, m5d) are NVMe drives physically attached to the host machine, not over the network. Pros: very fast (great for scratch / temp / shuffle data, HDF5 random reads). Cons: ephemeral — when you stop or terminate the instance, the NVMe disk is wiped. So they're perfect for compute-and-discard workloads (like concat-h5ad on disposable infrastructure) and wrong for anything you need to persist. EBS, by contrast, is network-attached storage — slower per IOP but durable across instance lifecycle.
 
 ## License
 
