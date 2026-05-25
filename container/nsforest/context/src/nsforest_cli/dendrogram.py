@@ -12,7 +12,7 @@ Saves:
 
 import matplotlib
 matplotlib.use("Agg")
-
+import csv
 import pandas as pd
 import nsforest as ns
 
@@ -92,17 +92,17 @@ def run_dendrogram(h5ad_path, cluster_header, organ, first_author, journal, year
         "cluster": cluster_counts.index.tolist(),
         "count":   cluster_counts.values
     })
-    df_cluster_sizes.to_csv(f"{prefix}_cluster_sizes.csv", index=False)
+    df_cluster_sizes.to_csv(f"{prefix}_cluster_sizes.csv", index=False, quoting=csv.QUOTE_NONE)
     logger.info(f"Saved: {prefix}_cluster_sizes.csv")
     
     # Cluster order
     cluster_order = [x.strip() for x in adata.uns["dendrogram_" + cluster_header]['categories_ordered']]
-    pd.DataFrame({'cluster_order': cluster_order}).to_csv(f"{prefix}_cluster_order.csv", index=False)
+    pd.DataFrame({'cluster_order': cluster_order}).to_csv(f"{prefix}_cluster_order.csv", index=False, quoting=csv.QUOTE_NONE)
     logger.info(f"Saved: {prefix}_cluster_order.csv")
 
     # Summary statistics
     df_normal = pd.DataFrame({'n_obs': [adata.n_obs], 'n_vars': [adata.n_vars], 'n_clusters': [n_clusters]})
-    df_normal.to_csv(f"{prefix}_summary_normal.csv", index=False)
+    df_normal.to_csv(f"{prefix}_summary_normal.csv", index=False, quoting=csv.QUOTE_NONE)
     logger.info(f"Saved: {prefix}_summary_normal.csv")
 
     logger.info("Dendrogram complete!")

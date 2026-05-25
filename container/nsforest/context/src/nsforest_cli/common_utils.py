@@ -1,7 +1,7 @@
 """
 Common utilities for NSForest CLI commands.
 """
-
+import csv
 import scanpy as sc
 import pandas as pd
 import logging
@@ -51,7 +51,7 @@ def save_dataframe(df, filepath, formats=['csv']):
     for fmt in formats:
         if fmt == 'csv':
             output = f"{filepath}.csv"
-            df.to_csv(output, index=False)
+            df.to_csv(output, index=False, quoting=csv.QUOTE_NONE)
             logger.info(f"Saved: {output}")
         elif fmt == 'json':
             output = f"{filepath}.json"

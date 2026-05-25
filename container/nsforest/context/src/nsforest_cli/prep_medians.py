@@ -10,7 +10,7 @@ Saves:
   {organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}_medians.pkl
   {organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}_medians_symbols.pkl
 """
-
+import csv
 import nsforest as ns
 
 from .common_utils import (
@@ -44,14 +44,14 @@ def run_prep_medians(h5ad_path, cluster_header, organ, first_author, journal, ye
     if 'gene_symbol' in adata.var.columns:
         sym_map = dict(zip(adata.var_names, adata.var['gene_symbol']))
         df_medians_symbols = df_medians.rename(index=lambda g: sym_map.get(g, g))
-        df_medians_symbols.to_csv(f"{prefix}_medians_symbols.csv")
+        df_medians_symbols.to_csv(f"{prefix}_medians_symbols.csv", quoting=csv.QUOTE_NONE)
         df_medians_symbols.to_pickle(f"{prefix}_medians_symbols.pkl")
         logger.info(f"Saved: {prefix}_medians_symbols.csv")
         logger.info(f"Saved: {prefix}_medians_symbols.pkl")
     else:
         logger.warning("adata.var['gene_symbol'] missing — skipping medians _symbols outputs")
     
-    df_medians.to_csv(f"{prefix}_medians.csv")
+    df_medians.to_csv(f"{prefix}_medians.csv", quoting=csv.QUOTE_NONE)
     df_medians.to_pickle(f"{prefix}_medians.pkl")
     logger.info(f"Saved: {prefix}_medians.csv")
     logger.info(f"Saved: {prefix}_medians.pkl")
