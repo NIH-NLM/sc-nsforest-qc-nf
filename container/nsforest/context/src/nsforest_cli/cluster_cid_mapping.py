@@ -96,7 +96,7 @@ def run_cluster_cid_mapping(
         default_skos=default_skos,
     )
 
-    out_path = f"{output_prefix}_cluster_cid_mapping"
+    out_path = f"cluster_cid_mapping_{output_prefix}"
     save_dataframe(mapping_df, out_path, formats=["csv"])
 
     logger.info("Cluster -> cell ontology mapping complete!")

@@ -5,10 +5,10 @@ Corresponds to DEMO_NS-Forest_workflow.py: Section 3 prep
 Uses ns.pp.prep_medians() then ns.pp.prep_binary_scores() in memory.
 
 Saves:
-  {organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}_binary_scores.csv
-  {organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}_binary_scores_symbols.csv
-  {organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}_binary_scores.pkl
-  {organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}_binary_scores_symbols.pkl
+  binary_scores_{organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}.csv
+  binary_scores_symbols_{organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}.csv
+  binary_scores_{organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}.pkl
+  binary_scores_symbols_{organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}.pkl
 """
 import csv
 import nsforest as ns
@@ -45,18 +45,18 @@ def run_prep_binary_scores(h5ad_path, cluster_header, organ, first_author, journ
     df_binary_scores = adata_prep.varm['binary_scores_' + cluster_header]
     logger.info(f"Binary scores shape: {df_binary_scores.shape}")
 
-    df_binary_scores.to_csv(f"{prefix}_binary_scores.csv", quoting=csv.QUOTE_NONE)
-    df_binary_scores.to_pickle(f"{prefix}_binary_scores.pkl")
-    logger.info(f"Saved: {prefix}_binary_scores.csv")
-    logger.info(f"Saved: {prefix}_binary_scores.pkl")
+    df_binary_scores.to_csv(f"binary_scores_{prefix}.csv", quoting=csv.QUOTE_NONE)
+    df_binary_scores.to_pickle(f"binary_scores_{prefix}.pkl")
+    logger.info(f"Saved: binary_scores_{prefix}.csv")
+    logger.info(f"Saved: binary_scores_{prefix}.pkl")
     
     if 'gene_symbol' in adata.var.columns:
         sym_map = dict(zip(adata.var_names, adata.var['gene_symbol']))
         df_binary_scores_symbols = df_binary_scores.rename(index=lambda g: sym_map.get(g, g))
-        df_binary_scores_symbols.to_csv(f"{prefix}_binary_scores_symbols.csv", quoting=csv.QUOTE_NONE)
-        df_binary_scores_symbols.to_pickle(f"{prefix}_binary_scores_symbols.pkl")
-        logger.info(f"Saved: {prefix}_binary_scores_symbols.csv")
-        logger.info(f"Saved: {prefix}_binary_scores_symbols.pkl")
+        df_binary_scores_symbols.to_csv(f"binary_scores_symbols_{prefix}.csv", quoting=csv.QUOTE_NONE)
+        df_binary_scores_symbols.to_pickle(f"binary_scores_symbols_{prefix}.pkl")
+        logger.info(f"Saved: binary_scores_symbols_{prefix}.csv")
+        logger.info(f"Saved: binary_scores_symbols_{prefix}.pkl")
     else:
         logger.warning("adata.var['gene_symbol'] missing — skipping binary_scores_symbols outputs")
 

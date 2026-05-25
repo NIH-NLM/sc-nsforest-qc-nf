@@ -88,7 +88,7 @@ def create_stats_before_filter(adata, cluster_header, prefix, embedding="X_pca")
             save=False,
         )
         plt.savefig(
-            f"{prefix}_dendrogram_before_filter.svg",
+            f"dendrogram_before_filter_{prefix}.svg",
             format="svg", bbox_inches="tight",
         )
         plt.close()
@@ -102,7 +102,7 @@ def create_stats_before_filter(adata, cluster_header, prefix, embedding="X_pca")
                 pl_kwargs={"show": False},
                 save=False,
             )
-            plt.savefig(f"{prefix}_dendrogram_before_filter.svg", format="svg", bbox_inches="tight")
+            plt.savefig(f"dendrogram_before_filter_{prefix}.svg", format="svg", bbox_inches="tight")
             plt.close()
         else:
             raise
@@ -112,17 +112,17 @@ def create_stats_before_filter(adata, cluster_header, prefix, embedding="X_pca")
         "cluster": cluster_counts.index.tolist(),
         "count":   cluster_counts.values
     })
-    df_cluster_sizes.to_csv(f"{prefix}_cluster_sizes_before_filter.csv", index=False, quoting=csv.QUOTE_NONE)
+    df_cluster_sizes.to_csv(f"cluster_sizes_before_filter_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
 
     cluster_order = [
         x.strip() for x in adata.uns["dendrogram_" + cluster_header]["categories_ordered"]
     ]
     pd.DataFrame({"cluster_order": cluster_order}).to_csv(
-        f"{prefix}_cluster_order_before_filter.csv", index=False, quoting=csv.QUOTE_NONE
+        f"cluster_order_before_filter_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE
     )
     pd.DataFrame({
         "n_obs": [adata.n_obs], "n_vars": [adata.n_vars], "n_clusters": [n_clusters]
-    }).to_csv(f"{prefix}_summary_before_filter.csv", index=False, quoting=csv.QUOTE_NONE)
+    }).to_csv(f"summary_before_filter_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
 
     logger.info("Before filter statistics saved")
 
@@ -343,7 +343,7 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
     log_section("NSForest: Filter AnnData")
 
     prefix                = get_output_prefix( organ, first_author, journal, year, cluster_header, embedding, dataset_version_id)
-    filtered_h5ad_name    = f"{prefix}_adata_filtered.h5ad"
+    filtered_h5ad_name    = f"adata_filtered_{prefix}.h5ad"
 
     logger.info(f"Loading: {h5ad_path}")
     adata = load_h5ad(h5ad_path, cluster_header)

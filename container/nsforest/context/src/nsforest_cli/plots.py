@@ -55,12 +55,12 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journ
 
     # Boxplots (html)
     for metric in ['f_score', 'precision', 'recall', 'onTarget']:
-        ns.pl.boxplot(results, metric, save="html", output_folder="", outputfilename_prefix=prefix)
+        ns.pl.boxplot(results, metric, save="html", output_folder="", outputfilename_suffix=prefix)
     logger.info("Boxplots saved.")
 
     # Scatter plots (svg)
     for metric in ['f_score', 'precision', 'recall', 'onTarget']:
-        ns.pl.scatter_w_clusterSize(results, metric, save=True, output_folder="", outputfilename_prefix=prefix)
+        ns.pl.scatter_w_clusterSize(results, metric, save=True, output_folder="", outputfilename_suffix=prefix)
     logger.info("Scatter plots saved.")
 
     # Load adata for expression plots
@@ -78,7 +78,7 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journ
                   outputfilename_suffix=prefix)
     ns.pl.dotplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                   gene_symbols='gene_symbol', standard_scale='var', save="svg",
-                  output_folder="", outputfilename_suffix=prefix + "_scaled")
+                  output_folder="", outputfilename_suffix="_scaled" + prefix)
 
     # Stacked violin
     ns.pl.stackedviolin(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
@@ -86,7 +86,7 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journ
                         outputfilename_suffix=prefix)
     ns.pl.stackedviolin(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                         gene_symbols='gene_symbol', standard_scale='var', save="svg",
-                        output_folder="", outputfilename_suffix=prefix + "_scaled")
+                        output_folder="", outputfilename_suffix="_scaled" + prefix)
 
     # Matrix plot
     ns.pl.matrixplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
@@ -94,19 +94,7 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journ
                      outputfilename_suffix=prefix)
     ns.pl.matrixplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                      gene_symbols='gene_symbol', standard_scale='var', save="svg",
-                     output_folder="", outputfilename_suffix=prefix + "_scaled")
+                     output_folder="", outputfilename_suffix="_scaled" + prefix)
 
-    # Rename expression plot SVGs: move prefix from suffix to prefix position
-    # NSForest library creates: {plot_type}_{prefix}[_scaled].svg
-    # We want:                  {prefix}_{plot_type}[_scaled].svg
-    for svg in glob.glob("*.svg"):
-        if not svg.startswith(prefix):
-            base = svg
-            base = base.replace(f"_{prefix}_scaled.svg", "_scaled.svg")
-            base = base.replace(f"_{prefix}.svg", ".svg")
-            new_name = f"{prefix}_{base}"
-            if new_name != svg and not os.path.exists(new_name):
-                os.rename(svg, new_name)
-                logger.info(f"Renamed: {svg} -> {new_name}")
 
     logger.info("Plotting complete!")

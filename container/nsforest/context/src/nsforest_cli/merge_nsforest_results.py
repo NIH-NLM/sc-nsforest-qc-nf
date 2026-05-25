@@ -5,18 +5,18 @@ Also generates supplementary marker files from the merged results.
 Corresponds to DEMO_NS-Forest_workflow.py: Section 3 (gather phase)
 
 Saves:
-  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_results.csv
-  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_results_symbols.csv
-  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_results.pkl
-  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_results_symbols.pkl
-  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_markers.csv
-  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_markers_symbols.csv
-  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_markers_onTarget.csv
-  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_markers_onTarget_symbols.csv
-  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_markers_onTarget_supp.csv
-  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_markers_onTarget_supp_symbols.csv
-  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_gene_selection.csv
-  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_gene_selection_symbols.csv
+  results_{organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}.csv
+  results_symbols_{organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}.csv
+  results_{organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}.pkl
+  results_symbols_{organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}.pkl
+  markers_{organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}.csv
+  markers_symbols_{organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}.csv
+  markers_onTarget_{organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}.csv
+  markers_onTarget_symbols_{organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}.csv
+  markers_onTarget_supp_{organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}.csv
+  markers_onTarget_symbols_{organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}.csv
+  gene_selection_{organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}.csv
+  gene_selection_symbols_{organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}.csv
 """
 
 import ast
@@ -55,25 +55,25 @@ def _write_results(results_df, prefix, suffix="", adata=None):
             for m in results_df['NSForest_markers']
         ]
 
-    results_df.to_csv(f"{prefix}_results{suffix}.csv", index=False, quoting=csv.QUOTE_NONE)
-    results_df.to_pickle(f"{prefix}_results{suffix}.pkl")
-    logger.info(f"Saved: {prefix}_results{suffix}.csv")
-    logger.info(f"Saved: {prefix}_results{suffix}.pkl")
+    results_df.to_csv(f"results{suffix}_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
+    results_df.to_pickle(f"results{suffix}_{prefix}.pkl")
+    logger.info(f"Saved: results{suffix}_{prefix}.csv")
+    logger.info(f"Saved: results{suffix}_{prefix}.pkl")
 
     markers_df = results_df[['clusterName', 'NSForest_markers', 'f_score']].copy()
-    markers_df.to_csv(f"{prefix}_markers{suffix}.csv", index=False, quoting=csv.QUOTE_NONE)
-    logger.info(f"Saved: {prefix}_markers{suffix}.csv")
+    markers_df.to_csv(f"markers{suffix}_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
+    logger.info(f"Saved: markers{suffix}_{prefix}.csv")
 
     if 'onTarget' in results_df.columns:
         ontarget_df = results_df[results_df['onTarget'] > 0][
             ['clusterName', 'NSForest_markers', 'f_score', 'onTarget', 'precision', 'recall']
         ].copy()
-        ontarget_df.to_csv(f"{prefix}_markers_onTarget{suffix}.csv", index=False, quoting=csv.QUOTE_NONE)
-        logger.info(f"Saved: {prefix}_markers_onTarget{suffix}.csv")
+        ontarget_df.to_csv(f"markers_onTarget{suffix}_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
+        logger.info(f"Saved: markers_onTarget{suffix}_{prefix}.csv")
 
         ontarget_supp = results_df[results_df['onTarget'] > 0].copy()
-        ontarget_supp.to_csv(f"{prefix}_markers_onTarget_supp{suffix}.csv", index=False, quoting=csv.QUOTE_NONE)
-        logger.info(f"Saved: {prefix}_markers_onTarget_supp{suffix}.csv")
+        ontarget_supp.to_csv(f"markers_onTarget_supp{suffix}_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
+        logger.info(f"Saved: markers_onTarget_supp{suffix}_{prefix}.csv")
 
     all_markers = []
     for _, row in results_df.iterrows():
@@ -86,8 +86,8 @@ def _write_results(results_df, prefix, suffix="", adata=None):
             all_markers.append({'clusterName': row['clusterName'], 'gene': gene})
 
     gene_sel_df = pd.DataFrame(all_markers)
-    gene_sel_df.to_csv(f"{prefix}_gene_selection{suffix}.csv", index=False, quoting=csv.QUOTE_NONE)
-    logger.info(f"Saved: {prefix}_gene_selection{suffix}.csv")
+    gene_sel_df.to_csv(f"gene_selection{suffix}_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
+    logger.info(f"Saved: gene_selection{suffix}_{prefix}.csv")
 
 def run_merge_nsforest_results(
         partial_files,

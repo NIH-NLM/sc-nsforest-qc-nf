@@ -77,7 +77,7 @@ def run_cluster_stats(h5ad_path, cluster_header, organ, first_author, journal, y
     stats_df = compute_cluster_statistics(adata, cluster_header)
     
     # Save statistics table
-    stats_path = f"{output_prefix}_cluster_statistics"
+    stats_path = f"cluster_statistics_{output_prefix}"
     save_dataframe(stats_df, stats_path, formats=['csv'])
     
     logger.info("Cluster statistics complete!")
