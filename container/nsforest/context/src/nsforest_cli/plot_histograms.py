@@ -4,8 +4,8 @@ Plot histograms of non-zero median and binary score values.
 Corresponds to DEMO_NS-Forest_workflow.py: Section 3 histograms
 
 Saves:
-  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_hist_nonzero_medians.svg
-  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_hist_nonzero_binary_scores.svg
+  hist_nonzero_medians_{organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}.svg
+  hist_nonzero_binary_scores_{organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}.svg
 """
 
 import matplotlib
@@ -40,16 +40,16 @@ def run_plot_histograms(medians_csv, binary_scores_csv, cluster_header, organ, f
     non_zero_medians = df_medians[df_medians != 0].stack().values
     plt.hist(non_zero_medians, bins=100)
     plt.title("Non-zero medians")
-    plt.savefig(f"{prefix}_hist_nonzero_medians.svg")
+    plt.savefig(f"hist_nonzero_medians_{prefix}.svg")
     plt.close()
-    logger.info(f"Saved: {prefix}_hist_nonzero_medians.svg")
+    logger.info(f"Saved: hist_nonzero_medians_{prefix}.svg")
 
     # Histogram of non-zero binary scores
     non_zero_binary_scores = df_binary_scores[df_binary_scores != 0].stack().values
     plt.hist(non_zero_binary_scores, bins=100)
     plt.title("Non-zero binary scores")
-    plt.savefig(f"{prefix}_hist_nonzero_binary_scores.svg")
+    plt.savefig(f"hist_nonzero_binary_scores_{prefix}.svg")
     plt.close()
-    logger.info(f"Saved: {prefix}_hist_nonzero_binary_scores.svg")
+    logger.info(f"Saved: hist_nonzero_binary_scores_{prefix}.svg")
 
     logger.info("Histogram plotting complete!")

@@ -7,7 +7,7 @@ Loads adata_filtered.h5ad, reads medians and binary_scores CSVs into varm,
 then calls nsforesting.NSForest() with cluster_list for parallelization.
 
 Saves:
-  {organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}_results.csv
+  results_{organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}.csv
 """
 import csv
 import pandas as pd
@@ -81,9 +81,9 @@ def run_nsforest(h5ad_path, medians_csv, binary_scores_csv, cluster_header,
     if cluster_list:
         # in case there is a problem with a stray quote - clean it up before output
         cluster_safe = cluster_list[0].replace('"', '').replace("'", '').replace(' ', '_').replace('/', '-')
-        output_csv = f"{prefix}_results_{cluster_safe}.csv"
+        output_csv = f"results_{cluster_safe}_{prefix}.csv"
     else:
-        output_csv = f"{prefix}_results.csv"
+        output_csv = f"results_{prefix}.csv"
 
     results.to_csv(output_csv, index=False, quoting=csv.QUOTE_NONE)
     logger.info(f"Saved: {output_csv}")

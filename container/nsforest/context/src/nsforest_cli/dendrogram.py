@@ -4,10 +4,10 @@ Generate dendrogram and cluster statistics.
 Corresponds to DEMO_NS-Forest_workflow.py: Section 2
 
 Saves:
-  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_dendrogram.svg
-  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_cluster_sizes.csv
-  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_cluster_order.csv
-  {organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}_summary_normal.csv
+  dendrogram_{organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}.svg
+  cluser_sizes_{organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}.csv
+  cluster_order_{organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}.csv
+  summary_normal_{organ}_{first_author}_{year}_{cluster_header}_{embedding}_{vid}.csv
 """
 
 import matplotlib
@@ -66,7 +66,7 @@ def run_dendrogram(h5ad_path, cluster_header, organ, first_author, journal, year
                 save=False,
                 figsize=figsize
             )
-            plt.savefig(f"{prefix}_dendrogram.svg")
+            plt.savefig(f"dendrogram_{prefix}.svg")
             plt.close()
             
         except ValueError as e:
@@ -80,7 +80,7 @@ def run_dendrogram(h5ad_path, cluster_header, organ, first_author, journal, year
                     save=False,
                     figsize=figsize
                 )
-                plt.savefig(f"{prefix}_dendrogram.svg")
+                plt.savefig(f"dendrogram_{prefix}.svg")
                 plt.close()
 
             else:
@@ -92,17 +92,17 @@ def run_dendrogram(h5ad_path, cluster_header, organ, first_author, journal, year
         "cluster": cluster_counts.index.tolist(),
         "count":   cluster_counts.values
     })
-    df_cluster_sizes.to_csv(f"{prefix}_cluster_sizes.csv", index=False, quoting=csv.QUOTE_NONE)
-    logger.info(f"Saved: {prefix}_cluster_sizes.csv")
+    df_cluster_sizes.to_csv(f"cluster_sizes_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
+    logger.info(f"Saved: cluster_sizes_{prefix}.csv")
     
     # Cluster order
     cluster_order = [x.strip() for x in adata.uns["dendrogram_" + cluster_header]['categories_ordered']]
-    pd.DataFrame({'cluster_order': cluster_order}).to_csv(f"{prefix}_cluster_order.csv", index=False, quoting=csv.QUOTE_NONE)
-    logger.info(f"Saved: {prefix}_cluster_order.csv")
+    pd.DataFrame({'cluster_order': cluster_order}).to_csv(f"cluster_order_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
+    logger.info(f"Saved: cluster_order_{prefix}.csv")
 
     # Summary statistics
     df_normal = pd.DataFrame({'n_obs': [adata.n_obs], 'n_vars': [adata.n_vars], 'n_clusters': [n_clusters]})
-    df_normal.to_csv(f"{prefix}_summary_normal.csv", index=False, quoting=csv.QUOTE_NONE)
-    logger.info(f"Saved: {prefix}_summary_normal.csv")
+    df_normal.to_csv(f"summary_normal_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
+    logger.info(f"Saved: summary_normal_{prefix}.csv")
 
     logger.info("Dendrogram complete!")
