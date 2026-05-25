@@ -17,7 +17,7 @@ Additionally, add gene_symbols to all the ensgs and store the new variable in th
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-
+import csv
 import json
 import pandas as pd
 import scanpy as sc
@@ -112,18 +112,17 @@ def create_stats_before_filter(adata, cluster_header, prefix, embedding="X_pca")
         "cluster": cluster_counts.index.tolist(),
         "count":   cluster_counts.values
     })
-    df_cluster_sizes.to_csv(f"{prefix}_cluster_sizes_before_filter.csv", index=False)
+    df_cluster_sizes.to_csv(f"{prefix}_cluster_sizes_before_filter.csv", index=False, quoting=csv.QUOTE_NONE)
 
     cluster_order = [
         x.strip() for x in adata.uns["dendrogram_" + cluster_header]["categories_ordered"]
     ]
     pd.DataFrame({"cluster_order": cluster_order}).to_csv(
-        f"{prefix}_cluster_order_before_filter.csv", index=False
+        f"{prefix}_cluster_order_before_filter.csv", index=False, quoting=csv.QUOTE_NONE
     )
-
     pd.DataFrame({
         "n_obs": [adata.n_obs], "n_vars": [adata.n_vars], "n_clusters": [n_clusters]
-    }).to_csv(f"{prefix}_summary_before_filter.csv", index=False)
+    }).to_csv(f"{prefix}_summary_before_filter.csv", index=False, quoting=csv.QUOTE_NONE)
 
     logger.info("Before filter statistics saved")
 
@@ -356,6 +355,7 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
         .str.replace("'", '', regex=False)
         .str.strip()
     )
+    adata.obs[cluster_header] = adata.obs[cluster_header].astype("category")
     logger.info(f"Original data: {adata.n_obs} cells, {adata.n_vars} genes, "
                 f"{adata.obs[cluster_header].nunique()} clusters")
 

@@ -9,7 +9,7 @@ then calls nsforesting.NSForest() with cluster_list for parallelization.
 Saves:
   {organ}_{first_author}_{journal}_{year}_{cluster_header}_{embedding}_{vid}_results.csv
 """
-
+import csv
 import pandas as pd
 from nsforest import nsforesting
 
@@ -85,7 +85,7 @@ def run_nsforest(h5ad_path, medians_csv, binary_scores_csv, cluster_header,
     else:
         output_csv = f"{prefix}_results.csv"
 
-    results.to_csv(output_csv, index=False)
+    results.to_csv(output_csv, index=False, quoting=csv.QUOTE_NONE)
     logger.info(f"Saved: {output_csv}")
     
     logger.info("NSForest complete!")
