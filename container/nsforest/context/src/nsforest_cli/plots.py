@@ -71,7 +71,7 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journ
     # some cells in adata.obs[cluster_header] have NaN (float) instead of a string label.
     # The dendrogram reorder will fail because it cant join floats as strings...
     adata = adata[adata.obs[cluster_header].notna()].copy()
-    adata.obs[cluster_header] = adata.obs[cluster_header].astype(str)
+    adata.obs[cluster_header] = adata.obs[cluster_header].astype(str).astype("category")
     # Dotplot
     ns.pl.dotplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                   gene_symbols='gene_symbol', save="svg", output_folder="",
