@@ -51,7 +51,7 @@ def save_dataframe(df, filepath, formats=['csv']):
     for fmt in formats:
         if fmt == 'csv':
             output = f"{filepath}.csv"
-            df.to_csv(output, index=False, quoting=csv.QUOTE_NONE)
+            df.to_csv(output, index=False)
             logger.info(f"Saved: {output}")
         elif fmt == 'json':
             output = f"{filepath}.json"

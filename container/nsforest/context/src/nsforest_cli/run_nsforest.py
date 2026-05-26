@@ -85,7 +85,7 @@ def run_nsforest(h5ad_path, medians_csv, binary_scores_csv, cluster_header,
     else:
         output_csv = f"results_{prefix}.csv"
 
-    results.to_csv(output_csv, index=False, quoting=csv.QUOTE_NONE)
+    results.to_csv(output_csv, index=False)
     logger.info(f"Saved: {output_csv}")
     
     logger.info("NSForest complete!")

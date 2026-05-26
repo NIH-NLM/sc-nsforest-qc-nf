@@ -55,24 +55,24 @@ def _write_results(results_df, prefix, suffix="", adata=None):
             for m in results_df['NSForest_markers']
         ]
 
-    results_df.to_csv(f"results{suffix}_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
+    results_df.to_csv(f"results{suffix}_{prefix}.csv", index=False)
     results_df.to_pickle(f"results{suffix}_{prefix}.pkl")
     logger.info(f"Saved: results{suffix}_{prefix}.csv")
     logger.info(f"Saved: results{suffix}_{prefix}.pkl")
 
     markers_df = results_df[['clusterName', 'NSForest_markers', 'f_score']].copy()
-    markers_df.to_csv(f"markers{suffix}_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
+    markers_df.to_csv(f"markers{suffix}_{prefix}.csv", index=False)
     logger.info(f"Saved: markers{suffix}_{prefix}.csv")
 
     if 'onTarget' in results_df.columns:
         ontarget_df = results_df[results_df['onTarget'] > 0][
             ['clusterName', 'NSForest_markers', 'f_score', 'onTarget', 'precision', 'recall']
         ].copy()
-        ontarget_df.to_csv(f"markers_onTarget{suffix}_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
+        ontarget_df.to_csv(f"markers_onTarget{suffix}_{prefix}.csv", index=False)
         logger.info(f"Saved: markers_onTarget{suffix}_{prefix}.csv")
 
         ontarget_supp = results_df[results_df['onTarget'] > 0].copy()
-        ontarget_supp.to_csv(f"markers_onTarget_supp{suffix}_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
+        ontarget_supp.to_csv(f"markers_onTarget_supp{suffix}_{prefix}.csv", index=False)
         logger.info(f"Saved: markers_onTarget_supp{suffix}_{prefix}.csv")
 
     all_markers = []
@@ -86,7 +86,7 @@ def _write_results(results_df, prefix, suffix="", adata=None):
             all_markers.append({'clusterName': row['clusterName'], 'gene': gene})
 
     gene_sel_df = pd.DataFrame(all_markers)
-    gene_sel_df.to_csv(f"gene_selection{suffix}_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
+    gene_sel_df.to_csv(f"gene_selection{suffix}_{prefix}.csv", index=False)
     logger.info(f"Saved: gene_selection{suffix}_{prefix}.csv")
 
 def run_merge_nsforest_results(

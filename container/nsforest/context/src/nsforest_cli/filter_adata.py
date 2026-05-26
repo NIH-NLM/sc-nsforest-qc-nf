@@ -112,17 +112,17 @@ def create_stats_before_filter(adata, cluster_header, prefix, embedding="X_pca")
         "cluster": cluster_counts.index.tolist(),
         "count":   cluster_counts.values
     })
-    df_cluster_sizes.to_csv(f"cluster_sizes_before_filter_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
+    df_cluster_sizes.to_csv(f"cluster_sizes_before_filter_{prefix}.csv", index=False)
 
     cluster_order = [
         x.strip() for x in adata.uns["dendrogram_" + cluster_header]["categories_ordered"]
     ]
     pd.DataFrame({"cluster_order": cluster_order}).to_csv(
-        f"cluster_order_before_filter_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE
+        f"cluster_order_before_filter_{prefix}.csv", index=False
     )
     pd.DataFrame({
         "n_obs": [adata.n_obs], "n_vars": [adata.n_vars], "n_clusters": [n_clusters]
-    }).to_csv(f"summary_before_filter_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
+    }).to_csv(f"summary_before_filter_{prefix}.csv", index=False)
 
     logger.info("Before filter statistics saved")
 

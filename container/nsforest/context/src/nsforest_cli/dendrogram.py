@@ -92,17 +92,17 @@ def run_dendrogram(h5ad_path, cluster_header, organ, first_author, journal, year
         "cluster": cluster_counts.index.tolist(),
         "count":   cluster_counts.values
     })
-    df_cluster_sizes.to_csv(f"cluster_sizes_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
+    df_cluster_sizes.to_csv(f"cluster_sizes_{prefix}.csv", index=False)
     logger.info(f"Saved: cluster_sizes_{prefix}.csv")
     
     # Cluster order
     cluster_order = [x.strip() for x in adata.uns["dendrogram_" + cluster_header]['categories_ordered']]
-    pd.DataFrame({'cluster_order': cluster_order}).to_csv(f"cluster_order_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
+    pd.DataFrame({'cluster_order': cluster_order}).to_csv(f"cluster_order_{prefix}.csv", index=False)
     logger.info(f"Saved: cluster_order_{prefix}.csv")
 
     # Summary statistics
     df_normal = pd.DataFrame({'n_obs': [adata.n_obs], 'n_vars': [adata.n_vars], 'n_clusters': [n_clusters]})
-    df_normal.to_csv(f"summary_normal_{prefix}.csv", index=False, quoting=csv.QUOTE_NONE)
+    df_normal.to_csv(f"summary_normal_{prefix}.csv", index=False)
     logger.info(f"Saved: summary_normal_{prefix}.csv")
 
     logger.info("Dendrogram complete!")
