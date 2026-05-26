@@ -44,14 +44,14 @@ def run_prep_medians(h5ad_path, cluster_header, organ, first_author, journal, ye
     if 'gene_symbol' in adata.var.columns:
         sym_map = dict(zip(adata.var_names, adata.var['gene_symbol']))
         df_medians_symbols = df_medians.rename(index=lambda g: sym_map.get(g, g))
-        df_medians_symbols.to_csv(f"medians_symbols_{prefix}.csv", quoting=csv.QUOTE_NONE)
+        df_medians_symbols.to_csv(f"medians_symbols_{prefix}.csv")
         df_medians_symbols.to_pickle(f"medians_symbols_{prefix}.pkl")
         logger.info(f"Saved: medians_symbols_{prefix}.csv")
         logger.info(f"Saved: medians_symbols_{prefix}.pkl")
     else:
         logger.warning("adata.var['gene_symbol'] missing — skipping medians _symbols outputs")
     
-    df_medians.to_csv(f"medians_{prefix}.csv", quoting=csv.QUOTE_NONE)
+    df_medians.to_csv(f"medians_{prefix}.csv")
     df_medians.to_pickle(f"medians_{prefix}.pkl")
     logger.info(f"Saved: medians_{prefix}.csv")
     logger.info(f"Saved: medians_{prefix}.pkl")
