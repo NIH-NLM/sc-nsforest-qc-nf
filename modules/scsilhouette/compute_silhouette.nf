@@ -29,9 +29,9 @@ process compute_silhouette_process {
     tuple val(meta), path(h5ad)
 
     output:
-    tuple val(meta), path("*_silhouette_scores.csv"), emit: scores
-    tuple val(meta), path("*_cluster_summary.csv"),   emit: cluster_summary
-    tuple val(meta), path("*_annotation.json"),       emit: annotation
+    tuple val(meta), path("silhouette_scores*.csv"), emit: scores
+    tuple val(meta), path("cluster_summary*.csv"),   emit: cluster_summary
+    tuple val(meta), path("annotation*.json"),       emit: annotation
     tuple val(meta), path("*.log", optional: true),   emit: log, optional: true
 
     script:
