@@ -8,9 +8,9 @@ process prep_binary_scores_process {
     tuple val(meta), path(h5ad)
 
     output:
-    tuple val(meta), path("binary_scores*.csv"),         emit: csv
+    tuple val(meta), path("binary_scores_ensg*.csv"),         emit: csv
     tuple val(meta), path("binary_scores_symbols*.csv"), emit: csv_symbols, optional: true
-    tuple val(meta), path("binary_scores*.pkl"),         emit: pkl
+    tuple val(meta), path("binary_scores_ensg*.pkl"),         emit: pkl
     tuple val(meta), path("binary_scores_symbols*.pkl"), emit: pkl_symbols, optional: true
 
     script:
