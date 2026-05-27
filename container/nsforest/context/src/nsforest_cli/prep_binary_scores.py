@@ -45,10 +45,10 @@ def run_prep_binary_scores(h5ad_path, cluster_header, organ, first_author, journ
     df_binary_scores = adata_prep.varm['binary_scores_' + cluster_header]
     logger.info(f"Binary scores shape: {df_binary_scores.shape}")
 
-    df_binary_scores.to_csv(f"binary_scores_{prefix}.csv")
-    df_binary_scores.to_pickle(f"binary_scores_{prefix}.pkl")
-    logger.info(f"Saved: binary_scores_{prefix}.csv")
-    logger.info(f"Saved: binary_scores_{prefix}.pkl")
+    df_binary_scores.to_csv(f"binary_scores_ensg_{prefix}.csv")
+    df_binary_scores.to_pickle(f"binary_scores_ensg_{prefix}.pkl")
+    logger.info(f"Saved: binary_scores_ensg_{prefix}.csv")
+    logger.info(f"Saved: binary_scores_ensg_{prefix}.pkl")
     
     if 'gene_symbol' in adata.var.columns:
         sym_map = dict(zip(adata.var_names, adata.var['gene_symbol']))

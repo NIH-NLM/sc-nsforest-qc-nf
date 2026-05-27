@@ -8,9 +8,9 @@ process prep_medians_process {
     tuple val(meta), path(h5ad)
 
     output:
-    tuple val(meta), path("medians*.csv"),         emit: csv
+    tuple val(meta), path("medians_ensg*.csv"),    emit: csv
     tuple val(meta), path("medians_symbols*.csv"), emit: csv_symbols, optional: true
-    tuple val(meta), path("medians*.pkl"),         emit: pkl
+    tuple val(meta), path("medians_ensg*.pkl"),    emit: pkl
     tuple val(meta), path("medians_symbols*.pkl"), emit: pkl_symbols, optional: true
 
     script:

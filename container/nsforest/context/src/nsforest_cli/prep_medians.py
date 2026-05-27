@@ -51,9 +51,9 @@ def run_prep_medians(h5ad_path, cluster_header, organ, first_author, journal, ye
     else:
         logger.warning("adata.var['gene_symbol'] missing — skipping medians _symbols outputs")
     
-    df_medians.to_csv(f"medians_{prefix}.csv")
-    df_medians.to_pickle(f"medians_{prefix}.pkl")
-    logger.info(f"Saved: medians_{prefix}.csv")
-    logger.info(f"Saved: medians_{prefix}.pkl")
+    df_medians.to_csv(f"medians_ensg_{prefix}.csv")
+    df_medians.to_pickle(f"medians_ensg_{prefix}.pkl")
+    logger.info(f"Saved: medians_ensg_{prefix}.csv")
+    logger.info(f"Saved: medians_ensg_{prefix}.pkl")
 
     logger.info("Prep medians complete!")

@@ -36,11 +36,11 @@ process filter_adata_process {
     path (hsapdv_json,  stageAs: 'hsapdv.json')
 
     output:
-    tuple val(meta), path("*adata_filtered*.h5ad"),               emit: h5ad
+    tuple val(meta), path("*adata_filtered*.h5ad"),             emit: h5ad
     tuple val(meta), path("cluster_sizes_before_filter*.csv"),  emit: cluster_sizes
     tuple val(meta), path("cluster_order_before_filter*.csv"),  emit: cluster_order
     tuple val(meta), path("summary_before_filter*.csv"),        emit: summary
-    tuple val(meta), path("before_filter*.svg"),                emit: svg
+    tuple val(meta), path("dendrogram_before_filter*.svg"),     emit: svg
     
 
     script:

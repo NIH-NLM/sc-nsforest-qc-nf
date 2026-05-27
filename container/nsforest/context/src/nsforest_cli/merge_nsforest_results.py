@@ -30,7 +30,7 @@ from .common_utils import (
     logger
 )
 
-def _write_results(results_df, prefix, suffix="", adata=None):
+def _write_results(results_df, prefix, suffix="_ensg", adata=None):
     """Write results csv/pkl and the four marker files for one flavor.
 
     If ``adata`` is supplied and has an ``adata.var['gene_symbol']`` column, the
@@ -128,7 +128,7 @@ def run_merge_nsforest_results(
         results = pd.concat(dfs, axis=0, ignore_index=True)
 
      # ENSG flavor
-    _write_results(results, prefix)
+    _write_results(results, prefix, suffix="_ensg")
 
     # Symbol flavor
     if not results.empty:
