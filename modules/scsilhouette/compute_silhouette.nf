@@ -30,7 +30,7 @@ process compute_silhouette_process {
 
     output:
     tuple val(meta), path("silhouette_scores*.csv"), emit: scores
-    tuple val(meta), path("cluster_summary*.csv"),   emit: cluster_summary
+    tuple val(meta), path("scsilhouette_cluster_summary*.csv"),   emit: cluster_summary
     tuple val(meta), path("annotation*.json"),       emit: annotation
     tuple val(meta), path("*.log", optional: true),   emit: log, optional: true
 
