@@ -12,6 +12,7 @@ matplotlib.use("Agg")
 import ast
 import glob
 import os
+import scanpy as sc
 import pandas as pd
 import nsforest as ns
 
@@ -33,6 +34,7 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journ
     Create NSForest visualization plots with gene symbol mapping.
     """
     log_section("NSForest: Plotting")
+    sc.settings.figdir = "."
 
     prefix = get_output_prefix( organ, first_author, journal, year, cluster_header, embedding, dataset_version_id )
 
@@ -53,16 +55,22 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journ
     ensg_to_symbol = load_gene_mapping()
     results, markers_dict = map_markers_to_symbols(results, ensg_to_symbol)
 
-    # Boxplots (html)
+    # Boxplots — html (interactive) + svg (static for publication)
     for metric in ['f_score', 'precision', 'recall', 'onTarget']:
-        ns.pl.boxplot(results, metric, save="html", output_folder="", outputfilename_suffix=prefix)
+        ns.pl.boxplot(results, metric, save=True, output_folder="", outputfilename_prefix=prefix)
+        os.rename(f"{prefix}_boxplot_{metric}.html", f"boxplot_{prefix}_{metric}.html")
+        ns.pl.boxplot(results, metric, save="svg",  output_folder="", outputfilename_prefix=prefix)
+        os.rename(f"{prefix}_boxplot_{metric}.svg",  f"boxplot_{prefix}_{metric}.svg")
     logger.info("Boxplots saved.")
 
-    # Scatter plots (svg)
+    # Scatter plots — html (interactive) + svg (static for publication)
     for metric in ['f_score', 'precision', 'recall', 'onTarget']:
-        ns.pl.scatter_w_clusterSize(results, metric, save=True, output_folder="", outputfilename_suffix=prefix)
+        ns.pl.scatter_w_clusterSize(results, metric, save=True,  output_folder="", outputfilename_prefix=prefix)
+        os.rename(f"{prefix}_scatter_{metric}.html", f"scatter_{prefix}_{metric}.html")
+        ns.pl.scatter_w_clusterSize(results, metric, save="svg", output_folder="", outputfilename_prefix=prefix)
+        os.rename(f"{prefix}_scatter_{metric}.svg",  f"scatter_{prefix}_{metric}.svg")
     logger.info("Scatter plots saved.")
-
+    
     # Load adata for expression plots
     logger.info(f"Loading h5ad: {h5ad_path}")
     adata = load_h5ad(h5ad_path, cluster_header)
