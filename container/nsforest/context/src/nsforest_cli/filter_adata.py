@@ -76,7 +76,7 @@ def create_stats_before_filter(adata, cluster_header, prefix, embedding="X_pca")
         # but its guard is buggy when other keys (e.g. X_umap) are in obsm.
         if "X_pca" not in adata.obsm:
             logger.info("X_pca not found in obsm — computing PCA for dendrogram")
-            sc.pp.pca(adata)
+            sc.pp.pca(adata, zero_center=False)
         # Render the figure via nsforest/scanpy but save it ourselves.
         # ns.pp.dendrogram(save="svg") routes through scanpy's savefig_or_show,
         # which in scanpy 1.9.6 + matplotlib 3.8.0 crashes with
@@ -404,7 +404,8 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
         # Ensure X_pca exists — ns.pp.dendrogram hardcodes use_rep="X_pca"
         if "X_pca" not in adata.obsm:
             logger.info("X_pca not found in obsm — computing PCA for dendrogram")
-            sc.pp.pca(adata)
+            sc.pp.pca(adata, zero_center=False)
+
         # Populate adata.uns['dendrogram_' + cluster_header] for downstream consumers.
         # SVG + CSVs are emitted by dendrogram.py (see modules/nsforest/dendrogram.nf).
         ns.pp.dendrogram(
@@ -429,6 +430,19 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
     else:
         logger.warning("No gene mapping available — adata.var['gene_symbol'] not populated")
 
+    # Sanitize reserved column names — anndata reserves '_index' for the DataFrame index
+    for attr_name in ('var', 'obs'):
+        df = getattr(adata, attr_name)
+        if '_index' in df.columns:
+            logger.warning(f"Renaming reserved '_index' column in adata.{attr_name} → 'original_index'")
+            df.rename(columns={'_index': 'original_index'}, inplace=True)
+
+    if adata.raw is not None and '_index' in adata.raw.var.columns:
+        logger.warning("Renaming reserved '_index' column in adata.raw.var → 'original_index'")
+        raw_ad = adata.raw.to_adata()
+        raw_ad.var = raw_ad.var.rename(columns={'_index': 'original_index'})
+        adata.raw = raw_ad
+    
     adata.write_h5ad(filtered_h5ad_name)
     logger.info(f"Saved filtered h5ad: {filtered_h5ad_name}")
 
