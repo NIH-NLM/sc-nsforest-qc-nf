@@ -406,8 +406,10 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
     try:
         # Ensure X_pca exists — ns.pp.dendrogram hardcodes use_rep="X_pca"
         if "X_pca" not in adata.obsm:
-            logger.info("X_pca not found in obsm — computing PCA for dendrogram")
-            sc.pp.pca(adata, zero_center=False)
+            logger.info("X_pca not found in obsm — selecting HVGs then computing PCA for dendrogram")
+            if "highly_variable" not in adata.var.columns:
+                sc.pp.highly_variable_genes(adata, n_top_genes=2000)
+            sc.pp.pca(adata, zero_center=False, use_highly_variable=True)
 
         # Populate adata.uns['dendrogram_' + cluster_header] for downstream consumers.
         # SVG + CSVs are emitted by dendrogram.py (see modules/nsforest/dendrogram.nf).

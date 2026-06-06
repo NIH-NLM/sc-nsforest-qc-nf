@@ -55,6 +55,35 @@ def run_nsforest(h5ad_path, medians_csv, binary_scores_csv, cluster_header,
     # Subset adata_prep to positive genes (index of medians CSV)
     adata_prep = adata_prep[:, df_medians.index].copy()
 
+    # Diagnose any mismatch between df_medians.index and adata_prep.var_names
+    same_len = len(df_medians.index) == len(adata_prep.var_names)
+    if not same_len:
+        missing = sorted(set(df_medians.index) - set(adata_prep.var_names))
+        logger.warning(
+            f"Gene count mismatch — df_medians: {len(df_medians.index)}, "
+            f"adata.var_names: {len(adata_prep.var_names)}. "
+            f"Missing from adata ({len(missing)}): {missing[:5]}..."
+        )
+    elif not (df_medians.index == adata_prep.var_names).all():
+        logger.warning(
+            f"Order/dtype mismatch — df_medians dups: {df_medians.index.has_duplicates}, "
+            f"var_names dups: {adata_prep.var_names.has_duplicates}, "
+            f"df_medians dtype: {df_medians.index.dtype}, "
+            f"var_names dtype: {adata_prep.var_names.dtype}"
+        )
+
+    # Defensive — force exact alignment to adata_prep.var_names so varm validation passes.
+    # If reindex introduces NaN rows, the underlying mismatch is real (will fail loudly below).
+    df_medians       = df_medians.reindex(adata_prep.var_names)
+    df_binary_scores = df_binary_scores.reindex(adata_prep.var_names)
+
+    if df_medians.isna().any().any() or df_binary_scores.isna().any().any():
+        n_bad = df_medians.isna().any(axis=1).sum()
+        raise ValueError(
+            f"reindex left {n_bad} rows as NaN — df_medians.index doesn't fully cover "
+            f"adata_prep.var_names. Investigate var_names duplicates or stale CSV."
+        )
+
     # Attach to varm — gene-by-cluster, matching DEMO
     adata_prep.varm['medians_' + cluster_header] = df_medians
     adata_prep.varm['binary_scores_' + cluster_header] = df_binary_scores
