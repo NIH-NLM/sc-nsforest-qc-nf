@@ -77,7 +77,7 @@ def create_stats_before_filter(adata, cluster_header, prefix, embedding="X_pca")
         if "X_pca" not in adata.obsm:
             logger.info("X_pca not found in obsm — selecting HVGs then computing PCA for dendrogram")
             if "highly_variable" not in adata.var.columns:
-                sc.pp.highly_variable_genes(adata, n_top_genes=2000, flavor="seurat_v3")
+                sc.pp.highly_variable_genes(adata, n_top_genes=2000)
             sc.pp.pca(adata, zero_center=False, use_highly_variable=True)
 
         # Render the figure via nsforest/scanpy but save it ourselves.
