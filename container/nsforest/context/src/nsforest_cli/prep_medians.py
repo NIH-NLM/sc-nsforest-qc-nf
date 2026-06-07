@@ -38,10 +38,20 @@ def run_prep_medians(h5ad_path, cluster_header, organ, first_author, journal, ye
     adata_prep = ns.pp.prep_medians(adata_prep, cluster_header)
 
     # gene-by-cluster DataFrame — matching DEMO exactly
-    df_medians = adata_prep.varm['medians_' + cluster_header]
-    # anndata varm round-trips with a RangeIndex; restore the gene IDs as the index
-    df_medians.index = adata_prep.var_names
-    logger.info(f"Medians shape: {df_medians.shape}")
+    raw = adata_prep.varm['medians_' + cluster_header]
+
+    # Bypass anndata varm wrapping — build a fresh DataFrame with explicit ENSG index.
+    # Some anndata versions return a DataFrame whose index assignment doesn't persist.
+    values = raw.values if hasattr(raw, 'values') else raw
+    columns = raw.columns if hasattr(raw, 'columns') else None
+    df_medians = pd.DataFrame(
+        values,
+        index=pd.Index(list(adata_prep.var_names), name='gene'),
+        columns=columns,
+    )
+
+    logger.info(f"Medians shape: {df_medians.shape}, index dtype: {df_medians.index.dtype}")
+    logger.info(f"First 3 gene IDs: {list(df_medians.index[:3])}")
     
     if 'gene_symbol' in adata.var.columns:
         sym_map = dict(zip(adata.var_names, adata.var['gene_symbol']))

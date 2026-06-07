@@ -42,11 +42,21 @@ def run_prep_binary_scores(h5ad_path, cluster_header, organ, first_author, journ
     adata_prep = ns.pp.prep_binary_scores(adata_prep, cluster_header)
 
     # gene-by-cluster DataFrame — matching DEMO exactly
-    df_binary_scores = adata_prep.varm['binary_scores_' + cluster_header]
-    # anndata varm round-trips with a RangeIndex; restore the gene IDs as the index
-    df_binary_scores.index = adata_prep.var_names
-    logger.info(f"Binary scores shape: {df_binary_scores.shape}")
-    
+    raw = adata_prep.varm['binary_scores_' + cluster_header]
+
+    # Bypass anndata varm wrapping — build a fresh DataFrame with explicit ENSG index.
+    # Some anndata versions return a DataFrame whose index assignment doesn't persist.
+    values = raw.values if hasattr(raw, 'values') else raw
+    columns = raw.columns if hasattr(raw, 'columns') else None
+    df_binary_scores = pd.DataFrame(
+        values,
+        index=pd.Index(list(adata_prep.var_names), name='gene'),
+        columns=columns,
+    )
+
+    logger.info(f"Binary scores shape: {df_binary_scores.shape}, index dtype: {df_binary_scores.index.dtype}")
+    logger.info(f"First 3 gene IDs: {list(df_binary_scores.index[:3])}")
+
     df_binary_scores.to_csv(f"binary_scores_ensg_{prefix}.csv")
     df_binary_scores.to_pickle(f"binary_scores_ensg_{prefix}.pkl")
     logger.info(f"Saved: binary_scores_ensg_{prefix}.csv")
