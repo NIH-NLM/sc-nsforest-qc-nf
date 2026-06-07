@@ -22,16 +22,23 @@ def get_output_prefix(organ, first_author, journal, year, cluster_header, embedd
     
 def load_h5ad(h5ad_path, cluster_header):
     """Load h5ad file with validation."""
-
+    adata = sc.read_h5ad(h5ad_path)
     logger.info(f"Loading h5ad: {h5ad_path}")
+
+    # Convert dense X to CSR sparse — large CXG datasets sometimes ship dense X
+    # which inflates memory ~10x for typical sparsity. Conversion is a one-time cost.
     if not sp.issparse(adata.X):
-        nnz_frac = (adata.X != 0).mean() if hasattr(adata.X, 'mean') else None
+        if hasattr(adata.X, 'mean'):
+            nnz_frac = (adata.X != 0).mean()
+        else:
+            nnz_frac = None
+
         if nnz_frac is None or nnz_frac < 0.5:
-            logger.info(
-                f"Converting dense X to CSR sparse (density: {nnz_frac:.1%})"
-                if nnz_frac is not None
-                else "Converting dense X to CSR sparse"
-            )
+            if nnz_frac is not None:
+                msg = f"Converting dense X to CSR sparse (density: {nnz_frac:.1%})"
+            else:
+                msg = "Converting dense X to CSR sparse"
+            logger.info(msg)
             adata.X = sp.csr_matrix(adata.X)
     
     logger.info(f"Loaded: {adata.n_obs} cells x {adata.n_vars} genes")
