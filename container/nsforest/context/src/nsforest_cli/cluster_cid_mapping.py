@@ -38,9 +38,13 @@ def build_cluster_cid_mapping(adata, cluster_header, cid_column, default_skos=""
         )
 
     if cid_column not in adata.obs.columns:
-        raise ValueError(
-            f"cell-ontology column '{cid_column}' not found in adata.obs. "
+        logger.warning(
+            f"cell-ontology column '{cid_column}' not found in adata.obs — "
+            f"writing empty mapping (no automatic CL assignment for this dataset). "
             f"Available columns: {list(adata.obs.columns)}"
+        )
+        return pd.DataFrame(
+            columns=['cluster_name', 'skos', 'manual_mapped_cid', 'cell_ontology_id']
         )
 
     pairs = (
