@@ -1,3 +1,4 @@
+/* cache-bust: v2 — index restoration */
 process prep_medians_process {
     tag "prep_medians_${meta.organ}_${meta.first_author}_${meta.journal}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
     label 'nsforest'

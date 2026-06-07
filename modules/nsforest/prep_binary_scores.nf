@@ -1,3 +1,4 @@
+/* cache-bust: v2 — index restoration */
 process prep_binary_scores_process {
     tag "prep_binary_scores_${meta.organ}_${meta.first_author}_${meta.journal}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
     label 'nsforest'
