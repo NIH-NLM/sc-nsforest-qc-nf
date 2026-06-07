@@ -43,8 +43,10 @@ def run_prep_binary_scores(h5ad_path, cluster_header, organ, first_author, journ
 
     # gene-by-cluster DataFrame — matching DEMO exactly
     df_binary_scores = adata_prep.varm['binary_scores_' + cluster_header]
+    # anndata varm round-trips with a RangeIndex; restore the gene IDs as the index
+    df_binary_scores.index = adata_prep.var_names
     logger.info(f"Binary scores shape: {df_binary_scores.shape}")
-
+    
     df_binary_scores.to_csv(f"binary_scores_ensg_{prefix}.csv")
     df_binary_scores.to_pickle(f"binary_scores_ensg_{prefix}.pkl")
     logger.info(f"Saved: binary_scores_ensg_{prefix}.csv")
