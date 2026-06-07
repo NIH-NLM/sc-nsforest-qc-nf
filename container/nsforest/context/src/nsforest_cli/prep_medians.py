@@ -39,8 +39,10 @@ def run_prep_medians(h5ad_path, cluster_header, organ, first_author, journal, ye
 
     # gene-by-cluster DataFrame — matching DEMO exactly
     df_medians = adata_prep.varm['medians_' + cluster_header]
+    # anndata varm round-trips with a RangeIndex; restore the gene IDs as the index
+    df_medians.index = adata_prep.var_names
     logger.info(f"Medians shape: {df_medians.shape}")
-
+    
     if 'gene_symbol' in adata.var.columns:
         sym_map = dict(zip(adata.var_names, adata.var['gene_symbol']))
         df_medians_symbols = df_medians.rename(index=lambda g: sym_map.get(g, g))
