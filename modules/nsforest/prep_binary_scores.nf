@@ -16,6 +16,7 @@ process prep_binary_scores_process {
 
     script:
     """
+    # cache-bust: v3 — index restoration
     nsforest-cli prep-binary-scores \
         --h5ad-path ${h5ad} \
         --cluster-header "${meta.author_cell_type}" \
