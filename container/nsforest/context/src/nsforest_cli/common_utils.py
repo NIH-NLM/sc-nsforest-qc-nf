@@ -24,7 +24,16 @@ def load_h5ad(h5ad_path, cluster_header):
     """Load h5ad file with validation."""
 
     logger.info(f"Loading h5ad: {h5ad_path}")
-    adata = sc.read_h5ad(h5ad_path)
+    if not sp.issparse(adata.X):
+        nnz_frac = (adata.X != 0).mean() if hasattr(adata.X, 'mean') else None
+        if nnz_frac is None or nnz_frac < 0.5:
+            logger.info(
+                f"Converting dense X to CSR sparse (density: {nnz_frac:.1%})"
+                if nnz_frac is not None
+                else "Converting dense X to CSR sparse"
+            )
+            adata.X = sp.csr_matrix(adata.X)
+    
     logger.info(f"Loaded: {adata.n_obs} cells x {adata.n_vars} genes")
 
     if cluster_header not in adata.obs.columns:
