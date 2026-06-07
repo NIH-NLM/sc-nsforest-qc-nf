@@ -364,6 +364,17 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
 
     create_stats_before_filter(adata, cluster_header, prefix, embedding)
 
+    # Free before-filter scratch — X_pca, dendrogram, HVG annotations no longer needed.
+    # The after-filter dendrogram recomputes on the (much smaller) filtered matrix.
+    import gc
+    adata.obsm.pop('X_pca', None)
+    adata.uns.pop(f'dendrogram_{cluster_header}', None)
+    for col in ('highly_variable', 'highly_variable_rank', 'means', 'variances',
+                'variances_norm'):
+        if col in adata.var.columns:
+            del adata.var[col]
+    gc.collect()
+
     logger.info("\n=== Applying Filters ===")
 
     logger.info("\n[1/5] Tissue filter")
