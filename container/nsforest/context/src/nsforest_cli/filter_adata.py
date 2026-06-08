@@ -72,21 +72,22 @@ def create_stats_before_filter(adata, cluster_header, prefix, embedding="X_pca")
     logger.info(f"Before filter - Total cells: {adata.n_obs}, Clusters: {n_clusters}")
 
     try:
-        # Honor the --embedding parameter. If the requested embedding exists in obsm,
-        # use it directly — no PCA computation needed. Fall back to HVG+PCA only when
-        # neither the requested embedding nor X_pca is present.
+        # ns.pp.dendrogram hardcodes use_rep="X_pca", so we alias the user's
+        # chosen embedding INTO obsm["X_pca"] before calling it. The --embedding
+        # choice always wins; any pre-existing X_pca is overwritten if different.
         if embedding in adata.obsm:
-            logger.info(f"Using existing embedding '{embedding}' from obsm for dendrogram")
-            use_rep = embedding
+            if embedding != "X_pca":
+                logger.info(f"Aliasing '{embedding}' → adata.obsm['X_pca'] for ns.pp.dendrogram")
+                adata.obsm["X_pca"] = adata.obsm[embedding]
+            else:
+                logger.info("Using existing X_pca from obsm for dendrogram")
         elif "X_pca" in adata.obsm:
-            logger.info("Using existing X_pca from obsm for dendrogram")
-            use_rep = "X_pca"
+            logger.warning(f"Requested embedding '{embedding}' not in obsm — falling back to X_pca")
         else:
-            logger.info(f"Embedding '{embedding}' and X_pca not in obsm — computing PCA from HVGs")
+            logger.info(f"Neither '{embedding}' nor X_pca in obsm — computing PCA from HVGs")
             if "highly_variable" not in adata.var.columns:
                 sc.pp.highly_variable_genes(adata, n_top_genes=2000)
             sc.pp.pca(adata, zero_center=False, use_highly_variable=True)
-            use_rep = "X_pca"
 
         # Render the figure via nsforest/scanpy but save it ourselves.
         # ns.pp.dendrogram(save="svg") routes through scanpy's savefig_or_show,
@@ -94,7 +95,7 @@ def create_stats_before_filter(adata, cluster_header, prefix, embedding="X_pca")
         # "'bool' object has no attribute 'write'" inside PIL's PNG backend.
         ns.pp.dendrogram(
             adata, cluster_header,
-            tl_kwargs={"optimal_ordering": True, "use_rep": use_rep},
+            tl_kwargs={"optimal_ordering": True},
             pl_kwargs={"show": False},
             save=False,
         )
@@ -109,7 +110,7 @@ def create_stats_before_filter(adata, cluster_header, prefix, embedding="X_pca")
             logger.warning(f"Optimal ordering failed — retrying without: {e}")
             ns.pp.dendrogram(
                 adata, cluster_header,
-                tl_kwargs={"optimal_ordering": False, "use_rep": use_rep},
+                tl_kwargs={"optimal_ordering": False},
                 pl_kwargs={"show": False},
                 save=False,
             )
@@ -453,27 +454,27 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
     n_clusters = adata.obs[cluster_header].nunique()
 
     try:
-        # Honor the --embedding parameter. If the requested embedding exists in obsm,
-        # use it directly — no PCA computation needed. Fall back to HVG+PCA only when
-        # neither the requested embedding nor X_pca is present.
+        # ns.pp.dendrogram hardcodes use_rep="X_pca", so we alias the user's
+        # chosen embedding INTO obsm["X_pca"] before calling it.
         if embedding in adata.obsm:
-            logger.info(f"Using existing embedding '{embedding}' from obsm for dendrogram")
-            use_rep = embedding
+            if embedding != "X_pca":
+                logger.info(f"Aliasing '{embedding}' → adata.obsm['X_pca'] for ns.pp.dendrogram")
+                adata.obsm["X_pca"] = adata.obsm[embedding]
+            else:
+                logger.info("Using existing X_pca from obsm for dendrogram")
         elif "X_pca" in adata.obsm:
-            logger.info("Using existing X_pca from obsm for dendrogram")
-            use_rep = "X_pca"
+            logger.warning(f"Requested embedding '{embedding}' not in obsm — falling back to X_pca")
         else:
-            logger.info(f"Embedding '{embedding}' and X_pca not in obsm — computing PCA from HVGs")
+            logger.info(f"Neither '{embedding}' nor X_pca in obsm — computing PCA from HVGs")
             if "highly_variable" not in adata.var.columns:
                 sc.pp.highly_variable_genes(adata, n_top_genes=2000)
             sc.pp.pca(adata, zero_center=False, use_highly_variable=True)
-            use_rep = "X_pca"
 
         # Populate adata.uns['dendrogram_' + cluster_header] for downstream consumers.
         # SVG + CSVs are emitted by dendrogram.py (see modules/nsforest/dendrogram.nf).
         ns.pp.dendrogram(
             adata, cluster_header,
-            tl_kwargs={"optimal_ordering": True, "use_rep": use_rep},
+            tl_kwargs={"optimal_ordering": True},
             save=False,
         )
         
@@ -482,7 +483,7 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
             logger.warning(f"Optimal ordering failed — retrying without: {e}")
             ns.pp.dendrogram(
                 adata, cluster_header,
-                tl_kwargs={"optimal_ordering": False, "use_rep": use_rep},
+                tl_kwargs={"optimal_ordering": False},
                 save=False,
             )
         else:
