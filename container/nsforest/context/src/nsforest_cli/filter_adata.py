@@ -350,6 +350,36 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
 
     logger.info(f"Loading: {h5ad_path}")
     adata = load_h5ad(h5ad_path, cluster_header)
+
+    # Detect Seurat-converted h5ads with positional var.index — promote real gene IDs.
+    # Seurat-to-AnnData conversions often leave var.index as RangeIndex (0,1,2,...)
+    # and stash actual gene names in a separate column ('_index', 'features', etc.).
+    sample_idx = list(adata.var.index[:5])
+    try:
+        looks_positional = [int(x) for x in sample_idx] == list(range(5))
+    except (ValueError, TypeError):
+        looks_positional = False
+
+    if looks_positional:
+        logger.warning(f"var.index appears positional ({sample_idx})")
+        logger.warning(f"Available var columns: {list(adata.var.columns)}")
+        for col in ('_index', 'features', 'gene_symbol', 'gene_short_name',
+                    'gene_ids', 'feature_name', 'gene_name'):
+            if col in adata.var.columns:
+                logger.warning(f"Promoting var['{col}'] to var.index for real gene IDs")
+                adata.var = adata.var.set_index(col)
+                break
+        else:
+            raise ValueError(
+                f"var.index is positional and no candidate gene-ID column found. "
+                f"Available var columns: {list(adata.var.columns)}"
+            )
+
+
+
+
+
+
     # Sanitize cluster names — strip quote characters that break filenames and CloudOS bash eval
     adata.obs[cluster_header] = (
         adata.obs[cluster_header]
