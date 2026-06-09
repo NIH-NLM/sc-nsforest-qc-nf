@@ -104,7 +104,8 @@ def create_stats_before_filter(adata, cluster_header, prefix, embedding="X_pca")
             format="svg", bbox_inches="tight",
         )
         plt.close()
-        except ValueError as e:
+        
+    except ValueError as e:
         if "negative distances" not in str(e):
             raise
         logger.warning(f"Optimal ordering failed — retrying without: {e}")
@@ -114,6 +115,11 @@ def create_stats_before_filter(adata, cluster_header, prefix, embedding="X_pca")
                 tl_kwargs={"optimal_ordering": False},
                 save=False,
             )
+            plt.savefig(
+                f"dendrogram_before_filter_{prefix}.svg",
+                format="svg", bbox_inches="tight",
+            )
+            plt.close()
         except ValueError as e2:
             if "negative distances" not in str(e2):
                 raise
@@ -136,8 +142,6 @@ def create_stats_before_filter(adata, cluster_header, prefix, embedding="X_pca")
 
             plt.savefig(f"dendrogram_before_filter_{prefix}.svg", format="svg", bbox_inches="tight")
             plt.close()
-        else:
-            raise
 
     cluster_counts   = adata.obs[cluster_header].value_counts()
     df_cluster_sizes = pd.DataFrame({
@@ -472,7 +476,6 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
     logger.info("\n=== Creating AFTER FILTER statistics ===")
 
     n_clusters = adata.obs[cluster_header].nunique()
-
     try:
         # ns.pp.dendrogram hardcodes use_rep="X_pca", so we alias the user's
         # chosen embedding INTO obsm["X_pca"] before calling it.
@@ -553,4 +556,3 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
     logger.info(f"Saved filtered h5ad: {filtered_h5ad_name}")
 
     logger.info("\nFilter complete!")
-
