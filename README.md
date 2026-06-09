@@ -279,7 +279,7 @@ The practical answer: don't derive it analytically. Bootstrap. Run NSForest's ev
 ## AWS Instance-type suffix details
 
 | Suffix | What changes | When to pick it |
-| ————-- | ——————————–- | ——————————————- |
+| ------ | ------------ | --------------- |
 | r5 | Intel Xeon Skylake/cascade Lake, EBS-only, standard networking. Baseline | Default; what most docs assume |
 | r5a | AMD EPYC instead of Intel.  ~10% cheaper.  Slightly lower single-core performance on some workloads | Cost savings when you don't depend on Intel specific instructions |
 | r5ad | AMD + NVMe instance-store SSD attached locally. | AMD pricing + you want fast ephermeral scratch (data lost on stop) |
@@ -297,6 +297,62 @@ AVX-512 — Advanced Vector eXtensions, 512-bit edition. A set of CPU instructio
 AMD EPYC — AMD's server CPU brand, the competitor to Intel's Xeon. "EPYC" is just the marketing name (read "epic"). Pronounced like the English word. EPYC chips are typically denser (more CPU cores per socket) and cheaper per core than equivalent Xeons, with strong memory bandwidth. The trade-off historically was per-core performance (Intel was a bit faster on single-threaded code) and instruction-set features (no AVX-512 until recently). On AWS, the a in r5a / m5a / c5a means "AMD EPYC inside instead of Intel Xeon" — same vCPU count, same RAM, ~10% cheaper. For most bioinformatics work (which is heavily parallel and bottlenecked by I/O or memory bandwidth, not single-thread speed), EPYC is fine.
 
 NVMe — Non-Volatile Memory Express. A protocol for talking to SSDs directly over the PCIe bus (the same bus that connects GPUs and high-speed network cards), bypassing the older SATA disk interface. The result: NVMe SSDs deliver millions of operations per second and 3-7 GB/s of sequential throughput, vs SATA SSDs at ~500 MB/s. On AWS, "instance store" SSDs on d-suffixed instances (e.g., r5d, r5ad, m5d) are NVMe drives physically attached to the host machine, not over the network. Pros: very fast (great for scratch / temp / shuffle data, HDF5 random reads). Cons: ephemeral — when you stop or terminate the instance, the NVMe disk is wiped. So they're perfect for compute-and-discard workloads (like concat-h5ad on disposable infrastructure) and wrong for anything you need to persist. EBS, by contrast, is network-attached storage — slower per IOP but durable across instance lifecycle.
+
+## Memory budgets for large datasets
+
+Default `nextflow.config` memory budgets are sized for typical CXG datasets
+(< 500k cells). For datasets at 1M+ cells (e.g. Xu retina ~3.2M cells),
+several processes need explicit bumps. The pattern below has been
+verified on a 3.14M-cell × 35.5k-gene Seurat-converted dataset.
+
+### Tier 1 — 768 GB (heavy compute)
+
+Processes that densify the matrix per-cluster or perform O(n²) operations.
+All must be at 768 GB for 1M+ cell datasets.
+
+| Process | Why |
+| ------- | --- |
+| `filter_adata_process` | HVG + PCA fallback when `--embedding` is too low-dimensional |
+| `prep_medians_process` | `ns.pp.prep_medians()` densifies each cluster's matrix via `adata_cl.to_df()` |
+| `prep_binary_scores_process` | same densification pattern as prep_medians |
+| `run_nsforest_process` | Random Forest per-cluster batch (memory ∝ `batch_size × cluster_size`) |
+| `compute_silhouette_process` | O(n²) cell-cell distances |
+
+### Tier 2 — 384 GB (loads h5ad, moderate compute)
+
+Processes that load the filtered h5ad but don't densify. The ~50 GB sparse
+load needs headroom for downstream operations.
+
+| Process | Note |
+| ------- | ---- |
+| `dendrogram_process` | computes scanpy dendrogram |
+| `plots_process` | scanpy `dotplot` / `stackedviolin` / `matrixplot` |
+| `merge_nsforest_results_process` | loads h5ad for gene-symbol mapping |
+| `cluster_stats_process` | per-cluster aggregation |
+| `cluster_cid_mapping_process` | per-cluster aggregation |
+| `viz_2D_projection_process` | renders embedding plot |
+
+### Tier 3 — leave defaults
+
+Utility processes that don't load the filtered h5ad:
+`download_h5ad_process`, `plot_histograms_process`, `viz_distribution_process`,
+`viz_summary_process`, `compute_summary_stats_process`,
+`generate_s3_manifest_process`, `publish_results_process`.
+Stay at their default 8–32 GB.
+
+### Why not put everything at 768 GB?
+
+Two reasons:
+1. **Cost** — CloudOS bills by instance size. A 768 GB instance is materially
+   more expensive than 384 GB. Running tier-3 utility processes on huge
+   instances wastes credits.
+2. **Concurrency** — Lifebit's per-job or per-team memory caps can serialize
+   parallel work if every task asks for 768 GB.
+
+### For datasets under ~500k cells
+
+The defaults shipped in `nextflow.config` are fine — these tiers are only
+needed for genuinely large data.
 
 ## License
 
