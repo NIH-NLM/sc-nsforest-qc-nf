@@ -104,16 +104,36 @@ def create_stats_before_filter(adata, cluster_header, prefix, embedding="X_pca")
             format="svg", bbox_inches="tight",
         )
         plt.close()
-
-    except ValueError as e:
-        if "negative distances" in str(e):
-            logger.warning(f"Optimal ordering failed — retrying without: {e}")
+        except ValueError as e:
+        if "negative distances" not in str(e):
+            raise
+        logger.warning(f"Optimal ordering failed — retrying without: {e}")
+        try:
             ns.pp.dendrogram(
                 adata, cluster_header,
                 tl_kwargs={"optimal_ordering": False},
-                pl_kwargs={"show": False},
                 save=False,
             )
+        except ValueError as e2:
+            if "negative distances" not in str(e2):
+                raise
+            logger.warning(
+                f"optimal_ordering=False also failed ({e2}). "
+                f"Embedding '{embedding}' is too low-dimensional for correlation-based "
+                f"dendrogram. Computing HVG+PCA as final fallback."
+            )
+            import gc
+            gc.collect()
+            if "highly_variable" not in adata.var.columns:
+                sc.pp.highly_variable_genes(adata, n_top_genes=2000)
+            sc.pp.pca(adata, zero_center=False, use_highly_variable=True)
+            # adata.obsm["X_pca"] now has real PCA; the previous alias is overwritten.
+            ns.pp.dendrogram(
+                adata, cluster_header,
+                tl_kwargs={"optimal_ordering": True},
+                save=False,
+            )
+
             plt.savefig(f"dendrogram_before_filter_{prefix}.svg", format="svg", bbox_inches="tight")
             plt.close()
         else:
@@ -477,20 +497,39 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
             tl_kwargs={"optimal_ordering": True},
             save=False,
         )
-        
+       
     except ValueError as e:
-        if "negative distances" in str(e):
-            logger.warning(f"Optimal ordering failed — retrying without: {e}")
+        if "negative distances" not in str(e):
+            raise
+        logger.warning(f"Optimal ordering failed — retrying without: {e}")
+        try:
             ns.pp.dendrogram(
                 adata, cluster_header,
                 tl_kwargs={"optimal_ordering": False},
                 save=False,
             )
-        else:
-            raise
+        except ValueError as e2:
+            if "negative distances" not in str(e2):
+                raise
+            logger.warning(
+                f"optimal_ordering=False also failed ({e2}). "
+                f"Embedding '{embedding}' is too low-dimensional for correlation-based "
+                f"dendrogram. Computing HVG+PCA as final fallback."
+            )
+            import gc
+            gc.collect()
+            if "highly_variable" not in adata.var.columns:
+                sc.pp.highly_variable_genes(adata, n_top_genes=2000)
+            sc.pp.pca(adata, zero_center=False, use_highly_variable=True)
+            # adata.obsm["X_pca"] now has real PCA; the previous alias is overwritten.
+            ns.pp.dendrogram(
+                adata, cluster_header,
+                tl_kwargs={"optimal_ordering": True},
+                save=False,
+            )
+ 
         
     # Add gene symbols into adata.var so every downstream step has them for free
-
     ensg_to_symbol = load_gene_mapping()
     if ensg_to_symbol:
         adata = add_gene_symbols_to_adata(adata, ensg_to_symbol)
