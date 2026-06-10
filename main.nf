@@ -21,7 +21,7 @@ include { viz_2D_projection_process }      from './modules/scsilhouette/viz_2D_p
 include { viz_distribution_process }       from './modules/scsilhouette/viz_distribution.nf'
 include { viz_summary_process }            from './modules/scsilhouette/viz_summary.nf'
 
-params.batch_size        = 10
+params.batch_size        = 5
 params.datasets_csv      = null
 params.filter_obs_column = ''
 params.filter_obs_value  = ''
@@ -135,7 +135,7 @@ workflow {
     )
 
     // Step 4: Scatter run_nsforest by cluster batch
-    def batchSize = params.batch_size ?: 10
+    def batchSize = params.batch_size ?: 5
 
     nsforest_input_ch = filtered_h5ad_ch
         .join(prep_medians_output_ch.csv)
