@@ -131,17 +131,8 @@ uberon_{organ}.json
 [1] dendrogram                                   [10] compute_silhouette
 [2] cluster_stats                                [11] viz_summary
         │                                        [11] viz_distribution
-        ▼ scatter by cluster                     [11] viz_dotplot
-[4] prep_medians ×N                              [12] compute_summary_stats
-        │
-        ▼ gather
-[5] merge_medians
-        │
-        ▼ scatter by cluster
-[6] prep_binary_scores ×N
-        │
-        ▼ gather
-[6] merge_binary_scores
+        ▼                                        [11] viz_dotplot
+[4] prep (medians + binary scores)               [12] compute_summary_stats
         │
         ├── [7] plot_histograms
         │
@@ -155,7 +146,7 @@ uberon_{organ}.json
 [9] plots
 ```
 
-The scatter/gather pattern (steps 4–8) parallelizes the computationally intensive median, binary score, and NSForest steps independently across every cluster in every dataset. A dataset with 50 clusters runs 50 parallel jobs at each scatter stage.
+Prep (medians + binary scores) runs once per dataset on the full filtered h5ad. NSForest is the scatter/gather step: it parallelizes the computationally intensive marker search independently across every cluster batch — a dataset with 50 clusters runs its NSForest jobs in parallel batches, then the partial results are gathered.
 
 ## Module Structure
 
@@ -165,10 +156,7 @@ modules/
 │   ├── filter_adata.nf          ← tissue/disease/age/min-cluster filtering
 │   ├── dendrogram.nf            ← cluster dendrogram + order
 │   ├── cluster_stats.nf         ← cluster cell counts (drives scatter)
-│   ├── prep_medians.nf          ← median expression per cluster (parallel)
-│   ├── merge_medians.nf         ← gather partial medians
-│   ├── prep_binary_scores.nf    ← binary scores per cluster (parallel)
-│   ├── merge_binary_scores.nf   ← gather partial binary scores
+│   ├── prep.nf                  ← medians + binary scores in one pass
 │   ├── plot_histograms.nf       ← non-zero median/binary score histograms
 │   ├── run_nsforest.nf          ← NSForest per cluster (parallel)
 │   ├── merge_nsforest_results.nf← gather NSForest results
@@ -313,8 +301,7 @@ All must be at 768 GB for 1M+ cell datasets.
 | Process | Why |
 | ------- | --- |
 | `filter_adata_process` | HVG + PCA fallback when `--embedding` is too low-dimensional |
-| `prep_medians_process` | `ns.pp.prep_medians()` densifies each cluster's matrix via `adata_cl.to_df()` |
-| `prep_binary_scores_process` | same densification pattern as prep_medians |
+| `prep_process` | `ns.pp.prep_medians()` densifies each cluster's matrix via `adata_cl.to_df()`; binary scores derive from the medians (no extra densification) |
 | `run_nsforest_process` | Random Forest per-cluster batch (memory ∝ `batch_size × cluster_size`) |
 | `compute_silhouette_process` | O(n²) cell-cell distances |
 
