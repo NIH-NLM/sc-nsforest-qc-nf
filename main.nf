@@ -10,8 +10,7 @@ include { download_h5ad_process }          from './modules/nsforest/download_h5a
 include { filter_adata_process }           from './modules/nsforest/filter_adata.nf'
 include { generate_s3_manifest_process }   from './modules/publish/generate_s3_manifest.nf'
 include { merge_nsforest_results_process } from './modules/nsforest/merge_nsforest_results.nf'
-include { prep_medians_process }           from './modules/nsforest/prep_medians.nf'
-include { prep_binary_scores_process }     from './modules/nsforest/prep_binary_scores.nf'
+include { prep_process }                   from './modules/nsforest/prep.nf'
 include { plot_histograms_process }        from './modules/nsforest/plot_histograms.nf'
 include { plots_process }                  from './modules/nsforest/plots.nf'
 include { publish_results_process }        from './modules/publish/publish_results.nf'
@@ -122,24 +121,21 @@ workflow {
     // Step 1c: Cluster -> cell ontology ID mapping (4-column manual curation sheet)
     cluster_cid_mapping_output_ch = cluster_cid_mapping_process(filtered_h5ad_ch)
     
-    // Step 2a: Prep medians — runs once per dataset on full filtered h5ad
-    prep_medians_output_ch = prep_medians_process(filtered_h5ad_ch)
-
-    // Step 2b: Prep binary scores — runs once per dataset on full filtered h5ad
-    prep_binary_scores_output_ch = prep_binary_scores_process(filtered_h5ad_ch)
+    // Step 2: Prep — medians + binary scores in ONE pass (single load / densification)
+    prep_output_ch = prep_process(filtered_h5ad_ch)
 
     // Step 3: Plot histograms
     plot_histograms_process(
-        prep_medians_output_ch.csv
-            .join(prep_binary_scores_output_ch.csv)
+        prep_output_ch.medians_csv
+            .join(prep_output_ch.binary_csv)
     )
 
     // Step 4: Scatter run_nsforest by cluster batch
     def batchSize = params.batch_size ?: 5
 
     nsforest_input_ch = filtered_h5ad_ch
-        .join(prep_medians_output_ch.csv)
-        .join(prep_binary_scores_output_ch.csv)
+        .join(prep_output_ch.medians_csv)
+        .join(prep_output_ch.binary_csv)
         .join(dendrogram_output_ch.cluster_order)
         .flatMap { meta, h5ad, medians_csv, binary_csv, cluster_order_csv ->
             def clusters = cluster_order_csv
@@ -219,14 +215,14 @@ workflow {
             filter_adata_process.out.summary,
             filter_adata_process.out.svg,
             plots_process.out.plots,
-            prep_binary_scores_process.out.csv,
-            prep_binary_scores_process.out.csv_symbols,
-            prep_binary_scores_process.out.pkl,
-            prep_binary_scores_process.out.pkl_symbols,
-            prep_medians_process.out.csv,
-            prep_medians_process.out.csv_symbols,
-            prep_medians_process.out.pkl,
-            prep_medians_process.out.pkl_symbols,
+            prep_output_ch.medians_csv,
+            prep_output_ch.medians_csv_symbols,
+            prep_output_ch.medians_pkl,
+            prep_output_ch.medians_pkl_symbols,
+            prep_output_ch.binary_csv,
+            prep_output_ch.binary_csv_symbols,
+            prep_output_ch.binary_pkl,
+            prep_output_ch.binary_pkl_symbols,
             merge_nsforest_results_process.out.results_csv,
             merge_nsforest_results_process.out.results_csv_symbols,
             merge_nsforest_results_process.out.results_pkl,
