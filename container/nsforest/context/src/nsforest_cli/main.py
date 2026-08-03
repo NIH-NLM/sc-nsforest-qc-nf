@@ -227,6 +227,21 @@ def prep_medians_command(
     from .prep_medians import run_prep_medians
     run_prep_medians(h5ad_path, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
 
+@app.command("prep")
+def prep_command(
+    h5ad_path: Path = typer.Option(..., help="Path to adata_filtered.h5ad"),
+    cluster_header: str = typer.Option(..., help="Column name for clusters"),
+    organ: str = typer.Option(..., help="Organ/tissue"),
+    first_author: str = typer.Option(..., help="First author"),
+    journal: str = typer.Option(..., help="Journal"),
+    year: str = typer.Option(..., help="Publication year"),
+    embedding: str = typer.Option("", help="Embedding key"),
+    dataset_version_id: str = typer.Option("", help="Dataset version ID"),
+):
+    """Compute medians AND binary scores in one pass (single h5ad load / densification)."""
+    from .prep import run_prep
+    run_prep(h5ad_path, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
+
 @app.command("run-nsforest")
 def run_nsforest_command(
     h5ad_path: Path = typer.Option(..., help="Path to adata_filtered.h5ad"),
