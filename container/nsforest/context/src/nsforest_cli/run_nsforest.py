@@ -23,7 +23,8 @@ from .common_utils import (
 
 def run_nsforest(h5ad_path, medians_csv, binary_scores_csv, cluster_header,
                  organ, first_author, journal, year, embedding, dataset_version_id,
-                 cluster_list=None, n_trees=1000, n_genes_eval=6):
+                 cluster_list=None, n_trees=1000, n_genes_eval=6,
+                 max_cells_per_cluster=0, seed=42):
     """
     Run NSForest for a batch of clusters.
 
@@ -39,9 +40,9 @@ def run_nsforest(h5ad_path, medians_csv, binary_scores_csv, cluster_header,
 
     prefix = get_output_prefix( organ, first_author, journal, year, cluster_header, embedding, dataset_version_id )
 
-    # Load filtered adata
+    # Load filtered adata (no .copy(): the positive-gene subset below makes a fresh object,
+    # so an extra full-matrix copy here just doubled peak RAM on large datasets).
     adata_prep = load_h5ad(h5ad_path, cluster_header)
-    adata_prep = adata_prep.copy()
 
     # Load medians and binary scores CSVs (gene-by-cluster, matching DEMO)
     logger.info(f"Loading medians: {medians_csv}")
@@ -87,6 +88,29 @@ def run_nsforest(h5ad_path, medians_csv, binary_scores_csv, cluster_header,
     # Attach to varm — gene-by-cluster, matching DEMO
     adata_prep.varm['medians_' + cluster_header] = df_medians
     adata_prep.varm['binary_scores_' + cluster_header] = df_binary_scores
+
+    # Optional: cap cells per cluster for the RandomForest / evaluation (memory + time at scale).
+    # Applied AFTER attaching full-data medians/binary_scores to varm, so candidate-gene
+    # selection stays full-data; only the RF training + F-beta evaluation see the subsample.
+    # Stratified + seeded → reproducible; clusters smaller than the cap keep all their cells.
+    if max_cells_per_cluster and max_cells_per_cluster > 0:
+        import numpy as np
+        rng = np.random.default_rng(seed)
+        groups = adata_prep.obs.groupby(cluster_header, observed=True).indices
+        keep = []
+        for cl, idx in groups.items():
+            idx = np.asarray(idx)
+            if len(idx) > max_cells_per_cluster:
+                idx = rng.choice(idx, size=max_cells_per_cluster, replace=False)
+            keep.append(idx)
+        keep_idx = np.sort(np.concatenate(keep))
+        n_before = adata_prep.n_obs
+        adata_prep = adata_prep[keep_idx].copy()
+        logger.info(
+            f"Subsampled cells for NSForest: {n_before} -> {adata_prep.n_obs} "
+            f"(max {max_cells_per_cluster}/cluster, seed={seed}). "
+            f"Medians/binary scores remain full-data."
+        )
 
     # Run NSForest
     if cluster_list:
