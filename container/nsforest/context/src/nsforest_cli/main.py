@@ -194,39 +194,6 @@ def plots_command(
     from .plots import run_plots
     run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
 
-@app.command("prep-binary-scores")
-def prep_binary_scores_command(
-    h5ad_path: Path = typer.Option(..., help="Path to adata_filtered.h5ad"),
-    cluster_header: str = typer.Option(..., help="Column name for clusters"),
-    organ: str = typer.Option(..., help="Organ/tissue"),
-    first_author: str = typer.Option(..., help="First author"),
-    journal: str = typer.Option(..., help="Journal"),
-    year: str = typer.Option(..., help="Publication year"),
-    embedding: str = typer.Option("", help="Embedding key"),
-    dataset_version_id: str = typer.Option("", help="Dataset version ID"),
-
-):
-    """Compute binary scores per cluster. Saves binary_scores csv + pkl."""
-    from .prep_binary_scores import run_prep_binary_scores
-    run_prep_binary_scores(h5ad_path, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
-
-
-@app.command("prep-medians")
-def prep_medians_command(
-    h5ad_path: Path = typer.Option(..., help="Path to adata_filtered.h5ad"),
-    cluster_header: str = typer.Option(..., help="Column name for clusters"),
-    organ: str = typer.Option(..., help="Organ/tissue"),
-    first_author: str = typer.Option(..., help="First author"),
-    journal: str = typer.Option(..., help="Journal"),
-    year: str = typer.Option(..., help="Publication year"),
-    embedding: str = typer.Option("", help="Embedding key"),
-    dataset_version_id: str = typer.Option("", help="Dataset version ID"),
-
-):
-    """Compute median expression per cluster. Saves medians csv + pkl."""
-    from .prep_medians import run_prep_medians
-    run_prep_medians(h5ad_path, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
-
 @app.command("prep")
 def prep_command(
     h5ad_path: Path = typer.Option(..., help="Path to adata_filtered.h5ad"),
