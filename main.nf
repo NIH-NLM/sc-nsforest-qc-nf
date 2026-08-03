@@ -31,6 +31,10 @@ params.hsapdv_json       = null
 params.min_cluster_size  = 5
 params.outdir            = './'
 params.publish_mode      = 'copy'
+params.n_trees               = 1000
+params.max_cells_per_cluster = 0
+params.nsforest_seed         = 42
+params.nsforest_memory       = '1024 GB'
 
 workflow {
     log.info "workflow.workDir    : ${workflow.workDir}"

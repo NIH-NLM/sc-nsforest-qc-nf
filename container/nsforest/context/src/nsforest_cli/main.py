@@ -239,12 +239,15 @@ def run_nsforest_command(
     cluster_list: str = typer.Option(None, help="Comma-separated cluster list (for parallelization)"),
     n_trees: int = typer.Option(1000, help="Number of trees in random forest"),
     n_genes_eval: int = typer.Option(6, help="Number of top genes to evaluate"),
+    max_cells_per_cluster: int = typer.Option(0, help="Cap cells per cluster for the RF/eval (0 = no cap). Full-data medians/binary scores unaffected."),
+    seed: int = typer.Option(42, help="Random seed for the max-cells-per-cluster subsample"),
 ):
     """Run NSForest algorithm to identify marker genes."""
     from .run_nsforest import run_nsforest
     clusters = cluster_list.split(',') if cluster_list else None
     run_nsforest(h5ad_path, medians_csv, binary_scores_csv, cluster_header,
-                 organ, first_author, journal, year, embedding, dataset_version_id, clusters, n_trees, n_genes_eval)
+                 organ, first_author, journal, year, embedding, dataset_version_id, clusters, n_trees, n_genes_eval,
+                 max_cells_per_cluster=max_cells_per_cluster, seed=seed)
 
 
 if __name__ == "__main__":
