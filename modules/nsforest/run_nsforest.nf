@@ -31,7 +31,9 @@ process run_nsforest_process {
 	--embedding "${meta.embedding}" \
 	--dataset-version-id "${meta.dataset_version_id}" \
         --cluster-list '${cluster}' \
-        --n-trees 1000 \
-        --n-genes-eval 6
+        --n-trees ${params.n_trees} \
+        --n-genes-eval 6 \
+        --max-cells-per-cluster ${params.max_cells_per_cluster} \
+        --seed ${params.nsforest_seed}
     """
 }

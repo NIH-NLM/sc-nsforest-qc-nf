@@ -4,6 +4,7 @@ Common utilities for NSForest CLI commands.
 import csv
 import scanpy as sc
 import pandas as pd
+import numpy as np
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
@@ -41,7 +42,18 @@ def load_h5ad(h5ad_path, cluster_header):
                 msg = "Converting dense X to CSR sparse"
             logger.info(msg)
             adata.X = sp.csr_matrix(adata.X)
-    
+
+    # Large concatenated matrices can exceed 2**31 non-zeros, which forces scipy to use int64
+    # for indptr but can leave indices as int32 — a mismatch that crashes column-subset ops
+    # (scipy csr_column_index1: "Output dtype not compatible with inputs"). Normalize to int64.
+    if sp.issparse(adata.X) and adata.X.nnz > 2**31 - 1:
+        X = adata.X.tocsr()
+        if X.indices.dtype != np.int64 or X.indptr.dtype != np.int64:
+            logger.info(f"Large sparse matrix (nnz={X.nnz:,} > 2^31) — promoting CSR indices to int64")
+            X.indices = X.indices.astype(np.int64)
+            X.indptr  = X.indptr.astype(np.int64)
+            adata.X = X
+
     logger.info(f"Loaded: {adata.n_obs} cells x {adata.n_vars} genes")
 
     if cluster_header not in adata.obs.columns:
