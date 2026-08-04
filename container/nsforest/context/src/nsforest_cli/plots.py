@@ -29,7 +29,8 @@ from .gene_mapping_utils import (
 )
 
 
-def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id):
+def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id,
+              max_cells_per_cluster=0, seed=42):
     """
     Create NSForest visualization plots with gene symbol mapping.
     """
@@ -80,6 +81,26 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journ
     # The dendrogram reorder will fail because it cant join floats as strings...
     adata = adata[adata.obs[cluster_header].notna()].copy()
     adata.obs[cluster_header] = adata.obs[cluster_header].astype(str).astype("category")
+
+    # Cap cells per cluster for the expression plots — dotplot/violin/matrix aggregate per cluster,
+    # so a few thousand cells/cluster is plenty, while the full multi-million-cell matrix OOMs
+    # plotting. Stratified + seeded; clusters smaller than the cap keep all their cells.
+    if max_cells_per_cluster and max_cells_per_cluster > 0:
+        import numpy as np
+        rng = np.random.default_rng(seed)
+        groups = adata.obs.groupby(cluster_header, observed=True).indices
+        keep = []
+        for cl, idx in groups.items():
+            idx = np.asarray(idx)
+            if len(idx) > max_cells_per_cluster:
+                idx = rng.choice(idx, size=max_cells_per_cluster, replace=False)
+            keep.append(idx)
+        keep_idx = np.sort(np.concatenate(keep))
+        n_before = adata.n_obs
+        adata = adata[keep_idx].copy()
+        logger.info(f"Subsampled cells for plotting: {n_before} -> {adata.n_obs} "
+                    f"(max {max_cells_per_cluster}/cluster, seed={seed})")
+
     # Dotplot
     ns.pl.dotplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                   gene_symbols='gene_symbol', save="svg", output_folder="",
