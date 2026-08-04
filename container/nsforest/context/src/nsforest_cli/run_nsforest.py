@@ -53,6 +53,30 @@ def run_nsforest(h5ad_path, medians_csv, binary_scores_csv, cluster_header,
     df_binary_scores = pd.read_csv(binary_scores_csv, index_col=0)
     logger.info(f"Binary scores shape: {df_binary_scores.shape}")
 
+    # Cap cells per cluster BEFORE the positive-gene subset. The column-subset
+    # (adata[:, genes].copy()) on the full multi-million-cell matrix was the OOM peak, so shrink
+    # cells first — the gene-subset and everything downstream then run on the reduced matrix.
+    # Medians/binary come from the full-data CSVs regardless, so candidate-gene selection stays
+    # full-data. Stratified + seeded; clusters smaller than the cap keep all their cells.
+    if max_cells_per_cluster and max_cells_per_cluster > 0:
+        import numpy as np
+        rng = np.random.default_rng(seed)
+        groups = adata_prep.obs.groupby(cluster_header, observed=True).indices
+        keep = []
+        for cl, idx in groups.items():
+            idx = np.asarray(idx)
+            if len(idx) > max_cells_per_cluster:
+                idx = rng.choice(idx, size=max_cells_per_cluster, replace=False)
+            keep.append(idx)
+        keep_idx = np.sort(np.concatenate(keep))
+        n_before = adata_prep.n_obs
+        adata_prep = adata_prep[keep_idx].copy()
+        logger.info(
+            f"Subsampled cells: {n_before} -> {adata_prep.n_obs} "
+            f"(max {max_cells_per_cluster}/cluster, seed={seed}). "
+            f"Medians/binary scores remain full-data."
+        )
+
     # Subset adata_prep to positive genes (index of medians CSV)
     adata_prep = adata_prep[:, df_medians.index].copy()
 
@@ -88,29 +112,6 @@ def run_nsforest(h5ad_path, medians_csv, binary_scores_csv, cluster_header,
     # Attach to varm — gene-by-cluster, matching DEMO
     adata_prep.varm['medians_' + cluster_header] = df_medians
     adata_prep.varm['binary_scores_' + cluster_header] = df_binary_scores
-
-    # Optional: cap cells per cluster for the RandomForest / evaluation (memory + time at scale).
-    # Applied AFTER attaching full-data medians/binary_scores to varm, so candidate-gene
-    # selection stays full-data; only the RF training + F-beta evaluation see the subsample.
-    # Stratified + seeded → reproducible; clusters smaller than the cap keep all their cells.
-    if max_cells_per_cluster and max_cells_per_cluster > 0:
-        import numpy as np
-        rng = np.random.default_rng(seed)
-        groups = adata_prep.obs.groupby(cluster_header, observed=True).indices
-        keep = []
-        for cl, idx in groups.items():
-            idx = np.asarray(idx)
-            if len(idx) > max_cells_per_cluster:
-                idx = rng.choice(idx, size=max_cells_per_cluster, replace=False)
-            keep.append(idx)
-        keep_idx = np.sort(np.concatenate(keep))
-        n_before = adata_prep.n_obs
-        adata_prep = adata_prep[keep_idx].copy()
-        logger.info(
-            f"Subsampled cells for NSForest: {n_before} -> {adata_prep.n_obs} "
-            f"(max {max_cells_per_cluster}/cluster, seed={seed}). "
-            f"Medians/binary scores remain full-data."
-        )
 
     # Run NSForest
     if cluster_list:
