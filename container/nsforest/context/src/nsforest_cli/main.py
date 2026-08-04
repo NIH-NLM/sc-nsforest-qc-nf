@@ -188,11 +188,13 @@ def plots_command(
     year: str = typer.Option(..., help="Publication year"),
     embedding: str = typer.Option("", help="Embedding key"),
     dataset_version_id: str = typer.Option("", help="Dataset version ID"),
-
+    max_cells_per_cluster: int = typer.Option(0, help="Cap cells per cluster for the expression plots (0 = no cap)."),
+    seed: int = typer.Option(42, help="Random seed for the plotting subsample"),
 ):
     """Create NSForest visualization plots with gene symbol mapping."""
     from .plots import run_plots
-    run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
+    run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id,
+              max_cells_per_cluster=max_cells_per_cluster, seed=seed)
 
 @app.command("prep")
 def prep_command(
