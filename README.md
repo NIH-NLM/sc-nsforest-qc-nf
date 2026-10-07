@@ -2,7 +2,6 @@
 
 [![Documentation Status](https://github.com/NIH-NLM/sc-nsforest-qc-nf/actions/workflows/docs.yml/badge.svg)](https://nih-nlm.github.io/sc-nsforest-qc-nf/)
 [![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A523.04.0-brightgreen.svg)](https://www.nextflow.io/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Nextflow pipeline for NSForest marker gene discovery and silhouette score quality control of single-cell RNA-seq data.
 
