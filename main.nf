@@ -106,6 +106,30 @@ workflow {
                 h5ad_url:                           row.h5ad_url,
                 session_id:                         workflow.sessionId.toString()[-6..-1],
             ]
+            // everything the harvester recorded comes from its JSON, not from the CSV
+            if (json) {
+                def rec  = new groovy.json.JsonSlurper().parseText(json.text)
+                def summ = { Map m -> m.collect { k, v -> "${k}: ${v}" }.join('; ') }
+                def ds   = rec.dataset
+                meta += [
+                    first_author:               ds.first_author.toString(),
+                    year:                       ds.year.toString(),
+                    doi:                        ds.doi,
+                    journal:                    ds.journal,
+                    collection_name:            ds.collection_name,
+                    dataset_title:              ds.dataset_title,
+                    collection_url:             ds.collection_url,
+                    explorer_url:               ds.explorer_url,
+                    dataset_version_id:         ds.dataset_version_id,
+                    disease:                    rec.filtered_disease.join(' | '),
+                    tissue_ontology_summary:    summ(rec.filtered_tissue_ontology_id_summary),
+                    assay_ontology_summary:     summ(rec.filtered_assay_ontology_id_summary),
+                    cell_type_ontology_summary: summ(rec.filtered_cell_type_ontology_id_summary),
+                    disease_ontology_summary:   summ(rec.filtered_disease_ontology_id_summary),
+                    sex_ontology_summary:       summ(rec.filtered_sex_ontology_id_summary),
+                    development_stage_summary:  summ(rec.filtered_development_stage_ontology_id_summary),
+                ]
+            }
             tuple(meta, row.h5ad_url, json)
         }
 
