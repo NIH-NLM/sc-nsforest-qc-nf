@@ -11,7 +11,7 @@
  * Input:
  * ------
  * @param tuple:
- *   - meta:         Map with organ, first_author, journal, year, author_cell_type, embedding, vid, filter
+ *   - meta:         Map with organ, first_author, journal, year, author_cell_type, embedding, vid
  *   - h5ad:         Path to input h5ad (downloaded from CellxGene)
  *   - uberon_json:  Path to uberon_{organ}.json from cellxgene-harvester resolve-uberon
  *   - disease_json: Path to disease_normal.json from cellxgene-harvester resolve-disease
@@ -44,7 +44,6 @@ process filter_adata_process {
     
 
     script:
-    def filter_flag     = meta.filter == "True" ? "--filter-normal" : ""
     def obs_col_flag    = meta.filter_obs_column ? "--filter-obs-column ${meta.filter_obs_column}" : ""
     def obs_val_flag    = meta.filter_obs_value  ? "--filter-obs-value ${meta.filter_obs_value}"   : ""
     def min_cluster_val = params.min_cluster_size ?: 5
@@ -56,7 +55,6 @@ process filter_adata_process {
         --first-author "${meta.first_author}" \
 	--journal "${meta.journal}" \
         --year "${meta.year}" \
-        ${filter_flag} \
         --uberon ${uberon_json} \
         --disease ${disease_json} \
         --hsapdv ${hsapdv_json} \

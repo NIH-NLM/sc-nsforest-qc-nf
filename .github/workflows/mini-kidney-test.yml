@@ -1,0 +1,95 @@
+name: Mini kidney test
+
+# Runs the whole workflow on one small dataset (Lake 2023 kidney, 3514 cells) taken from the
+# output of cellxgene-harvester-nf: its CSV, its JSON record and its filtered h5ad.
+on:
+  workflow_dispatch:
+    inputs:
+      data_repo:
+        description: Repository holding the cellxgene-harvester-nf test output
+        default: NIH-NLM/nlm-ckn
+      data_ref:
+        description: Branch (or tag) of that repository
+        default: 2026-oct-07-2243-kidney-cellxgene-harvester-nf
+      n_trees:
+        description: NSForest trees (fewer is faster)
+        default: '100'
+
+permissions:
+  contents: read
+
+jobs:
+  mini-kidney:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      RAW: https://raw.githubusercontent.com/${{ inputs.data_repo }}/${{ inputs.data_ref }}/data/test/kidney
+      ID: 0b75c598-0893-4216-afe8-5414cab7739d
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Nextflow
+        uses: nf-core/setup-nextflow@v2
+
+      - name: Fetch the harvester output
+        run: |
+          mkdir -p testdata/h5ad testdata/json
+          H=$RAW/cellxgene-harvester-nf
+          curl -fL $H/homo_sapiens_kidney_harvester_final.csv -o testdata/harvester.csv
+          for f in uberon_kidney disease_normal hsapdv_adult_15; do
+            curl -fL $H/$f.json -o testdata/$f.json
+          done
+          curl -fL $H/homo_sapiens_kidney_harvester/$ID.filtered.json -o testdata/json/$ID.filtered.json
+          curl -fL $RAW/filtered-h5ad/$ID.filtered.h5ad -o testdata/h5ad/$ID.filtered.h5ad
+          ls -lh testdata testdata/*
+
+      - name: Fill author_cell_type and embedding
+        # the harvester leaves these two columns for the curator; Lake 2023 uses subclass.full and X_umap
+        run: |
+          python3 - <<'PY'
+          import csv
+          rows = list(csv.DictReader(open('testdata/harvester.csv')))
+          for r in rows:
+              r['author_cell_type'] = r['author_cell_type'] or 'subclass.full'
+              r['embedding'] = r['embedding'] or 'X_umap'
+          with open('testdata/datasets.csv', 'w', newline='') as f:
+              w = csv.DictWriter(f, fieldnames=rows[0].keys())
+              w.writeheader()
+              w.writerows(rows)
+          PY
+
+      - name: Run the workflow
+        run: |
+          nextflow run main.nf \
+            -c configs/ci.config \
+            --datasets_csv testdata/datasets.csv \
+            --organ kidney \
+            --uberon_json testdata/uberon_kidney.json \
+            --disease_json testdata/disease_normal.json \
+            --hsapdv_json testdata/hsapdv_adult_15.json \
+            --h5ad_dir testdata/h5ad \
+            --harvester_json_dir testdata/json \
+            --n_trees ${{ inputs.n_trees }} \
+            --outdir results
+
+      - name: Check the outputs
+        run: |
+          ls -lh results
+          test -n "$(ls results/*adata_filtered*.h5ad 2>/dev/null)"
+          test -n "$(ls results/*.csv 2>/dev/null)"
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mini-kidney-results
+          path: |
+            results/
+            .nextflow.log
+          if-no-files-found: warn

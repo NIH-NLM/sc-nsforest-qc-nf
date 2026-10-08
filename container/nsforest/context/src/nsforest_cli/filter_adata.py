@@ -206,7 +206,7 @@ def filter_by_tissue(adata, uberon_json=None, row_ids=None):
     return adata
 
 
-def filter_by_disease(adata, disease_json=None, filter_normal=False, row_ids=None):
+def filter_by_disease(adata, disease_json=None, row_ids=None):
     """Filter cells using disease_ontology_term_id.
 
     Uses row_ids (pipe-separated IDs from the CSV row's disease_ontology_term_id
@@ -214,16 +214,11 @@ def filter_by_disease(adata, disease_json=None, filter_normal=False, row_ids=Non
 
     Args:
         adata:         AnnData object
-        disease_json:  Path to disease JSON. Skipped if None or filter_normal=False.
-        filter_normal: If False, no disease filtering is applied.
+        disease_json:  Path to disease JSON. Skipped if None.
         row_ids:       Pipe-separated disease ontology term IDs from the CSV row.
     """
-    if not filter_normal:
-        logger.info("filter_normal=False - keeping all disease states")
-        return adata
-
     if not disease_json:
-        logger.warning("filter_normal=True but no --disease file provided - skipping disease filter")
+        logger.info("no --disease file provided - keeping all disease states")
         return adata
 
     id_col = "disease_ontology_term_id"
@@ -248,7 +243,7 @@ def filter_by_disease(adata, disease_json=None, filter_normal=False, row_ids=Non
     return adata
 
 
-def filter_by_age(adata, hsapdv_json=None, filter_normal=False, row_ids=None):
+def filter_by_age(adata, hsapdv_json=None, row_ids=None):
     """Filter cells using development_stage_ontology_term_id.
 
     Uses row_ids (pipe-separated IDs from the CSV row's
@@ -257,16 +252,11 @@ def filter_by_age(adata, hsapdv_json=None, filter_normal=False, row_ids=None):
 
     Args:
         adata:         AnnData object
-        hsapdv_json:   Path to HsapDv JSON. Skipped if None or filter_normal=False.
-        filter_normal: If False, no age filtering is applied.
+        hsapdv_json:   Path to HsapDv JSON. Skipped if None.
         row_ids:       Pipe-separated HsapDv term IDs from the CSV row.
     """
-    if not filter_normal:
-        logger.info("filter_normal=False - skipping age filter")
-        return adata
-
     if not hsapdv_json:
-        logger.warning("filter_normal=True but no --hsapdv file provided - skipping age filter")
+        logger.info("no --hsapdv file provided - skipping age filter")
         return adata
 
     id_col = "development_stage_ontology_term_id"
@@ -340,7 +330,6 @@ def filter_by_min_cluster_size(adata, cluster_header, min_size=5):
 # =============================================================================
 
 def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id,
-                     filter_normal=False,
                      uberon_json=None,
                      disease_json=None,
                      hsapdv_json=None,
@@ -370,7 +359,6 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
         year:             Publication year (used for output directory)
         embedding:        embedding (used for output directory)
         dataset_version_id: dataset_version_id (used for output directory)
-        filter_normal:    If True, apply tissue + disease + age filters
         uberon_json:      Path to UBERON JSON from resolve-uberon
         disease_json:     Path to disease JSON from resolve-disease
         hsapdv_json:      Path to HsapDv JSON from resolve-hsapdv --min-age N
@@ -444,10 +432,10 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
     adata = filter_by_tissue(adata, uberon_json, row_ids=row_uberon_ids)
 
     logger.info("\n[2/5] Disease filter")
-    adata = filter_by_disease(adata, disease_json, filter_normal, row_ids=row_disease_ids)
+    adata = filter_by_disease(adata, disease_json, row_ids=row_disease_ids)
 
     logger.info("\n[3/5] Age filter")
-    adata = filter_by_age(adata, hsapdv_json, filter_normal, row_ids=row_hsapdv_ids)
+    adata = filter_by_age(adata, hsapdv_json, row_ids=row_hsapdv_ids)
 
     logger.info("\n[4/5] Obs column filter")
     if filter_obs_column and filter_obs_value:

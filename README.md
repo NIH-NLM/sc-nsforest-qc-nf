@@ -64,7 +64,6 @@ Produced by [cellxgene-harvester](https://github.com/NIH-NLM/cellxgene-harvester
 | `author_cell_type` | `obs` column name for cluster labels |
 | `embedding` | Embedding key (e.g. `X_umap`) |
 | `disease` | Disease state label for annotation output |
-| `filter_normal` | `True` / `False` — apply tissue + disease + age filtering |
 | `reference` | Processing flag — see below |
 
 **`reference` column values:**
