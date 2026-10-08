@@ -38,10 +38,6 @@ jobs:
         run: |
           mkdir -p docs/source/_static docs/source/_templates
 
-      - name: Create README symlink
-        run: |
-          ln -sf ../../../README.md docs/source/README.md
-
       - name: Generate Nextflow module docs
         run: python3 docs/parse_nf_docs.py
 
