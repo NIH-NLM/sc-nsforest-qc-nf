@@ -51,74 +51,88 @@ No Python installation is required — all computation runs inside containers.
 
 ## Inputs
 
-### Datasets CSV (`homo_sapiens_{organ}_harvester_final.csv`)
+The inputs are the output of [cellxgene-harvester-nf](https://github.com/NIH-NLM/cellxgene-harvester-nf): one JSON record for each dataset, the resolve files, and the filtered h5ad files.
 
-Produced by [cellxgene-harvester](https://github.com/NIH-NLM/cellxgene-harvester). One row per dataset. Required columns:
+### Harvester records (`<dataset_id>.filtered.json`)
 
-| Column | Description |
+One JSON file for each dataset, in the folder given by `--harvester_json_dir`. There is no CSV: the record holds everything about the dataset (details, source and filtered counts, ontology ids and names, the filter choices) and a `curation` block:
+
+| Field | Description |
 |---|---|
-| `h5ad_file` | Path to input h5ad file (CellxGene format) |
-| `first_author` | First author surname — used in output directory naming |
-| `year` | Publication year — used in output directory naming |
-| `author_cell_type` | `obs` column name for cluster labels |
-| `embedding` | Embedding key (e.g. `X_umap`) |
-| `disease` | Disease state label for annotation output |
-| `reference` | Processing flag — see below |
+| `curation.reference` | Processing flag — see below |
+| `curation.author_cell_type` | `obs` column name for the cluster labels. **The curator fills this in**; the run stops if it is empty |
+| `curation.embedding` | Embedding key, for example `X_umap`. **The curator fills this in**; the run stops if it is empty |
+| `filtered_h5ad_url` | `https://` or `s3://` address (downloaded), or the filtered h5ad written by cellxgene-harvester-nf (read from `--h5ad_dir`, or relative to the folder of the records) |
 
-**`reference` column values:**
+**`curation.reference` values:**
 
 | Value | Behaviour |
 |---|---|
-| `yes`, `no`, `unk` | Row is processed |
-| `question`, `merge` | Row is **skipped** — logged at INFO level |
+| `yes`, `no`, `unk` | Dataset is processed |
+| `exclude`, `delete`, `merge`, `question` | Dataset is **skipped** — logged at INFO level |
 
-### UBERON JSON (`uberon_{organ}.json`)
+### Resolve files (`uberon_{organ}.json`, `disease_normal.json`, `hsapdv_adult_15.json`)
 
-Produced by `cellxgene-harvester resolve-uberon`. Encodes the full anatomical unit for the organ being processed — for example, `heart` includes heart, pericardium, and all UBERON descendant terms. The same file is used for every dataset in the run and drives:
+Produced by cellxgene-harvester-nf (`resolve-uberon`, `resolve-disease`, `resolve-hsapdv`). The same files are used for every dataset in the run. `filter-adata` applies them again to the h5ad:
 
 1. **Tissue filter** — `tissue_ontology_term_id.isin(obo_ids)`
-2. **Disease filter** — `disease_ontology_term_id == PATO:0000461`
-3. **Age filter** — `development_stage` text parsed, cells with age ≥ `--min_age` retained
+2. **Disease filter** — `disease_ontology_term_id.isin(obo_ids)`
+3. **Age filter** — `development_stage_ontology_term_id.isin(obo_ids)`
+4. **Minimum cluster size** — clusters with fewer than `--min_cluster_size` cells are dropped
 
-These filters are applied identically by both `filter-adata` (nsforest-cli) and `compute-silhouette` (scsilhouette).
+With the files cellxgene-harvester-nf used, the first three remove nothing. Only the cluster filter can change the cell count. The h5ad that the later steps read is the one `filter-adata` writes, not the harvester's file.
 
 ### Input file location
 
-Both input files are deposited manually after human review into:
+Reviewed files are deposited in:
 ```
-cell-kn/data/prod/{organ}/cellxgene-harvester/
-    homo_sapiens_{organ}_harvester_final.csv
-    uberon_{organ}.json
+nlm-ckn/data/prod/{organ}/cellxgene-harvester-nf/
+    {organism}_{organ}_harvester/<dataset_id>.filtered.json
+    uberon_{organ}.json, disease_normal.json, hsapdv_adult_15.json
 ```
 
 ## Quick Start
 
 ```bash
 nextflow run main.nf \
-    --datasets_csv homo_sapiens_kidney_harvester_final.csv \
+    --harvester_json_dir homo_sapiens_kidney_harvester \
+    --h5ad_dir filtered_h5ad \
+    --s3_h5ad_prefix s3://BUCKET/PATH \
     --organ kidney \
     --uberon_json uberon_kidney.json \
-    --disease disease_normal.json \
-    --hsapdv hsapdv_15.json
+    --disease_json disease_normal.json \
+    --hsapdv_json hsapdv_adult_15.json \
     --github_token {{$secret_github_token}}
 ```
 
+Leave out `--github_token` to skip the publish step. On a small machine (a laptop, a GitHub runner) add `-profile ci` to lower the CPU and memory requests.
+
 ### All parameters
+
+Every parameter is set, with a comment, in the `params` block of `nextflow.config`.
 
 | Parameter | Default | Description |
 |---|---|---|
-| `--datasets_csv` | required | Path to `homo_sapiens_{organ}_harvester_final.csv` |
-| `--organ` | required | Organ label (e.g. `kidney`, `heart`) — used in output directory naming |
-| `--uberon_json` | required | Path to `uberon_{organ}.json` |
-| `--min_age` | `15` | Minimum donor age in years for adult cell filtering |
-| `--min_cluster_size` | `5` | Minimum cells per cluster — smaller clusters dropped and logged |
-| `--outdir` | `./results` | Output directory |
+| `--organ` | required | Organ label (e.g. `kidney`) — used in output naming |
+| `--uberon_json`, `--disease_json`, `--hsapdv_json` | required | The resolve files |
+| `--harvester_json_dir` | required | Folder of `<dataset_id>.filtered.json` from cellxgene-harvester-nf |
+| `--h5ad_dir` | none | Folder of the filtered h5ad files; none = relative to the folder of the records |
+| `--s3_h5ad_prefix` | none | Public S3 folder where the final filtered h5ad files will be; written to `s3_filtered_h5ad` in the ETL JSON. none = the local file name (tests) |
+| `--min_cluster_size` | `5` | Minimum cells per cluster — smaller clusters dropped |
+| `--filter_obs_column`, `--filter_obs_value` | empty | Keep only the cells with this value in this `obs` column |
+| `--batch_size` | `5` | Clusters in one NSForest task |
+| `--n_trees` | `1000` | NSForest trees |
+| `--max_cells_per_cluster` | `0` | 0 = no subsampling |
+| `--nsforest_seed` | `42` | NSForest random seed |
+| `--outdir` | `results` | Output directory |
 | `--publish_mode` | `copy` | Nextflow `publishDir` mode |
+| `--github_token` | none | Pushes the results to a branch of `--publish_repo`; none skips the step |
+| `--publish_repo` | `NIH-NLM/cell-kn` | Repository the results are pushed to |
 
 ## Workflow Architecture
 
 ```
-homo_sapiens_{organ}_harvester_final.csv
+<dataset_id>.filtered.json (one for each dataset)
 uberon_{organ}.json
         │
         ▼
@@ -172,6 +186,15 @@ modules/
 The `modules/nsforest` processes call `nsforest-cli`, a workflow-internal command-line wrapper around the [NSForest](https://github.com/JCVenterInstitute/NSForest) library from the J. Craig Venter Institute. It is not published as a standalone package — it is bundled inside the `ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest` container and is specific to this workflow.
 
 For the underlying NSForest algorithm, marker gene selection methodology, and citation information, refer to the **[NSForest repository](https://github.com/JCVenterInstitute/NSForest)**.
+
+## Output for the ETL
+
+For each dataset the workflow writes `sc_nsforest_qc_{organ}_{first_author}_{year}_{embedding}_{version}.json`, the one file that goes on to the ETL. Nothing is left out:
+
+- `harvester`: the whole cellxgene-harvester-nf record
+- `sc_nsforest_qc`: the run parameters, the `dataset_summary` (clusters, silhouette and F-score statistics, final cell count), the final filtered h5ad file name `filtered_h5ad`, and its location `s3_filtered_h5ad`
+
+`s3_filtered_h5ad` is `<--s3_h5ad_prefix>/<file name>`. In a test, without the prefix, it is the local file name. The final filtered h5ad is `adata_filtered_*.h5ad`, the file all the NSForest and silhouette results were computed on.
 
 ## Output Structure
 
