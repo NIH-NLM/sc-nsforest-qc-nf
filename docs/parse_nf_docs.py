@@ -116,6 +116,9 @@ def _docstring_to_rst(docstring: str) -> str:
             out.append(line.rstrip())
             out.append('~' * len(line.rstrip()))
             i += 1
+            # skip the '-------' rule written under Input:/Output: (RST would read it as a title)
+            if i < len(lines) and re.match(r'^-{3,}\s*$', lines[i]):
+                i += 1
             continue
 
         # Detect code blocks indented by 4+ spaces
