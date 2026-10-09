@@ -1,2 +1,0 @@
-[console_scripts]
-nsforest-cli = nsforest_cli.main:app
