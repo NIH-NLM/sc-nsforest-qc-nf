@@ -1,0 +1,7 @@
+typer[all]
+scanpy
+numpy
+pandas
+scipy
+plotly
+kaleido

@@ -302,6 +302,41 @@ def filter_by_age(adata, hsapdv_json=None, row_ids=None):
     return adata
 
 
+def filter_by_assay(adata, assay_json=None):
+    """Keep only cells of the assays (techniques) in an allow-list.
+
+    The file comes from cellxgene-harvester resolve-assay: "assays" lists the
+    assays that were wanted, "obo_ids" their EFO ids. Cells of any other assay
+    are removed. The file is required.
+
+    Args:
+        adata:      AnnData object
+        assay_json: Path to the resolve-assay JSON.
+    """
+    if not assay_json:
+        raise ValueError("an assay file is required (--assay, from cellxgene-harvester resolve-assay)")
+
+    id_col = "assay_ontology_term_id"
+    if id_col not in adata.obs.columns:
+        raise ValueError(f"'{id_col}' not found in adata.obs, so the assay filter cannot be applied")
+
+    with open(assay_json) as f:
+        data = json.load(f)
+    obo_ids = set(data["obo_ids"])
+    labels  = {a["obo_id"]: a["label"] for a in data.get("assays", [])}
+    logger.info(f"  Loaded assay JSON   : {assay_json}")
+    logger.info(f"  Assays wanted       : {', '.join(sorted(labels.values())) or len(obo_ids)}")
+
+    n_before = adata.n_obs
+    for term_id, count in adata.obs[id_col].value_counts().items():
+        status = "KEPT    " if term_id in obo_ids else "EXCLUDED"
+        logger.info(f"    {status} {term_id}  {labels.get(term_id, '')}: {count:,} cells")
+    adata = adata[adata.obs[id_col].isin(obo_ids)].copy()
+    logger.info(f"Assay filter (EFO IDs): {n_before} -> {adata.n_obs} cells "
+                f"({n_before - adata.n_obs} removed)")
+    return adata
+
+
 def filter_by_min_cluster_size(adata, cluster_header, min_size=5):
     """Remove clusters with fewer than min_size cells."""
     logger.info(f"Filtering clusters with < {min_size} cells")
@@ -333,6 +368,7 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
                      uberon_json=None,
                      disease_json=None,
                      hsapdv_json=None,
+                     assay_json=None,
                      min_cluster_size=5,
                      row_uberon_ids=None,
                      row_disease_ids=None,
@@ -428,16 +464,19 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
 
     logger.info("\n=== Applying Filters ===")
 
-    logger.info("\n[1/5] Tissue filter")
+    logger.info("\n[1/6] Tissue filter")
     adata = filter_by_tissue(adata, uberon_json, row_ids=row_uberon_ids)
 
-    logger.info("\n[2/5] Disease filter")
+    logger.info("\n[2/6] Disease filter")
     adata = filter_by_disease(adata, disease_json, row_ids=row_disease_ids)
 
-    logger.info("\n[3/5] Age filter")
+    logger.info("\n[3/6] Age filter")
     adata = filter_by_age(adata, hsapdv_json, row_ids=row_hsapdv_ids)
 
-    logger.info("\n[4/5] Obs column filter")
+    logger.info("\n[4/6] Assay filter")
+    adata = filter_by_assay(adata, assay_json)
+
+    logger.info("\n[5/6] Obs column filter")
     if filter_obs_column and filter_obs_value:
         col = filter_obs_column
         val = filter_obs_value
@@ -455,7 +494,7 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
     else:
         logger.info("No obs column filter requested — skipping")
 
-    logger.info("\n[5/5] Min cluster size filter")
+    logger.info("\n[6/6] Min cluster size filter")
     adata = filter_by_min_cluster_size(adata, cluster_header, min_cluster_size)
 
     logger.info(f"\nFinal filtered data: {adata.n_obs} cells, {adata.n_vars} genes, "

@@ -1,7 +1,7 @@
 name: Mini kidney test
 
 # Runs the whole workflow on one small dataset (Lake 2023 kidney, 3514 cells) taken from the
-# output of cellxgene-harvester-nf: its JSON record and its filtered h5ad.
+# output of cellxgene-harvester-nf: its CSV and JSON, the resolve files and its filtered h5ad.
 on:
   workflow_dispatch:
     inputs:
@@ -10,7 +10,13 @@ on:
         default: NIH-NLM/nlm-ckn
       data_ref:
         description: Branch (or tag) of that repository
-        default: 2026-oct-07-2243-kidney-cellxgene-harvester-nf
+        default: 2026-oct-09-1926-kidney-cellxgene-harvester-nf
+      author_cell_type:
+        description: obs column of the cluster labels, used only where the CSV leaves it empty
+        default: subclass.full
+      embedding:
+        description: embedding key, used only where the CSV leaves it empty
+        default: X_umap
       n_trees:
         description: NSForest trees (fewer is faster)
         default: '100'
@@ -39,25 +45,36 @@ jobs:
 
       - name: Fetch the harvester output
         run: |
-          mkdir -p testdata/h5ad testdata/json
+          mkdir -p testdata/h5ad
           H=$RAW/cellxgene-harvester-nf
-          for f in uberon_kidney disease_normal hsapdv_adult_15; do
-            curl -fL $H/$f.json -o testdata/$f.json
+          O=${RAW%/kidney}/ontology_lookup_server
+          curl -fL $H/homo_sapiens_kidney_harvester_final.csv  -o testdata/final.csv
+          curl -fL $H/homo_sapiens_kidney_harvester_final.json -o testdata/final.json
+          curl -fL $H/uberon_kidney.json -o testdata/uberon_kidney.json
+          for f in disease_normal hsapdv_adult_15 assay_published; do
+            curl -fL $O/$f.json -o testdata/$f.json
           done
-          curl -fL $H/homo_sapiens_kidney_harvester/$ID.filtered.json -o testdata/json/$ID.filtered.json
           curl -fL $RAW/filtered-h5ad/$ID.filtered.h5ad -o testdata/h5ad/$ID.filtered.h5ad
           ls -lh testdata testdata/*
 
-      - name: Fill author_cell_type and embedding
-        # the harvester leaves these two fields for the curator; Lake 2023 uses subclass.full and X_umap
+      - name: Fill author_cell_type and embedding where the CSV leaves them empty
+        # the curator fills these two columns in the CSV; for this test dataset (Lake 2023) the
+        # values are the workflow inputs (default subclass.full and X_umap)
         run: |
           python3 - <<'PY'
-          import json
-          f = 'testdata/json/' + '${{ env.ID }}' + '.filtered.json'
-          rec = json.load(open(f))
-          rec['curation']['author_cell_type'] = rec['curation']['author_cell_type'] or 'subclass.full'
-          rec['curation']['embedding'] = rec['curation']['embedding'] or 'X_umap'
-          json.dump(rec, open(f, 'w'), indent=2)
+          import csv
+          rows = list(csv.DictReader(open('testdata/final.csv')))
+          for r in rows:
+              for col, default in (('author_cell_type', '${{ inputs.author_cell_type }}'), ('embedding', '${{ inputs.embedding }}')):
+                  if r[col].strip():
+                      print(col, 'from the CSV:', r[col])
+                  else:
+                      r[col] = default
+                      print(col, 'empty in the CSV, using the default:', default)
+          with open('testdata/curated.csv', 'w', newline='') as f:
+              w = csv.DictWriter(f, fieldnames=rows[0].keys())
+              w.writeheader()
+              w.writerows(rows)
           PY
 
       - name: Run the workflow
@@ -69,7 +86,9 @@ jobs:
             --disease_json testdata/disease_normal.json \
             --hsapdv_json testdata/hsapdv_adult_15.json \
             --h5ad_dir testdata/h5ad \
-            --harvester_json_dir testdata/json \
+            --harvester_csv testdata/curated.csv \
+            --harvester_json testdata/final.json \
+            --assay_json testdata/assay_published.json \
             --n_trees ${{ inputs.n_trees }} \
             --outdir results
 

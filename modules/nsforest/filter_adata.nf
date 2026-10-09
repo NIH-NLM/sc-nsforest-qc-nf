@@ -5,8 +5,10 @@
  *   1. Tissue  — tissue_ontology_term_id.isin(obo_ids) from uberon_{organ}.json
  *   2. Disease — disease_ontology_term_id.isin(obo_ids) from disease_normal.json
  *   3. Age     — development_stage_ontology_term_id.isin(obo_ids) from hsapdv_adult_N.json
+ *   4. Assay   — assay_ontology_term_id.isin(obo_ids) from the resolve-assay file (required;
+ *                only cells of the assays on the list are kept)
  * Then:
- *   4. Min cluster size — drops clusters with < min_cluster_size cells
+ *   5. Min cluster size — drops clusters with < min_cluster_size cells
  *
  * Input:
  * ------
@@ -16,6 +18,7 @@
  *   - uberon_json:  Path to uberon_{organ}.json from cellxgene-harvester resolve-uberon
  *   - disease_json: Path to disease_normal.json from cellxgene-harvester resolve-disease
  *   - hsapdv_json:  Path to hsapdv_adult_N.json from cellxgene-harvester resolve-hsapdv
+ *   - assay_json:   Path to the resolve-assay file from cellxgene-harvester resolve-assay
  *
  * Output:
  * -------
@@ -34,6 +37,7 @@ process filter_adata_process {
     path (uberon_json,  stageAs: 'uberon.json')
     path (disease_json, stageAs: 'disease.json')
     path (hsapdv_json,  stageAs: 'hsapdv.json')
+    path (assay_json,   stageAs: 'assay.json')
 
     output:
     tuple val(meta), path("*adata_filtered*.h5ad"),             emit: h5ad
@@ -58,6 +62,7 @@ process filter_adata_process {
         --uberon ${uberon_json} \
         --disease ${disease_json} \
         --hsapdv ${hsapdv_json} \
+        --assay ${assay_json} \
         --min-cluster-size ${min_cluster_val} \
         --embedding "${meta.embedding}" \
 	--dataset-version-id "${meta.dataset_version_id}" \

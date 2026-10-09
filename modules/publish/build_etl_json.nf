@@ -12,10 +12,11 @@
  * @param tuple:
  *   - meta:           Map with organ, first_author, year, embedding, dataset_version_id, ...
  *   - summary_csvs:   the CSVs from compute_summary_stats (master_dataset_summary_*.csv is used)
- *   - harvester_json: <dataset_id>.filtered.json from cellxgene-harvester-nf
+ *   - harvester_json: <organism>_<organ>_harvester_final.json from cellxgene-harvester-nf (the list of
+ *                     records of all datasets; the record of meta.dataset_id is used)
  *   - h5ad_name:      file name of the final filtered h5ad (adata_filtered_*.h5ad)
- *   - uberon_json, disease_json, hsapdv_json: the resolve files given to the workflow; their
- *     names and sha256 are recorded in sc_nsforest_qc.resolve_files
+ *   - uberon_json, disease_json, hsapdv_json, assay_json: the resolve files given to the workflow;
+ *     their names and sha256 are recorded in sc_nsforest_qc.resolve_files
  *
  * Output:
  * -------
@@ -32,6 +33,7 @@ process build_etl_json_process {
     path(uberon_json,  stageAs: 'resolve/uberon.json')
     path(disease_json, stageAs: 'resolve/disease.json')
     path(hsapdv_json,  stageAs: 'resolve/hsapdv.json')
+    path(assay_json,   stageAs: 'resolve/assay.json')
 
     output:
     tuple val(meta), path("sc_nsforest_qc_*.json"), emit: json
@@ -50,7 +52,8 @@ process build_etl_json_process {
         author_cell_type:      meta.author_cell_type,
         embedding:             meta.embedding,
         input_filtered_h5ad_dir: params.h5ad_dir ? params.h5ad_dir.toString() : null,
-        resolve_file_names:    [uberon: file(params.uberon_json).name, disease: file(params.disease_json).name, hsapdv: file(params.hsapdv_json).name],
+        curation:              [reference: meta.reference, author_cell_type: meta.author_cell_type, embedding: meta.embedding],
+        resolve_file_names:    [uberon: file(params.uberon_json).name, disease: file(params.disease_json).name, hsapdv: file(params.hsapdv_json).name, assay: file(params.assay_json).name],
         filtered_h5ad:         h5ad_name,
         s3_filtered_h5ad:      params.s3_h5ad_prefix ? "${params.s3_h5ad_prefix.toString().replaceAll('/+\$', '')}/${h5ad_name}" : h5ad_name,
     ])
@@ -60,12 +63,12 @@ ${run}
 RUN_JSON
 python3 - <<'PY'
 import csv, glob, hashlib, json
-record = json.load(open("${harvester_json}"))
+record = next(r for r in json.load(open("${harvester_json}")) if r["dataset"]["dataset_id"] == "${meta.dataset_id}")
 run = json.load(open("run.json"))
 names = run.pop("resolve_file_names")
 run["resolve_files"] = {
     key: {"file": names[key], "sha256": hashlib.sha256(open("resolve/" + key + ".json", "rb").read()).hexdigest()}
-    for key in ("uberon", "disease", "hsapdv")
+    for key in ("uberon", "disease", "hsapdv", "assay")
 }
 summary = {}
 for f in glob.glob("master_dataset_summary_*.csv"):

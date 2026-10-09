@@ -101,6 +101,7 @@ def filter_adata_command(
     uberon: Path = typer.Option(None, help="UBERON JSON from cellxgene-harvester resolve-uberon"),
     disease: Path = typer.Option(None, help="Disease JSON from cellxgene-harvester resolve-disease"),
     hsapdv: Path = typer.Option(None, help="HsapDv JSON from cellxgene-harvester resolve-hsapdv --min-age N"),
+    assay: Path = typer.Option(..., help="Assay JSON from cellxgene-harvester resolve-assay: only cells of these assays are kept"),
     min_cluster_size: int = typer.Option(5, help="Minimum cells per cluster"),
     tissue_ontology_term_id: str = typer.Option(None, help="Pipe-separated UBERON term IDs from CSV row"),
     disease_ontology_term_id: str = typer.Option(None, help="Pipe-separated disease ontology term IDs from CSV row"),
@@ -109,7 +110,7 @@ def filter_adata_command(
     filter_obs_value: str = typer.Option('', help="Value to keep in filter_obs_column (e.g., 'Tosti et al. 2021')"),
 
 ):
-    """Filter adata by tissue, disease, age, and minimum cluster size."""
+    """Filter adata by tissue, disease, age, assay, and minimum cluster size."""
     from .filter_adata import run_filter_adata
     run_filter_adata(
         h5ad_path          = h5ad_path,
@@ -125,6 +126,7 @@ def filter_adata_command(
         uberon_json        = str(uberon)  if uberon  else None,
         disease_json       = str(disease) if disease else None,
         hsapdv_json        = str(hsapdv)  if hsapdv  else None,
+        assay_json         = str(assay),
         min_cluster_size   = min_cluster_size,
         row_uberon_ids     = tissue_ontology_term_id,
         row_disease_ids    = disease_ontology_term_id,

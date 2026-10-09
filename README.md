@@ -51,43 +51,53 @@ No Python installation is required — all computation runs inside containers.
 
 ## Inputs
 
-The inputs are the output of [cellxgene-harvester-nf](https://github.com/NIH-NLM/cellxgene-harvester-nf): one JSON record for each dataset, the resolve files, and the filtered h5ad files.
+The inputs are the output of [cellxgene-harvester-nf](https://github.com/NIH-NLM/cellxgene-harvester-nf): a pair of files, the resolve files, and the filtered h5ad files.
 
-### Harvester records (`<dataset_id>.filtered.json`)
+### Harvester CSV (`--harvester_csv`, `{organism}_{organ}_harvester_final.csv`)
 
-One JSON file for each dataset, in the folder given by `--harvester_json_dir`. There is no CSV: the record holds everything about the dataset (details, source and filtered counts, ontology ids and names, the filter choices) and a `curation` block:
+One row per dataset. After the first harvester pass the curator fills in three columns, and the curated CSV is the input here:
 
-| Field | Description |
+| Column | Description |
 |---|---|
-| `curation.reference` | Processing flag — see below |
-| `curation.author_cell_type` | `obs` column name for the cluster labels. **The curator fills this in**; the run stops if it is empty |
-| `curation.embedding` | Embedding key, for example `X_umap`. **The curator fills this in**; the run stops if it is empty |
-| `filtered_h5ad_url` | `https://` or `s3://` address (downloaded), or the filtered h5ad written by cellxgene-harvester-nf (read from `--h5ad_dir`, or relative to the folder of the records) |
+| `dataset_id` | The CellxGene dataset id; finds the dataset's record in the JSON |
+| `reference` | Processing flag — see below |
+| `author_cell_type` | `obs` column name for the cluster labels (the curator chooses it). The run stops if it is empty |
+| `embedding` | Embedding key, for example `X_umap` (the curator chooses it). The run stops if it is empty |
 
-**`curation.reference` values:**
+A text field that holds a comma must be quoted; the CSV is read with `"` as the quote character.
+
+**`reference` column values:**
 
 | Value | Behaviour |
 |---|---|
 | `yes`, `no`, `unk` | Dataset is processed |
 | `exclude`, `delete`, `merge`, `question` | Dataset is **skipped** — logged at INFO level |
 
-### Resolve files (`uberon_{organ}.json`, `disease_normal.json`, `hsapdv_adult_15.json`)
+### Harvester JSON (`--harvester_json`, `{organism}_{organ}_harvester_final.json`)
 
-Produced by cellxgene-harvester-nf (`resolve-uberon`, `resolve-disease`, `resolve-hsapdv`). The same files are used for every dataset in the run. `filter-adata` applies them again to the h5ad:
+The list of records of all datasets, from the same harvester run. For each dataset in the CSV the run needs its record (it stops if one is missing). The record holds everything else about the dataset: details (title, DOI, journal, URLs, dataset version id), source and filtered counts, ontology ids with their names for tissue, assay, cell type, disease, development stage and sex, `filtered_h5ad_url`, and the harvester's filter choices. The counts after filtering go into `master_dataset_summary_*.csv`, and the whole record goes into the ETL JSON.
+
+`filtered_h5ad_url` is an `https://` or `s3://` address (downloaded), or the filtered h5ad written by cellxgene-harvester-nf (read from `--h5ad_dir`, or relative to the CSV).
+
+### Resolve files (`uberon_{organ}.json`, `disease_normal.json`, `hsapdv_adult_15.json`, `assay_published.json`)
+
+Produced by cellxgene-harvester-nf (`resolve-uberon`, `resolve-disease`, `resolve-hsapdv`, `resolve-assay`). All four are required. The same files are used for every dataset in the run. `filter-adata` applies them again to the h5ad:
 
 1. **Tissue filter** — `tissue_ontology_term_id.isin(obo_ids)`
 2. **Disease filter** — `disease_ontology_term_id.isin(obo_ids)`
 3. **Age filter** — `development_stage_ontology_term_id.isin(obo_ids)`
-4. **Minimum cluster size** — clusters with fewer than `--min_cluster_size` cells are dropped
+4. **Assay filter** — `assay_ontology_term_id.isin(obo_ids)`: only cells of the assays on the list are kept
+5. **Minimum cluster size** — clusters with fewer than `--min_cluster_size` cells are dropped
 
-With the files cellxgene-harvester-nf used, the first three remove nothing. Only the cluster filter can change the cell count. The h5ad that the later steps read is the one `filter-adata` writes, not the harvester's file.
+With the files cellxgene-harvester-nf used, the first four remove nothing. Only the cluster filter can change the cell count. The h5ad that the later steps read is the one `filter-adata` writes, not the harvester's file.
 
 ### Input file location
 
 Reviewed files are deposited in:
 ```
 nlm-ckn/data/prod/{organ}/cellxgene-harvester-nf/
-    {organism}_{organ}_harvester/<dataset_id>.filtered.json
+    {organism}_{organ}_harvester_final.csv
+    {organism}_{organ}_harvester_final.json
     uberon_{organ}.json, disease_normal.json, hsapdv_adult_15.json
 ```
 
@@ -95,13 +105,15 @@ nlm-ckn/data/prod/{organ}/cellxgene-harvester-nf/
 
 ```bash
 nextflow run main.nf \
-    --harvester_json_dir homo_sapiens_kidney_harvester \
+    --harvester_csv homo_sapiens_kidney_harvester_final.csv \
+    --harvester_json homo_sapiens_kidney_harvester_final.json \
     --h5ad_dir filtered_h5ad \
     --s3_h5ad_prefix s3://BUCKET/PATH \
     --organ kidney \
     --uberon_json uberon_kidney.json \
     --disease_json disease_normal.json \
     --hsapdv_json hsapdv_adult_15.json \
+    --assay_json assay_published.json \
     --github_token {{$secret_github_token}}
 ```
 
@@ -115,8 +127,10 @@ Every parameter is set, with a comment, in the `params` block of `nextflow.confi
 |---|---|---|
 | `--organ` | required | Organ label (e.g. `kidney`) — used in output naming |
 | `--uberon_json`, `--disease_json`, `--hsapdv_json` | required | The resolve files |
-| `--harvester_json_dir` | required | Folder of `<dataset_id>.filtered.json` from cellxgene-harvester-nf |
-| `--h5ad_dir` | none | Folder of the filtered h5ad files; none = relative to the folder of the records |
+| `--harvester_csv` | required | The curated `{organism}_{organ}_harvester_final.csv` |
+| `--harvester_json` | required | The `{organism}_{organ}_harvester_final.json` of the same run |
+| `--assay_json` | required | Resolve-assay file: only cells of these assays are kept |
+| `--h5ad_dir` | none | Folder of the filtered h5ad files; none = relative to the CSV |
 | `--s3_h5ad_prefix` | none | Public S3 folder where the final filtered h5ad files will be; written to `s3_filtered_h5ad` in the ETL JSON. none = the local file name (tests) |
 | `--min_cluster_size` | `5` | Minimum cells per cluster — smaller clusters dropped |
 | `--filter_obs_column`, `--filter_obs_value` | empty | Keep only the cells with this value in this `obs` column |
@@ -132,7 +146,7 @@ Every parameter is set, with a comment, in the `params` block of `nextflow.confi
 ## Workflow Architecture
 
 ```
-<dataset_id>.filtered.json (one for each dataset)
+{organism}_{organ}_harvester_final.csv and .json
 uberon_{organ}.json
         │
         ▼

@@ -30,12 +30,25 @@ from .common_utils import (
     logger
 )
 
+GENE_LIST_COLUMNS = ('NSForest_markers', 'binary_genes')
+
+
+def _genes_to_symbols(genes, sym_map):
+    """Convert one cell holding a list of ENSG ids (a list, or its string form) to gene symbols.
+    Unmapped genes stay as ENSG; an empty cell (NaN) stays as it is."""
+    if not isinstance(genes, (list, str)) and pd.isna(genes):
+        return genes
+    if isinstance(genes, str):
+        genes = ast.literal_eval(genes)
+    return [sym_map.get(g, g) for g in genes]
+
+
 def _write_results(results_df, prefix, suffix="_ensg", adata=None):
     """Write results csv/pkl and the four marker files for one flavor.
 
     If ``adata`` is supplied and has an ``adata.var['gene_symbol']`` column, the
-    ``NSForest_markers`` column is first converted from ENSG lists to gene-symbol
-    lists. Unmapped genes stay as ENSG. If ``adata`` is supplied but the column is
+    ``NSForest_markers`` and ``binary_genes`` columns are first converted from ENSG
+    lists to gene-symbol lists. Unmapped genes stay as ENSG. If ``adata`` is supplied but the column is
     missing, the symbol-flavored outputs are skipped with a warning — we don't
     silently write ENSG markers into files tagged ``_symbols``.
     """
@@ -47,13 +60,9 @@ def _write_results(results_df, prefix, suffix="_ensg", adata=None):
             return
         sym_map = dict(zip(adata.var_names, adata.var['gene_symbol']))
         results_df = results_df.copy()
-        results_df['NSForest_markers'] = [
-            (
-                [sym_map.get(g, g) for g in (ast.literal_eval(m) if isinstance(m, str) else m)]
-                if not pd.isna(m) else m
-            )
-            for m in results_df['NSForest_markers']
-        ]
+        for col in GENE_LIST_COLUMNS:
+            if col in results_df.columns:
+                results_df[col] = [_genes_to_symbols(g, sym_map) for g in results_df[col]]
 
     results_df.to_csv(f"results{suffix}_{prefix}.csv", index=False)
     results_df.to_pickle(f"results{suffix}_{prefix}.pkl")
