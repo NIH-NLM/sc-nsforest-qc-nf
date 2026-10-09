@@ -8,7 +8,7 @@
  *
  *   0a     download the h5ad (only when the CSV gives an https:// or s3:// address;
  *          a filtered h5ad written by cellxgene-harvester-nf is read as it is)
- *   0b     filter again by tissue, disease and age; drop clusters under min_cluster_size cells
+ *   0b     filter again by tissue, disease, age and assay; drop clusters under min_cluster_size cells
  *   1      dendrogram, cluster statistics, cluster to cell ontology mapping
  *   2-3    medians and binary scores, histograms
  *   4-5    NSForest on batches of clusters, merge the results
@@ -16,10 +16,11 @@
  *   7-8    silhouette scores, summary and distribution plots, dataset summary
  *   9      the ETL JSON, the S3 manifest; publish to GitHub (needs --github_token)
  *
- * The input is the folder of <dataset_id>.filtered.json records from cellxgene-harvester-nf
- * (--harvester_json_dir); the curator adds author_cell_type and embedding to each record's
- * "curation" block. The output for the ETL is one JSON for each dataset: the whole record
- * plus the sc-nsforest-qc-nf results and the s3_ location of the final filtered h5ad.
+ * The input is the pair of files cellxgene-harvester-nf wrote, <organism>_<organ>_harvester_final.csv
+ * (--harvester_csv) and .json (--harvester_json). The CSV holds what the curator chose for each
+ * dataset (reference, author_cell_type, embedding); the JSON holds everything else about it.
+ * The output for the ETL is one JSON for each dataset: the whole harvester record plus the
+ * sc-nsforest-qc-nf results and the s3_ location of the final filtered h5ad.
  * All the choices are parameters; see nextflow.config and the README.
  */
 
@@ -42,28 +43,28 @@ include { viz_distribution_process }       from './modules/scsilhouette/viz_dist
 include { viz_summary_process }            from './modules/scsilhouette/viz_summary.nf'
 include { build_etl_json_process }         from './modules/publish/build_etl_json.nf'
 
-// ---- the harvester records ------------------------------------------------------------
+// ---- the harvester files --------------------------------------------------------------
 
-/* {'UBERON:1': 5, 'UBERON:2': 3} -> 'UBERON:1: 5; UBERON:2: 3' */
-def id_summary(Map counts) {
-    return counts.collect { id, n -> "${id}: ${n}" }.join('; ')
+/* [{'ontology_id': 'UBERON:1', 'label': 'x', 'filtered_count': 5}, ...] -> 'UBERON:1: 5; ...' */
+def id_summary(List items, String count_key) {
+    return items.collect { item -> "${item.ontology_id}: ${item[count_key]}" }.join('; ')
 }
 
 /*
- * The meta map of one dataset, read from its cellxgene-harvester-nf record
- * (<dataset_id>.filtered.json). The curator adds author_cell_type and embedding
- * to the record's "curation" block.
+ * The meta map of one dataset. The CSV row gives the curation (reference, author_cell_type,
+ * embedding); the dataset's record in the harvester JSON gives everything else.
  */
-def dataset_meta(rec) {
+def dataset_meta(row, rec) {
     def ds = rec.dataset
     return [
         organ:                      params.organ,
         dataset_id:                 ds.dataset_id,
         first_author:               ds.first_author.toString(),
         year:                       ds.year.toString(),
-        author_cell_type:           rec.curation.author_cell_type,
-        embedding:                  rec.curation.embedding,
-        disease:                    rec.filtered_disease.join(' | '),
+        reference:                  row.reference,
+        author_cell_type:           row.author_cell_type,
+        embedding:                  row.embedding,
+        disease:                    rec.filtered_disease.collect { d -> d.label }.join(' | '),
         filter_obs_column:          params.filter_obs_column,
         filter_obs_value:           params.filter_obs_value,
         doi:                        ds.doi,
@@ -74,12 +75,12 @@ def dataset_meta(rec) {
         collection_url:             ds.collection_url,
         explorer_url:               ds.explorer_url,
         h5ad_url:                   rec.filtered_h5ad_url,
-        tissue_ontology_summary:    id_summary(rec.filtered_tissue_ontology_id_summary),
-        assay_ontology_summary:     id_summary(rec.filtered_assay_ontology_id_summary),
-        cell_type_ontology_summary: id_summary(rec.filtered_cell_type_ontology_id_summary),
-        disease_ontology_summary:   id_summary(rec.filtered_disease_ontology_id_summary),
-        sex_ontology_summary:       id_summary(rec.filtered_sex_ontology_id_summary),
-        development_stage_summary:  id_summary(rec.filtered_development_stage_ontology_id_summary),
+        tissue_ontology_summary:    id_summary(rec.filtered_tissue, 'filtered_count'),
+        assay_ontology_summary:     id_summary(rec.filtered_assay, 'filtered_count'),
+        cell_type_ontology_summary: id_summary(rec.filtered_cell_type, 'filtered_count'),
+        disease_ontology_summary:   id_summary(rec.filtered_disease, 'filtered_count'),
+        sex_ontology_summary:       id_summary(rec.filtered_sex, 'filtered_count'),
+        development_stage_summary:  id_summary(rec.filtered_development_stage, 'filtered_count'),
         session_id:                 workflow.sessionId.toString()[-6..-1],
     ]
 }
@@ -89,28 +90,39 @@ def dataset_meta(rec) {
 workflow {
 
     // ---- check the parameters ------------------------------------------------------
-    if (!params.harvester_json_dir) { error "Give --harvester_json_dir (the folder of <dataset_id>.filtered.json from cellxgene-harvester-nf)." }
-    if (!params.organ)        { error "Give --organ." }
-    if (!params.uberon_json)  { error "Give --uberon_json." }
-    if (!params.disease_json) { error "Give --disease_json." }
-    if (!params.hsapdv_json)  { error "Give --hsapdv_json." }
+    if (!params.harvester_csv)  { error "Give --harvester_csv (<organism>_<organ>_harvester_final.csv from cellxgene-harvester-nf, with reference, author_cell_type and embedding filled in)." }
+    if (!params.harvester_json) { error "Give --harvester_json (<organism>_<organ>_harvester_final.json from cellxgene-harvester-nf)." }
+    if (!params.organ)          { error "Give --organ." }
+    if (!params.uberon_json)    { error "Give --uberon_json." }
+    if (!params.disease_json)   { error "Give --disease_json." }
+    if (!params.hsapdv_json)    { error "Give --hsapdv_json." }
+    if (!params.assay_json)     { error "Give --assay_json (the resolve-assay file from cellxgene-harvester-nf)." }
 
-    log.info "sc-nsforest-qc-nf | organ ${params.organ} | records ${params.harvester_json_dir}"
+    log.info "sc-nsforest-qc-nf ${workflow.manifest.version} | organ ${params.organ}"
+    log.info "datasets ${params.harvester_csv} | records ${params.harvester_json}"
     log.info "results in ${params.outdir} | work in ${workflow.workDir}"
 
     uberon_ch  = channel.value(file(params.uberon_json,  checkIfExists: true))
     disease_ch = channel.value(file(params.disease_json, checkIfExists: true))
     hsapdv_ch  = channel.value(file(params.hsapdv_json,  checkIfExists: true))
+    assay_ch   = channel.value(file(params.assay_json,   checkIfExists: true))
 
     // ---- the datasets -------------------------------------------------------------------
-    def json_dir = file(params.harvester_json_dir, checkIfExists: true)
+    def csv_file  = file(params.harvester_csv,  checkIfExists: true)
+    def json_file = file(params.harvester_json, checkIfExists: true)
+    def csv_dir   = csv_file.parent
 
+    // the harvester records, by dataset id
+    def records = [:]
+    new groovy.json.JsonSlurper().parseText(json_file.text).each { rec -> records[rec.dataset.dataset_id] = rec }
+
+    // quote: '"' keeps a comma inside a quoted text field from splitting the row
     csv_rows_ch = channel
-        .fromPath("${json_dir}/*.filtered.json", checkIfExists: true)
-        .map { json -> tuple(new groovy.json.JsonSlurper().parseText(json.text), json) }
-        .filter { rec, _json ->
-            def ref = rec.curation.reference?.toString()?.trim()?.toLowerCase()
-            def who = "${rec.dataset.first_author} ${rec.dataset.year}"
+        .fromPath(csv_file)
+        .splitCsv(header: true, sep: ',', quote: '"')
+        .filter { row ->
+            def ref = row.reference?.trim()?.toLowerCase()
+            def who = "${row.first_author} ${row.year}"
             if (ref in ['exclude', 'delete', 'merge', 'question']) {
                 log.info "Skipping ${who} — reference='${ref}'"
                 return false
@@ -119,28 +131,30 @@ workflow {
                 log.warn "Skipping ${who} — unrecognised reference value '${ref}'"
                 return false
             }
-            if (!rec.curation.author_cell_type?.toString()?.trim() || !rec.curation.embedding?.toString()?.trim()) {
-                error "Dataset ${rec.dataset.dataset_id} (${who}) has an empty author_cell_type or embedding in its record; fill both in the \"curation\" block before running."
+            if (!row.author_cell_type?.trim() || !row.embedding?.trim()) {
+                error "Dataset ${row.dataset_id} (${who}) has an empty author_cell_type or embedding in ${params.harvester_csv}; fill both in before running."
+            }
+            if (!records.containsKey(row.dataset_id)) {
+                error "Dataset ${row.dataset_id} (${who}) is in ${params.harvester_csv} but has no record in ${params.harvester_json}."
             }
             return true
         }
-        .map { rec, json -> tuple(dataset_meta(rec), rec.filtered_h5ad_url, json) }
+        .map { row -> tuple(dataset_meta(row, records[row.dataset_id]), records[row.dataset_id].filtered_h5ad_url) }
 
-    // the JSON records, keyed by the same meta as every other output
+    // the harvester JSON list, keyed by the same meta as every other output
     harvester_json_ch = csv_rows_ch
-        .map { meta, _url, json -> tuple(meta, json) }
+        .map { meta, _url -> tuple(meta, json_file) }
 
     // an h5ad address (https:// or s3://) is downloaded; anything else is a filtered h5ad
-    // written by cellxgene-harvester-nf, found by file name in --h5ad_dir or next to the records
+    // written by cellxgene-harvester-nf, found by file name in --h5ad_dir or relative to the CSV
     h5ad_src_ch = csv_rows_ch
-        .map { meta, url, _json -> tuple(meta, url) }
         .branch { _meta, url ->
             remote: url ==~ /^(https?|s3):\/\/.*/
             local:  true
         }
 
     local_h5ad_ch = h5ad_src_ch.local.map { meta, url ->
-        def f = params.h5ad_dir ? file("${params.h5ad_dir}/${file(url).name}") : file("${json_dir}/${url}")
+        def f = params.h5ad_dir ? file("${params.h5ad_dir}/${file(url).name}") : file("${csv_dir}/${url}")
         if (!f.exists()) { error "Cannot find the filtered h5ad for ${meta.dataset_id}: ${f} (see --h5ad_dir)" }
         tuple(meta, f)
     }
@@ -154,7 +168,8 @@ workflow {
         source_h5ad_ch,
         uberon_ch,
         disease_ch,
-        hsapdv_ch
+        hsapdv_ch,
+        assay_ch
     )
 
     // Convenience: filtered h5ad only channel
@@ -253,7 +268,7 @@ workflow {
         .join(filtered_h5ad_ch.map { meta, h5ad -> tuple(meta, h5ad.name) })
         .map { meta, csvs, json, h5ad_name -> tuple(meta, csvs, json, h5ad_name) }
 
-    build_etl_json_process(etl_input_ch, uberon_ch, disease_ch, hsapdv_ch)
+    build_etl_json_process(etl_input_ch, uberon_ch, disease_ch, hsapdv_ch, assay_ch)
 
     // Step 9a: Publish + S3 Manifest
     def s3_results_base = workflow.workDir.parent.toUriString() + '/results'
@@ -300,7 +315,6 @@ workflow {
             viz_distribution_process.out.plots,
             viz_summary_process.out.plots,
             compute_summary_stats_process.out.summary,
-            harvester_json_ch,
             build_etl_json_process.out.json,
         )
         .flatMap { meta, files ->
