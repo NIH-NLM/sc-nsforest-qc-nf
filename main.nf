@@ -41,6 +41,7 @@ include { compute_summary_stats_process }  from './modules/scsilhouette/compute_
 include { viz_2D_projection_process }      from './modules/scsilhouette/viz_2D_projection.nf'
 include { viz_distribution_process }       from './modules/scsilhouette/viz_distribution.nf'
 include { viz_summary_process }            from './modules/scsilhouette/viz_summary.nf'
+include { binary_positive_genes_process }  from './modules/nsforest/binary_positive_genes.nf'
 include { build_etl_json_process }         from './modules/publish/build_etl_json.nf'
 
 // ---- the harvester files --------------------------------------------------------------
@@ -212,11 +213,23 @@ workflow {
     nsforest_output_ch = run_nsforest_process(nsforest_input_ch)
 
     // Step 5: Merge NSForest results (ENSG merge + symbol derivation from filtered h5ad)
+    // the top binary genes NSForest wrote for each batch (a dataset with none gets an empty list)
+    supplementary_ch = nsforest_output_ch.supplementary.groupTuple()
+        .map { meta, file_lists -> tuple(meta, file_lists.flatten()) }
+
     merge_input_ch = nsforest_output_ch.partial.groupTuple()
         .map { meta, file_lists -> tuple(meta, file_lists.flatten()) }
         .join(filtered_h5ad_ch)
+        .join(supplementary_ch, remainder: true)
+        .map { meta, partials, h5ad, supp -> tuple(meta, partials, h5ad, supp ?: []) }
 
     merged_nsforest_ch = merge_nsforest_results_process(merge_input_ch)
+
+    // Step 5b: the genes with a binary score above 0 in each cluster, with the score
+    positive_genes_ch = binary_positive_genes_process(
+        prep_output_ch.binary_csv
+            .join(filtered_h5ad_ch)
+    )
 
     // Step 6: Plots
     plots_process(
@@ -266,7 +279,9 @@ workflow {
         .map { meta, csvs -> tuple(meta.findAll { k, _v -> k != 'filtered_h5ad_path' }, csvs) }
         .join(harvester_json_ch)
         .join(filtered_h5ad_ch.map { meta, h5ad -> tuple(meta, h5ad.name) })
-        .map { meta, csvs, json, h5ad_name -> tuple(meta, csvs, json, h5ad_name) }
+        .join(positive_genes_ch.csv)
+        .join(merged_nsforest_ch.top10)
+        .map { meta, csvs, json, h5ad_name, positive_csv, top10_csv -> tuple(meta, csvs, json, h5ad_name, positive_csv, top10_csv) }
 
     build_etl_json_process(etl_input_ch, uberon_ch, disease_ch, hsapdv_ch, assay_ch)
 
@@ -307,6 +322,8 @@ workflow {
             merge_nsforest_results_process.out.markers_ontarget_supp_symbols,
             merge_nsforest_results_process.out.gene_selection,
             merge_nsforest_results_process.out.gene_selection_symbols,
+            merge_nsforest_results_process.out.top10,
+            binary_positive_genes_process.out.csv,
             plot_histograms_process.out.histograms,
             compute_silhouette_process.out.scores,
             compute_silhouette_process.out.cluster_summary,

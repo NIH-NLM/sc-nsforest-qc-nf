@@ -119,6 +119,15 @@ def run_nsforest(h5ad_path, medians_csv, binary_scores_csv, cluster_header,
     else:
         logger.info("Running NSForest for all clusters")
 
+    # Each batch of clusters is a separate task, so the supplementary files need a name of their own.
+    # cluster_safe: in case there is a problem with a stray quote - clean it up before output
+    cluster_safe = (cluster_list[0].replace('"', '').replace("'", '').replace(' ', '_').replace('/', '-')
+                    if cluster_list else "all")
+    supp_prefix = f"nsf_{cluster_safe}_{prefix}"
+
+    # save_supplementary=True: NSForest writes {supp_prefix}_supplementary.csv (the top binary genes of each
+    # cluster with their binary score, random forest importance and cluster median), and its
+    # _markers, _gene_selection and _markers_onTarget files; the workflow keeps the _supplementary file.
     results = nsforesting.NSForest(
         adata_prep,
         cluster_header,
@@ -126,15 +135,15 @@ def run_nsforest(h5ad_path, medians_csv, binary_scores_csv, cluster_header,
         n_trees=n_trees,
         n_genes_eval=n_genes_eval,
         save=False,
-        save_supplementary=False,
+        save_supplementary=True,
+        output_folder="",
+        outputfilename_prefix=supp_prefix,
     )
 
     logger.info(f"NSForest results shape: {results.shape}")
 
     # Save partial results — unique filename per batch
     if cluster_list:
-        # in case there is a problem with a stray quote - clean it up before output
-        cluster_safe = cluster_list[0].replace('"', '').replace("'", '').replace(' ', '_').replace('/', '-')
         output_csv = f"results_{cluster_safe}_{prefix}.csv"
     else:
         output_csv = f"results_{prefix}.csv"
