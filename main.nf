@@ -333,6 +333,8 @@ workflow {
             viz_summary_process.out.plots,
             compute_summary_stats_process.out.summary,
             build_etl_json_process.out.json,
+            // the final filtered h5ad is published with the results
+            filtered_h5ad_ch,
         )
         .flatMap { meta, files ->
             def fileList = (files instanceof List) ? files.flatten() : [files]
