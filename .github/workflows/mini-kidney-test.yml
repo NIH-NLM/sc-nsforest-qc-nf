@@ -9,8 +9,8 @@ on:
         description: Repository holding the cellxgene-harvester-nf test output
         default: NIH-NLM/nlm-ckn
       data_ref:
-        description: Branch (or tag) of that repository
-        default: 2026-oct-09-1926-kidney-cellxgene-harvester-nf
+        description: 'Branch or tag of that repository. Default main (merged results). To test an unmerged harvester run, type its branch name here'
+        default: main
       author_cell_type:
         description: obs column of the cluster labels, used only where the CSV leaves it empty
         default: subclass.full
