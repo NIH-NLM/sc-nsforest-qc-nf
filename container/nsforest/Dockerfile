@@ -21,7 +21,7 @@ COPY context/src ./src
 RUN chown -R mambauser:mambauser ./src
 
 RUN git clone https://github.com/NIH-NLM/NSForest.git /opt/nsforest && \
-    git -C /opt/nsforest checkout c41e8a70522e3aacef28687f5adcee4d5afab940 && \
+    git -C /opt/nsforest checkout d1610ae85fbcb0cbb4ed57b7104dbc3b8b4ceb9e && \
     chown -R mambauser:mambauser /opt/nsforest
 
 USER mambauser:mambauser
