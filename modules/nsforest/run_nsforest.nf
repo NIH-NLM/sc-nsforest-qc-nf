@@ -3,6 +3,9 @@
  *
  * Runs NSForest algorithm to identify marker gene combinations.
  * Each cluster batch processed independently (one vs all).
+ * NSForest also writes the supplementary table of the batch (top binary genes with their
+ * binary score, random forest importance and cluster median), which merge_nsforest_results
+ * merges into binary_genes_top10_{prefix}.csv.
  */
 process run_nsforest_process {
     tag "run_nsforest_${meta.organ}_${meta.first_author}_${meta.journal}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}_${cluster}"
@@ -15,6 +18,11 @@ process run_nsforest_process {
     tuple val(meta),
           path("*results*.csv"),
           emit: partial
+
+    // the top binary genes of this batch, written by NSForest (save_supplementary)
+    tuple val(meta),
+          path("nsf_*_supplementary.csv"),
+          emit: supplementary, optional: true
 
     script:
     """

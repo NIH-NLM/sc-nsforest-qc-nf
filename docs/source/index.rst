@@ -5,7 +5,7 @@ sc-nsforest-qc-nf Documentation
 discovery and silhouette score quality control of single-cell RNA-seq data.
 
 It orchestrates parallel execution of
-`NSForest <https://github.com/JCVenterInstitute/NSForest>`_
+`NSForest <https://github.com/NIH-NLM/NSForest>`_
 marker discovery and
 `scsilhouette <https://github.com/NIH-NLM/scsilhouette>`_
 clustering quality control across multiple datasets and organs, with
@@ -36,7 +36,7 @@ It is part of the `NIH NLM Cell Knowledge Network <https://github.com/NIH-NLM/ce
 Related Projects
 ----------------
 
-- `NSForest <https://github.com/JCVenterInstitute/NSForest>`_ — marker gene discovery algorithm (J. Craig Venter Institute). `NSForest documentation <https://nsforest.readthedocs.io>`_
+- `NSForest <https://github.com/NIH-NLM/NSForest>`_ — marker gene discovery algorithm (Aevermann et al. 2021; Liu et al. 2024). `NSForest documentation <https://nsforest.readthedocs.io>`_
 - `scsilhouette <https://github.com/NIH-NLM/scsilhouette>`_ — silhouette score QC package (NIH NLM). `scsilhouette documentation <https://nih-nlm.github.io/scsilhouette>`_
 - `cellxgene-harvester <https://github.com/NIH-NLM/cellxgene-harvester>`_ — single-cell data aggregation from CellxGene
 - `cell-kn <https://github.com/NIH-NLM/cell-kn>`_ — NIH NLM Cell Knowledge Network

@@ -20,7 +20,8 @@ RUN chown -R mambauser:mambauser /app
 COPY context/src ./src
 RUN chown -R mambauser:mambauser ./src
 
-RUN git clone https://github.com/JCVenterInstitute/NSForest.git /opt/nsforest && \
+RUN git clone https://github.com/NIH-NLM/NSForest.git /opt/nsforest && \
+    git -C /opt/nsforest checkout c41e8a70522e3aacef28687f5adcee4d5afab940 && \
     chown -R mambauser:mambauser /opt/nsforest
 
 USER mambauser:mambauser

@@ -98,6 +98,36 @@ def _write_results(results_df, prefix, suffix="_ensg", adata=None):
     gene_sel_df.to_csv(f"gene_selection{suffix}_{prefix}.csv", index=False)
     logger.info(f"Saved: gene_selection{suffix}_{prefix}.csv")
 
+def _write_top10_binary_genes(supplementary_files, prefix, sym_map):
+    """Merge the {batch}_supplementary.csv files NSForest wrote (save_supplementary=True).
+
+    One row per cluster and gene: the top binary genes of each cluster with the
+    binary score, random forest importance and cluster median. Written with the
+    gene as an ENSG id and as a symbol: binary_genes_top10_{prefix}.csv. The file
+    is always written (with its columns only, if there is nothing to merge).
+    """
+    columns = ['clusterName', 'gene_ensg', 'gene_symbol', 'binary_score',
+               'rf_feature_importance', 'cluster_median']
+    dfs = []
+    for filepath in supplementary_files:
+        try:
+            df = pd.read_csv(filepath)
+        except pd.errors.EmptyDataError:
+            continue
+        if not df.empty:
+            dfs.append(df)
+    if dfs:
+        top = pd.concat(dfs, axis=0, ignore_index=True)
+        top = top.rename(columns={'binary_genes': 'gene_ensg'})
+        top['gene_symbol'] = [sym_map.get(g, g) for g in top['gene_ensg']]
+        top = top[columns].sort_values(['clusterName', 'binary_score'], ascending=[True, False])
+    else:
+        logger.warning("No supplementary files to merge - writing the top binary genes file empty")
+        top = pd.DataFrame(columns=columns)
+    top.to_csv(f"binary_genes_top10_{prefix}.csv", index=False)
+    logger.info(f"Saved: binary_genes_top10_{prefix}.csv ({len(top)} rows)")
+
+
 def run_merge_nsforest_results(
         partial_files,
         filtered_h5ad,
@@ -108,9 +138,12 @@ def run_merge_nsforest_results(
         year,
         embedding,
         dataset_version_id,
+        supplementary_files=(),
 ):
     """
     Merge partial NSForest results CSV files and save csv + pkl + marker files.
+    The supplementary files (top binary genes of each batch) are merged into
+    binary_genes_top10_{prefix}.csv.
     """
     log_section("NSForest: Merge NSForest Results")
 
@@ -143,6 +176,13 @@ def run_merge_nsforest_results(
     if not results.empty:
         adata = load_h5ad(filtered_h5ad, cluster_header)
         _write_results(results, prefix, suffix="_symbols", adata=adata)
+
+    # Top binary genes of each cluster, with their scores
+    top_sym_map = {}
+    if not results.empty:
+        if 'gene_symbol' in adata.var.columns:
+            top_sym_map = dict(zip(adata.var_names, adata.var['gene_symbol']))
+    _write_top10_binary_genes(list(supplementary_files), prefix, top_sym_map)
 
     logger.info(f"Complete results: {results.shape}")
     logger.info("Merge and write NSForest results complete!")

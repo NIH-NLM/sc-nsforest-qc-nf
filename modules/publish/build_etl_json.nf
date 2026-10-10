@@ -15,6 +15,9 @@
  *   - harvester_json: <organism>_<organ>_harvester_final.json from cellxgene-harvester-nf (the list of
  *                     records of all datasets; the record of meta.dataset_id is used)
  *   - h5ad_name:      file name of the final filtered h5ad (adata_filtered_*.h5ad)
+ *   - positive_csv:   binary_positive_genes_*.csv (every gene with a binary score above 0, per cluster)
+ *   - top10_csv:      binary_genes_top10_*.csv (the top binary genes per cluster from NSForest, with
+ *                     the random forest importance and the cluster median)
  *   - uberon_json, disease_json, hsapdv_json, assay_json: the resolve files given to the workflow;
  *     their names and sha256 are recorded in sc_nsforest_qc.resolve_files
  *
@@ -29,7 +32,7 @@ process build_etl_json_process {
         mode: params.publish_mode
 
     input:
-    tuple val(meta), path(summary_csvs), path(harvester_json), val(h5ad_name)
+    tuple val(meta), path(summary_csvs), path(harvester_json), val(h5ad_name), path(positive_csv), path(top10_csv)
     path(uberon_json,  stageAs: 'resolve/uberon.json')
     path(disease_json, stageAs: 'resolve/disease.json')
     path(hsapdv_json,  stageAs: 'resolve/hsapdv.json')
@@ -81,10 +84,25 @@ for f in glob.glob("master_dataset_summary_*.csv"):
                 summary[k] = float(v)
             except ValueError:
                 summary[k] = v
+def table(path):
+    rows = list(csv.DictReader(open(path)))
+    for r in rows:
+        for k in ("binary_score", "rf_feature_importance", "cluster_median"):
+            if k in r and r[k] != "":
+                r[k] = float(r[k])
+    return rows
+
 out = {
     "schema_version": "1.0",
     "harvester": record,
-    "sc_nsforest_qc": {**run, "dataset_summary": summary},
+    "sc_nsforest_qc": {
+        **run,
+        "dataset_summary": summary,
+        "binary_genes": {
+            "positive": table("${positive_csv}"),
+            "top10": table("${top10_csv}"),
+        },
+    },
 }
 name = "sc_nsforest_qc_" + "${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}".replace("/", "_").replace(" ", "_") + ".json"
 json.dump(out, open(name, "w"), indent=2)

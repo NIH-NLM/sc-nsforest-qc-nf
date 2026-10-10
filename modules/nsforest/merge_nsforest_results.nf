@@ -6,7 +6,8 @@ process merge_nsforest_results_process {
     input:
     tuple val(meta),
           path(partial_csvs, stageAs: "partial_??.csv"),
-          path(filtered_h5ad)
+          path(filtered_h5ad),
+          path(supplementary_csvs, stageAs: "supp_??.csv")
 
     output:
     tuple val(meta), path("results_ensg*.csv"),                  emit: results_csv
@@ -21,11 +22,13 @@ process merge_nsforest_results_process {
     tuple val(meta), path("markers_onTarget_supp_symbols*.csv"), emit: markers_ontarget_supp_symbols, optional: true
     tuple val(meta), path("gene_selection_ensg*.csv"),           emit: gene_selection
     tuple val(meta), path("gene_selection_symbols*.csv"),        emit: gene_selection_symbols, optional: true
+    tuple val(meta), path("binary_genes_top10_*.csv"),           emit: top10
 
     script:
     """
     nsforest-cli merge-nsforest-results \
         --partial-files ${partial_csvs.join(',')} \
+        --supplementary-files '${supplementary_csvs.join(',')}' \
         --filtered-h5ad ${filtered_h5ad} \
         --cluster-header "${meta.author_cell_type}" \
         --organ "${meta.organ}" \

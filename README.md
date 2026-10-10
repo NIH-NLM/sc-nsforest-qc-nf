@@ -5,7 +5,7 @@
 
 Nextflow pipeline for NSForest marker gene discovery and silhouette score quality control of single-cell RNA-seq data.
 
-`sc-nsforest-qc-nf` orchestrates parallel execution of [NSForest](https://github.com/JCVenterInstitute/NSForest) marker discovery and [scsilhouette](https://github.com/NIH-NLM/scsilhouette) clustering quality control across multiple datasets and organs, with ontology-based cell filtering driven by [cellxgene-harvester](https://github.com/NIH-NLM/cellxgene-harvester) outputs.
+`sc-nsforest-qc-nf` orchestrates parallel execution of [NSForest](https://github.com/NIH-NLM/NSForest) marker discovery and [scsilhouette](https://github.com/NIH-NLM/scsilhouette) clustering quality control across multiple datasets and organs, with ontology-based cell filtering driven by [cellxgene-harvester](https://github.com/NIH-NLM/cellxgene-harvester) outputs.
 
 ## Documentation
 
@@ -197,9 +197,9 @@ modules/
 
 ## NSForest CLI
 
-The `modules/nsforest` processes call `nsforest-cli`, a workflow-internal command-line wrapper around the [NSForest](https://github.com/JCVenterInstitute/NSForest) library from the J. Craig Venter Institute. It is not published as a standalone package — it is bundled inside the `ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest` container and is specific to this workflow.
+The `modules/nsforest` processes call `nsforest-cli`, a workflow-internal command-line wrapper around the [NSForest](https://github.com/NIH-NLM/NSForest) library by Aevermann, Zhang, Scheuermann and colleagues (Aevermann et al. 2021; Liu et al. 2024). It is not published as a standalone package — it is bundled inside the `ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest` container and is specific to this workflow.
 
-For the underlying NSForest algorithm, marker gene selection methodology, and citation information, refer to the **[NSForest repository](https://github.com/JCVenterInstitute/NSForest)**.
+For the underlying NSForest algorithm, marker gene selection methodology, and citation information, refer to the **[NSForest repository](https://github.com/NIH-NLM/NSForest)**.
 
 ## Output for the ETL
 
@@ -207,6 +207,8 @@ For each dataset the workflow writes `sc_nsforest_qc_{organ}_{first_author}_{yea
 
 - `harvester`: the whole cellxgene-harvester-nf record
 - `sc_nsforest_qc`: the run parameters, the `dataset_summary` (clusters, silhouette and F-score statistics, final cell count), the final filtered h5ad file name `filtered_h5ad`, and its location `s3_filtered_h5ad`
+
+- `sc_nsforest_qc.binary_genes`: the binary scores of the genes, two tables. `positive` lists every gene with a binary score above 0 in each cluster (`clusterName`, `gene_ensg`, `gene_symbol`, `binary_score`). `top10` lists the top binary genes NSForest chose for each cluster, with `binary_score`, `rf_feature_importance` and `cluster_median`. Both are also written as CSV files: `binary_positive_genes_*.csv` and `binary_genes_top10_*.csv`.
 
 `s3_filtered_h5ad` is `<--s3_h5ad_prefix>/<file name>`. In a test, without the prefix, it is the local file name. The final filtered h5ad is `adata_filtered_*.h5ad`, the file all the NSForest and silhouette results were computed on.
 
@@ -392,7 +394,7 @@ For questions or issues, please [open an issue](https://github.com/NIH-NLM/sc-ns
 
 ## Related Projects
 
-- [NSForest](https://github.com/JCVenterInstitute/NSForest) — Marker gene discovery (J. Craig Venter Institute)
+- [NSForest](https://github.com/NIH-NLM/NSForest) — Marker gene discovery (Aevermann et al. 2021; Liu et al. 2024)
 - [scsilhouette](https://github.com/NIH-NLM/scsilhouette) — Silhouette score QC package
 - [cellxgene-harvester](https://github.com/NIH-NLM/cellxgene-harvester) — Single-cell data aggregation from CellxGene
 - [cell-kn](https://github.com/NIH-NLM/cell-kn) — NIH NLM Cell Knowledge Network
@@ -403,3 +405,8 @@ If you use sc-nsforest-qc-nf in your research, please cite:
 ```
 [Citation information will be added upon publication]
 ```
+
+NSForest, the marker gene method used here:
+
+- Aevermann BD, Zhang Y, Novotny M, Keshk M, Bakken TE, Miller JA, Hodge RD, Lelieveldt B, Lein ES, Scheuermann RH. A machine learning method for the discovery of minimum marker gene combinations for cell-type identification from single-cell RNA sequencing. Genome Res. 2021. doi: 10.1101/gr.275569.121
+- Liu A, Peng B, Pankajam A, Duong TE, Pryhuber G, Scheuermann RH, Zhang Y. Discovery of optimal cell type classification marker genes from single cell RNA sequencing data. BMC Methods 1, 15 (2024). https://doi.org/10.1186/s44330-024-00015-2

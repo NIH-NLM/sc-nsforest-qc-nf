@@ -144,6 +144,7 @@ def generate_s3_manifest_command(
 @app.command("merge-nsforest-results")
 def merge_nsforest_results_command(
     partial_files: str = typer.Option(..., help="Comma-separated list of partial results CSV files"),
+    supplementary_files: str = typer.Option("", help="Comma-separated list of the *_supplementary.csv files NSForest wrote for each batch"),
     filtered_h5ad: Path = typer.Option(..., help="Path to adata_filtered.h5ad (for gene_symbol mapping)"),
     cluster_header: str = typer.Option(..., help="Column name for clusters"),
     organ: str = typer.Option(..., help="Organ/tissue"),
@@ -157,7 +158,25 @@ def merge_nsforest_results_command(
     """Merge partial NSForest results files and save csv + pkl."""
     from .merge_nsforest_results import run_merge_nsforest_results
     files = partial_files.split(',')
-    run_merge_nsforest_results(files, filtered_h5ad, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
+    supp = [f for f in supplementary_files.split(',') if f]
+    run_merge_nsforest_results(files, filtered_h5ad, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id, supplementary_files=supp)
+
+@app.command("binary-positive-genes")
+def binary_positive_genes_command(
+    binary_scores_csv: Path = typer.Option(..., help="Path to binary_scores_ensg CSV (gene-by-cluster)"),
+    filtered_h5ad: Path = typer.Option(..., help="Path to adata_filtered.h5ad (for the gene symbols)"),
+    cluster_header: str = typer.Option(..., help="Column name for clusters"),
+    organ: str = typer.Option(..., help="Organ/tissue"),
+    first_author: str = typer.Option(..., help="First author"),
+    journal: str = typer.Option(..., help="Journal"),
+    year: str = typer.Option(..., help="Publication year"),
+    embedding: str = typer.Option("", help="Embedding key"),
+    dataset_version_id: str = typer.Option("", help="Dataset version ID"),
+):
+    """List the genes with a binary score above 0 in each cluster, with the score."""
+    from .binary_positive_genes import run_binary_positive_genes
+    run_binary_positive_genes(binary_scores_csv, filtered_h5ad, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id)
+
 
 @app.command("plot-histograms")
 def plot_histograms_command(

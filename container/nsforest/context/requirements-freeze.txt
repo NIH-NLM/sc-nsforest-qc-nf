@@ -101,4 +101,4 @@ wcwidth==0.2.13
 wheel==0.46.2
 zenodo_get==1.6.0
 zipp>=3.19.1
-git+https://github.com/JCVenterInstitute/NSForest.git
+git+https://github.com/NIH-NLM/NSForest.git@c41e8a70522e3aacef28687f5adcee4d5afab940
