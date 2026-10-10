@@ -1,5 +1,5 @@
 /**
- * Publish Results to cell-kn GitHub Repository
+ * Publish Results to the nlm-ckn GitHub Repository
  *
  * Fires once per dataset. Reads files from S3 results path derived
  * from workflow.workDir (works on CloudOS and other platforms).
@@ -35,7 +35,7 @@ process publish_results_process {
     def sid       = workflow.sessionId.toString()[-6..-1]
     def branch    = "${today}-${sid}-${organSlug}-sc_nsforest_qc_nf"
     def dest_dir  = params.publish_dest_dir ?: "data/prod/${organ}/sc-nsforest-qc-nf/results/${today}-${sid}/${organ}-${firstAuth}-${journal}-${year}-${vid}"
-    def repo      = params.publish_repo ?: 'NIH-NLM/cell-kn'
+    def repo      = params.publish_repo ?: 'NIH-NLM/nlm-ckn'
     def repo_url  = "https://\${GITHUB_TOKEN}@github.com/${repo}.git"
     """
     ls -lh
@@ -63,7 +63,7 @@ process publish_results_process {
     git checkout ${branch} 2>/dev/null || git checkout -b ${branch}
 
     mkdir -p "${dest_dir}"
-    cp -L ../*.html ../*.log ../*.svg ../*.pkl ../*.json ../*.csv "${dest_dir}/" 2>/dev/null || true
+    cp -L ../*.html ../*.log ../*.svg ../*.pkl ../*.json ../*.csv ../*.h5ad "${dest_dir}/" 2>/dev/null || true
 
     find "${dest_dir}" -type f -size +50M | while read f; do
         tar czf "\${f}.tar.gz" -C "\$(dirname "\$f")" "\$(basename "\$f")"

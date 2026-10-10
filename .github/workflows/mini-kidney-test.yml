@@ -17,6 +17,10 @@ on:
       embedding:
         description: embedding key, used only where the CSV leaves it empty
         default: X_umap
+      publish:
+        description: 'Also publish the results (with the final filtered h5ad) to a new branch of NIH-NLM/nlm-ckn (data/test/kidney/sc-nsforest-qc-nf). Needs the secret NLM_CKN_TOKEN'
+        type: boolean
+        default: false
       n_trees:
         description: NSForest trees (fewer is faster)
         default: '100'
@@ -78,7 +82,14 @@ jobs:
           PY
 
       - name: Run the workflow
+        env:
+          TOKEN: ${{ secrets.NLM_CKN_TOKEN }}
         run: |
+          PUBLISH=""
+          if [ "${{ inputs.publish }}" = "true" ]; then
+            if [ -z "$TOKEN" ]; then echo "ERROR: publish is ticked but the secret NLM_CKN_TOKEN is not set (Settings > Secrets and variables > Actions)" >&2; exit 1; fi
+            PUBLISH="--github_token $TOKEN --publish_repo NIH-NLM/nlm-ckn --publish_dest_dir data/test/kidney/sc-nsforest-qc-nf/results/kidney-Lake-Nature-2023-4af23f"
+          fi
           nextflow run main.nf \
             -profile ci \
             --organ kidney \
@@ -90,6 +101,7 @@ jobs:
             --harvester_json testdata/final.json \
             --assay_json testdata/assay_published.json \
             --n_trees ${{ inputs.n_trees }} \
+            $PUBLISH \
             --outdir results
 
       - name: Check the outputs
