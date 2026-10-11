@@ -11,6 +11,9 @@ on:
       data_ref:
         description: 'Branch or tag of that repository. Default main (merged results). To test an unmerged harvester run, type its branch name here'
         default: main
+      nsforest_image:
+        description: 'NSForest image (it holds the gene name table). Default :latest. To try a table that is not merged, build the image from the workflow "Build and Publish Docker image to GHCR" with that branch, and give ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest:gene-mapping-<branch>'
+        default: 'ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest:latest'
       author_cell_type:
         description: obs column of the cluster labels, used only where the CSV leaves it empty
         default: subclass.full
@@ -92,6 +95,7 @@ jobs:
           fi
           nextflow run main.nf \
             -profile ci \
+            --nsforest_image ${{ inputs.nsforest_image }} \
             --organ kidney \
             --uberon_json testdata/uberon_kidney.json \
             --disease_json testdata/disease_normal.json \

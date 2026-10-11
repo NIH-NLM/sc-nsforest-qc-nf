@@ -201,6 +201,12 @@ The `modules/nsforest` processes call `nsforest-cli`, a workflow-internal comman
 
 For the underlying NSForest algorithm, marker gene selection methodology, and citation information, refer to the **[NSForest repository](https://github.com/NIH-NLM/NSForest)**.
 
+## Gene names
+
+Every file that holds gene names has a name for every gene. The names come from the table of one GENCODE release (`gene_mapping_gencode_v48.csv`), which is in the image and is made by [cellxgene-harvester](https://github.com/NIH-NLM/cellxgene-harvester) (`build-gene-mapping`). GENCODE gives a gene that has no symbol its Ensembl id as the name, and a gene that is not in the table keeps its own id, so no name is blank and no gene is left out. The ETL JSON records the table: file, GENCODE release, rows, SHA-256 and its provenance file.
+
+The image takes the table from nlm-ckn `data/prod/gencode` on `main`. To try a table that is not merged yet, run the workflow "Build and Publish Docker image to GHCR" by hand with `gene_mapping_ref` set to the nlm-ckn branch; it builds only the image `nsforest:gene-mapping-<branch>`, and `latest` is not replaced. Give that image to the Mini kidney test (`nsforest_image`).
+
 ## Output for the ETL
 
 For each dataset the workflow writes `sc_nsforest_qc_{organ}_{first_author}_{year}_{embedding}_{version}.json`, the one file that goes on to the ETL. Nothing is left out:

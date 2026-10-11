@@ -1,55 +1,61 @@
 """
-Gene mapping utilities for converting Ensembl IDs to gene symbols.
+Gene names for Ensembl ids.
 
-Reads gene mapping from baked-in local file, falls back to GitHub if not found.
+The names come from the table of one GENCODE release, gene_mapping_gencode_v<N>.csv, which is
+in the image (see cellxgene-harvester, build-gene-mapping). Every gene has a name: GENCODE gives
+the gene id as the name of a gene that has no symbol, and a gene that is not in the table keeps
+its own id. So a column of gene names never has a blank and never drops a gene.
 """
 
+import glob
+import json
 import os
+import re
+
 import pandas as pd
-import requests
-from io import StringIO
 
 from .common_utils import logger
 
-LOCAL_GENE_MAPPING  = "/app/gene_mapping.csv"
-GENE_MAPPING_URL    = "https://raw.githubusercontent.com/NIH-NLM/nlm-ckn/main/data/prod/biomart/gene_mapping.csv"
+GENE_MAPPING_FOLDER = "/app"
+GENE_MAPPING_PATTERN = "gene_mapping_gencode_v*.csv"
 
 
-def load_gene_mapping(url=None):
-    """
-    Load gene mapping CSV — local file first, GitHub fallback.
+def mapping_file(folder=GENE_MAPPING_FOLDER):
+    """The table of the image: gene_mapping_gencode_v<N>.csv, the highest release if there are
+    several. Raises FileNotFoundError if there is none: the symbol files must not be written
+    without it."""
+    found = glob.glob(os.path.join(folder, GENE_MAPPING_PATTERN))
+    if not found:
+        raise FileNotFoundError(f"no {GENE_MAPPING_PATTERN} in {folder}: the image has no gene name table")
+    return max(found, key=release_of)
 
-    Returns
-    -------
-    dict
-        Dictionary mapping ensembl_gene_id → external_gene_name
-    """
-    if os.path.exists(LOCAL_GENE_MAPPING):
-        logger.info(f"Loading gene mapping from local file: {LOCAL_GENE_MAPPING}")
-        try:
-            df = pd.read_csv(LOCAL_GENE_MAPPING)
-            ensg_to_symbol = dict(zip(df['ensembl_gene_id'], df['external_gene_name']))
-            logger.info(f"Loaded {len(ensg_to_symbol)} gene mappings")
-            return ensg_to_symbol
-        except Exception as e:
-            logger.warning(f"Failed to read local gene mapping: {e} — trying network")
 
-    # Fallback to network
-    if url is None:
-        url = GENE_MAPPING_URL
+def release_of(path):
+    """The GENCODE release in the file name: gene_mapping_gencode_v48.csv gives 48."""
+    return int(re.search(r"_v(\d+)\.csv$", path).group(1))
 
-    logger.info(f"Loading gene mapping from network: {url}")
-    try:
-        response = requests.get(url, timeout=30)
-        response.raise_for_status()
-        df = pd.read_csv(StringIO(response.text))
-        ensg_to_symbol = dict(zip(df['ensembl_gene_id'], df['external_gene_name']))
-        logger.info(f"Loaded {len(ensg_to_symbol)} gene mappings")
-        return ensg_to_symbol
-    except Exception as e:
-        logger.error(f"Failed to load gene mapping from network: {e}")
-        logger.warning("Continuing without gene mapping — will use Ensembl IDs")
-        return {}
+
+def load_gene_mapping(folder=GENE_MAPPING_FOLDER):
+    """The dict Ensembl id to gene name of the GENCODE release table in the image."""
+    path = mapping_file(folder)
+    df = pd.read_csv(path, usecols=["ensembl_gene_id", "gene_name"])
+    ensg_to_symbol = dict(zip(df["ensembl_gene_id"], df["gene_name"]))
+    logger.info(f"Loaded {len(ensg_to_symbol)} gene names from {path} (GENCODE v{release_of(path)})")
+    return ensg_to_symbol
+
+
+def describe_mapping(folder=GENE_MAPPING_FOLDER):
+    """What the ETL JSON records about the table in use: file, GENCODE release, rows, SHA-256 and
+    the provenance file that belongs to it (source, checksums, date)."""
+    import hashlib
+    path = mapping_file(folder)
+    provenance_path = path[:-len(".csv")] + ".provenance.json"
+    provenance = json.load(open(provenance_path, encoding="utf-8")) if os.path.exists(provenance_path) else None
+    with open(path, "rb") as f:
+        sha256 = hashlib.sha256(f.read()).hexdigest()
+    return {"file": os.path.basename(path), "gencode_release": release_of(path),
+            "rows": len(pd.read_csv(path, usecols=["ensembl_gene_id"])), "sha256": sha256,
+            "provenance": provenance}
 
 
 def map_markers_to_symbols(results_df, ensg_to_symbol):

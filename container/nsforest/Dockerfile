@@ -42,9 +42,15 @@ RUN python -m pip install --no-cache-dir "kaleido==0.2.1"
 RUN python -m pip install --no-cache-dir "awscli"
 RUN python -m pip install --no-cache-dir /app/
 
-# Bake gene mapping at build time — avoids runtime network dependency
-RUN curl -fL https://raw.githubusercontent.com/NIH-NLM/nlm-ckn/main/data/prod/biomart/gene_mapping.csv \
-    -o /app/gene_mapping.csv
+# Bake the gene name table of the GENCODE release at build time: no network is needed at run time.
+# The table and its provenance file are in nlm-ckn (built by cellxgene-harvester build-gene-mapping).
+# GENE_MAPPING_REF is the branch or tag of nlm-ckn to take them from: main, or a branch to try a table
+# before it is merged.
+ARG GENE_MAPPING_REF=main
+RUN curl -fL https://raw.githubusercontent.com/NIH-NLM/nlm-ckn/${GENE_MAPPING_REF}/data/prod/gencode/gene_mapping_gencode_v48.csv \
+    -o /app/gene_mapping_gencode_v48.csv && \
+    curl -fL https://raw.githubusercontent.com/NIH-NLM/nlm-ckn/${GENE_MAPPING_REF}/data/prod/gencode/gene_mapping_gencode_v48.provenance.json \
+    -o /app/gene_mapping_gencode_v48.provenance.json
 
 ENV PYTHONPATH="/opt/nsforest/nsforest"
 

@@ -81,15 +81,8 @@ def gene_annotation():
     with h5py.File("${h5ad}", "r") as f:
         version = f["uns"]["schema_version"][()] if "schema_version" in f["uns"] else None
     version = version.decode() if isinstance(version, bytes) else version
-    mapping = "/app/gene_mapping.csv"
-    provenance = "/app/gene_mapping.provenance.json"
-    info = {"file": None, "sha256": None, "rows": None, "provenance": None}
-    if os.path.exists(mapping):
-        info["file"] = "gene_mapping.csv"
-        info["sha256"] = hashlib.sha256(open(mapping, "rb").read()).hexdigest()
-        info["rows"] = sum(1 for _ in open(mapping)) - 1
-    if os.path.exists(provenance):
-        info["provenance"] = json.load(open(provenance))
+    from nsforest_cli.gene_mapping_utils import describe_mapping
+    info = describe_mapping()
     return {"h5ad_schema_version": version, "gene_mapping": info}
 
 summary = {}
