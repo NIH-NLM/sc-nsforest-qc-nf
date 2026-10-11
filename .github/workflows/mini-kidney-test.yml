@@ -88,7 +88,7 @@ jobs:
           PUBLISH=""
           if [ "${{ inputs.publish }}" = "true" ]; then
             if [ -z "$TOKEN" ]; then echo "ERROR: publish is ticked but the secret NLM_CKN_TOKEN is not set (Settings > Secrets and variables > Actions)" >&2; exit 1; fi
-            PUBLISH="--github_token $TOKEN --publish_repo NIH-NLM/nlm-ckn --publish_dest_dir data/test/kidney/sc-nsforest-qc-nf/results/kidney-Lake-Nature-2023-4af23f"
+            PUBLISH="--github_token $TOKEN --publish_repo NIH-NLM/nlm-ckn --publish_dest_dir data/test/kidney/sc-nsforest-qc-nf"
           fi
           nextflow run main.nf \
             -profile ci \

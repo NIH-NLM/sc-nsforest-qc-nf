@@ -278,10 +278,10 @@ workflow {
     etl_input_ch = compute_summary_stats_process.out.summary
         .map { meta, csvs -> tuple(meta.findAll { k, _v -> k != 'filtered_h5ad_path' }, csvs) }
         .join(harvester_json_ch)
-        .join(filtered_h5ad_ch.map { meta, h5ad -> tuple(meta, h5ad.name) })
+        .join(filtered_h5ad_ch)
         .join(positive_genes_ch.csv)
         .join(merged_nsforest_ch.top10)
-        .map { meta, csvs, json, h5ad_name, positive_csv, top10_csv -> tuple(meta, csvs, json, h5ad_name, positive_csv, top10_csv) }
+        .map { meta, csvs, json, h5ad, positive_csv, top10_csv -> tuple(meta, csvs, json, h5ad, positive_csv, top10_csv) }
 
     build_etl_json_process(etl_input_ch, uberon_ch, disease_ch, hsapdv_ch, assay_ch)
 

@@ -44,15 +44,15 @@ production graph. This is the safest way to experiment.
 
 ## The one rule: do not populate the production graph
 
-The knowledge graph (`NIH-NLM/cell-kn`) is populated by exactly one process,
+The knowledge graph (`NIH-NLM/nlm-ckn`) is populated by exactly one process,
 `publish_results_process`, and **it only runs when `--github_token` is set** (`main.nf:266`).
 If you run the full Nextflow workflow, keep your experiment isolated with these knobs:
 
 | Goal | What to do |
 |---|---|
-| **Never push to the graph** | **Omit `--github_token`.** Without it, the publish step is skipped and logs `WARNING: --github_token not set -- skipping publish step` (`main.nf:278`). Nothing reaches `NIH-NLM/cell-kn`. |
+| **Never push to the graph** | **Omit `--github_token`.** Without it, the publish step is skipped and logs `WARNING: --github_token not set -- skipping publish step` (`main.nf:278`). Nothing reaches `NIH-NLM/nlm-ckn`. |
 | **Keep local outputs separate** | Set `--outdir /your/experiment/dir` (default is `results/`). |
-| **Publish, but to *your* space** | Override **both** `--publish_repo <you>/<your-fork>` and `--publish_dest_dir <your/path>`. Never leave them at the defaults (`NIH-NLM/cell-kn`, `data/prod/...`). |
+| **Publish, but to *your* space** | Override **both** `--publish_repo <you>/<your-fork>` and `--publish_dest_dir <your/path>`. Never leave them at the defaults (`NIH-NLM/nlm-ckn`, `data/prod/...`). |
 | **Your own dataset list** | Point `--datasets_csv` at your CSV, not the production one. |
 | **Never edit `main`** | **Fork the repo.** Make param/config/branch changes on your fork. Production runs from `main`; your fork can't affect it. |
 
@@ -75,7 +75,7 @@ nextflow run . \
 nextflow run . \
   ... \
   --github_token     "$MY_TOKEN" \
-  --publish_repo     me/my-cell-kn-fork \
+  --publish_repo     me/my-nlm-ckn-fork \
   --publish_dest_dir data/experiments/me/endometrium/2026-06 \
   --outdir           ./my_experiment_results
 ```

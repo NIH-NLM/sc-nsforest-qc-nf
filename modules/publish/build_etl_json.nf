@@ -14,7 +14,8 @@
  *   - summary_csvs:   the CSVs from compute_summary_stats (master_dataset_summary_*.csv is used)
  *   - harvester_json: <organism>_<organ>_harvester_final.json from cellxgene-harvester-nf (the list of
  *                     records of all datasets; the record of meta.dataset_id is used)
- *   - h5ad_name:      file name of the final filtered h5ad (adata_filtered_*.h5ad)
+ *   - h5ad:           the final filtered h5ad (adata_filtered_*.h5ad); its CellxGene schema version
+ *                     (uns['schema_version']) is recorded in sc_nsforest_qc.gene_annotation
  *   - positive_csv:   binary_positive_genes_*.csv (every gene with a binary score above 0, per cluster)
  *   - top10_csv:      binary_genes_top10_*.csv (the top binary genes per cluster from NSForest, with
  *                     the random forest importance and the cluster median)
@@ -32,7 +33,7 @@ process build_etl_json_process {
         mode: params.publish_mode
 
     input:
-    tuple val(meta), path(summary_csvs), path(harvester_json), val(h5ad_name), path(positive_csv), path(top10_csv)
+    tuple val(meta), path(summary_csvs), path(harvester_json), path(h5ad), path(positive_csv), path(top10_csv)
     path(uberon_json,  stageAs: 'resolve/uberon.json')
     path(disease_json, stageAs: 'resolve/disease.json')
     path(hsapdv_json,  stageAs: 'resolve/hsapdv.json')
@@ -42,6 +43,7 @@ process build_etl_json_process {
     tuple val(meta), path("sc_nsforest_qc_*.json"), emit: json
 
     script:
+    def h5ad_name = h5ad.name
     def run = groovy.json.JsonOutput.toJson([
         workflow_version:      workflow.manifest.version ?: '',
         session_id:            meta.session_id,
@@ -65,7 +67,7 @@ process build_etl_json_process {
 ${run}
 RUN_JSON
 python3 - <<'PY'
-import csv, glob, hashlib, json
+import csv, glob, hashlib, json, os
 record = next(r for r in json.load(open("${harvester_json}")) if r["dataset"]["dataset_id"] == "${meta.dataset_id}")
 run = json.load(open("run.json"))
 names = run.pop("resolve_file_names")
@@ -73,6 +75,23 @@ run["resolve_files"] = {
     key: {"file": names[key], "sha256": hashlib.sha256(open("resolve/" + key + ".json", "rb").read()).hexdigest()}
     for key in ("uberon", "disease", "hsapdv", "assay")
 }
+def gene_annotation():
+    # the CellxGene schema version of the h5ad this workflow read, and which gene lookup was used
+    import h5py
+    with h5py.File("${h5ad}", "r") as f:
+        version = f["uns"]["schema_version"][()] if "schema_version" in f["uns"] else None
+    version = version.decode() if isinstance(version, bytes) else version
+    mapping = "/app/gene_mapping.csv"
+    provenance = "/app/gene_mapping.provenance.json"
+    info = {"file": None, "sha256": None, "rows": None, "provenance": None}
+    if os.path.exists(mapping):
+        info["file"] = "gene_mapping.csv"
+        info["sha256"] = hashlib.sha256(open(mapping, "rb").read()).hexdigest()
+        info["rows"] = sum(1 for _ in open(mapping)) - 1
+    if os.path.exists(provenance):
+        info["provenance"] = json.load(open(provenance))
+    return {"h5ad_schema_version": version, "gene_mapping": info}
+
 summary = {}
 for f in glob.glob("master_dataset_summary_*.csv"):
     row = next(csv.DictReader(open(f)))
@@ -97,6 +116,7 @@ out = {
     "harvester": record,
     "sc_nsforest_qc": {
         **run,
+        "gene_annotation": gene_annotation(),
         "dataset_summary": summary,
         "binary_genes": {
             "positive": table("${positive_csv}"),

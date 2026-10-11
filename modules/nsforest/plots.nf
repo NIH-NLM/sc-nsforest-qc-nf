@@ -2,7 +2,7 @@
  * Plots Module
  *
  * Creates boxplots, scatter plots, and expression dotplots for NSForest
- * marker genes. Maps Ensembl IDs to gene symbols using cell-kn gene mapping.
+ * marker genes. Maps Ensembl IDs to gene symbols using nlm-ckn gene mapping.
  *
  * Input:
  * ------
