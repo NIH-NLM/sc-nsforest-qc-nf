@@ -141,7 +141,7 @@ Every parameter is set, with a comment, in the `params` block of `nextflow.confi
 | `--outdir` | `results` | Output directory |
 | `--publish_mode` | `copy` | Nextflow `publishDir` mode |
 | `--github_token` | none | Pushes the results to a branch of `--publish_repo`; none skips the step |
-| `--publish_repo` | `NIH-NLM/cell-kn` | Repository the results are pushed to |
+| `--publish_repo` | `NIH-NLM/nlm-ckn` | Repository the results are pushed to |
 
 ## Workflow Architecture
 
@@ -397,7 +397,7 @@ For questions or issues, please [open an issue](https://github.com/NIH-NLM/sc-ns
 - [NSForest](https://github.com/NIH-NLM/NSForest) — Marker gene discovery (Aevermann et al. 2021; Liu et al. 2024)
 - [scsilhouette](https://github.com/NIH-NLM/scsilhouette) — Silhouette score QC package
 - [cellxgene-harvester](https://github.com/NIH-NLM/cellxgene-harvester) — Single-cell data aggregation from CellxGene
-- [cell-kn](https://github.com/NIH-NLM/cell-kn) — NIH NLM Cell Knowledge Network
+- [nlm-ckn](https://github.com/NIH-NLM/nlm-ckn) — NIH NLM Cell Knowledge Network
 
 ## Citation
 

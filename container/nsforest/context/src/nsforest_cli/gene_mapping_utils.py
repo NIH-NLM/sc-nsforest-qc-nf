@@ -12,7 +12,7 @@ from io import StringIO
 from .common_utils import logger
 
 LOCAL_GENE_MAPPING  = "/app/gene_mapping.csv"
-GENE_MAPPING_URL    = "https://raw.githubusercontent.com/NIH-NLM/cell-kn/main/data/prod/biomart/gene_mapping.csv"
+GENE_MAPPING_URL    = "https://raw.githubusercontent.com/NIH-NLM/nlm-ckn/main/data/prod/biomart/gene_mapping.csv"
 
 
 def load_gene_mapping(url=None):

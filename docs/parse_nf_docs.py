@@ -233,7 +233,7 @@ GROUP_DESCRIPTIONS = {
     'publish': (
         "Nextflow module that fires once per dataset after both the NSForest\n"
         "and scsilhouette branches have completed.\n\n"
-        "It clones ``NIH-NLM/cell-kn``, copies outputs into the\n"
+        "It clones ``NIH-NLM/nlm-ckn``, copies outputs into the\n"
         "``data/prod/{organ}/`` tree, commits, pushes a new branch, and\n"
         "opens a pull request against ``main``.\n\n"
         ".. warning::\n\n"

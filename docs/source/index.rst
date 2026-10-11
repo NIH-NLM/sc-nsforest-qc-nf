@@ -13,7 +13,7 @@ ontology-based cell filtering driven by
 `cellxgene-harvester <https://github.com/NIH-NLM/cellxgene-harvester>`_
 outputs.
 
-It is part of the `NIH NLM Cell Knowledge Network <https://github.com/NIH-NLM/cell-kn>`_.
+It is part of the `NIH NLM Cell Knowledge Network <https://github.com/NIH-NLM/nlm-ckn>`_.
 
 .. toctree::
    :maxdepth: 2
@@ -39,7 +39,7 @@ Related Projects
 - `NSForest <https://github.com/NIH-NLM/NSForest>`_ — marker gene discovery algorithm (Aevermann et al. 2021; Liu et al. 2024). `NSForest documentation <https://nsforest.readthedocs.io>`_
 - `scsilhouette <https://github.com/NIH-NLM/scsilhouette>`_ — silhouette score QC package (NIH NLM). `scsilhouette documentation <https://nih-nlm.github.io/scsilhouette>`_
 - `cellxgene-harvester <https://github.com/NIH-NLM/cellxgene-harvester>`_ — single-cell data aggregation from CellxGene
-- `cell-kn <https://github.com/NIH-NLM/cell-kn>`_ — NIH NLM Cell Knowledge Network
+- `nlm-ckn <https://github.com/NIH-NLM/nlm-ckn>`_ — NIH NLM Cell Knowledge Network
 
 Quick Start — Nextflow workflow
 --------------------------------
@@ -79,7 +79,7 @@ Repository Structure
    │   └── source/
    ├── modules/
    │   ├── nsforest/                   # NSForest Nextflow process modules
-   │   ├── publish/                    # cell-kn publish module
+   │   ├── publish/                    # nlm-ckn publish module
    │   └── scsilhouette/               # scsilhouette Nextflow process modules
    ├── main.nf                         # Pipeline entry point
    └── nextflow.config                 # Default parameters and container config
