@@ -560,11 +560,7 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
  
         
     # Add gene symbols into adata.var so every downstream step has them for free
-    ensg_to_symbol = load_gene_mapping()
-    if ensg_to_symbol:
-        adata = add_gene_symbols_to_adata(adata, ensg_to_symbol)
-    else:
-        logger.warning("No gene mapping available — adata.var['gene_symbol'] not populated")
+    adata = add_gene_symbols_to_adata(adata, load_gene_mapping())
 
     # Sanitize reserved column names — anndata reserves '_index' for the DataFrame index
     for attr_name in ('var', 'obs'):
