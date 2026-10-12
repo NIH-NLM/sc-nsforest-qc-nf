@@ -107,7 +107,7 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journ
                   outputfilename_suffix=prefix)
     ns.pl.dotplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                   gene_symbols='gene_symbol', standard_scale='var', save="svg",
-                  output_folder="", outputfilename_suffix="_scaled" + prefix)
+                  output_folder="", outputfilename_suffix="scaled_" + prefix)
 
     # Stacked violin
     ns.pl.stackedviolin(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
@@ -115,7 +115,7 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journ
                         outputfilename_suffix=prefix)
     ns.pl.stackedviolin(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                         gene_symbols='gene_symbol', standard_scale='var', save="svg",
-                        output_folder="", outputfilename_suffix="_scaled" + prefix)
+                        output_folder="", outputfilename_suffix="scaled_" + prefix)
 
     # Matrix plot
     ns.pl.matrixplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
@@ -123,7 +123,7 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journ
                      outputfilename_suffix=prefix)
     ns.pl.matrixplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                      gene_symbols='gene_symbol', standard_scale='var', save="svg",
-                     output_folder="", outputfilename_suffix="_scaled" + prefix)
+                     output_folder="", outputfilename_suffix="scaled_" + prefix)
 
 
     logger.info("Plotting complete!")

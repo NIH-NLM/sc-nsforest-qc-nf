@@ -32,12 +32,12 @@ The pipeline uses two containers:
 | Process group | Container |
 |---|---|
 | NSForest (all `modules/nsforest` processes) | `ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest:latest` |
-| scsilhouette (all `modules/scsilhouette` processes) | `ghcr.io/nih-nlm/scsilhouette:1.0` |
+| scsilhouette (all `modules/scsilhouette` processes) | `ghcr.io/nih-nlm/scsilhouette:v1.0` |
 
 Pull manually if needed:
 ```bash
 docker pull ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest:latest
-docker pull ghcr.io/nih-nlm/scsilhouette:1.0
+docker pull ghcr.io/nih-nlm/scsilhouette:v1.0
 ```
 
 ## Installation
