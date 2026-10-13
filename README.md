@@ -209,10 +209,10 @@ The image takes the table from nlm-ckn `data/prod/gencode` on `main`. To try a t
 
 ## Output for the ETL
 
-For each dataset the workflow writes `sc_nsforest_qc_{organ}_{first_author}_{year}_{embedding}_{version}.json`, the one file that goes on to the ETL. Nothing is left out:
+For each dataset the workflow writes `master_dataset_summary_{organ}_{first_author}_{year}_{embedding}_{version}.json`, the one JSON file per dataset, and the one that goes on to the ETL. Nothing is left out:
 
 - `harvester`: the whole cellxgene-harvester-nf record
-- `sc_nsforest_qc`: the run parameters, the `dataset_summary` (clusters, silhouette and F-score statistics, final cell count), the final filtered h5ad file name `filtered_h5ad`, and its location `s3_filtered_h5ad`
+- `sc_nsforest_qc`: the run parameters, `input` (the version of the input: the harvester version and snapshot, the SHA-256 of the harvester CSV and JSON, and the name, size and SHA-256 of the input h5ad), `filtering` (the minimum cluster size, the cells, genes and clusters before and after it, and the dropped clusters with their sizes), the `dataset_summary` (clusters, silhouette and F-score statistics, final cell count), the final filtered h5ad file name `filtered_h5ad`, and its location `s3_filtered_h5ad`
 
 - `sc_nsforest_qc.binary_genes`: the binary scores of the genes, two tables. `positive` lists every gene with a binary score above 0 in each cluster (`clusterName`, `gene_ensg`, `gene_symbol`, `binary_score`). `top10` lists the top binary genes NSForest chose for each cluster, with `binary_score`, `rf_feature_importance` and `cluster_median`. Both are also written as CSV files: `binary_positive_genes_*.csv` and `binary_genes_top10_*.csv`.
 

@@ -45,6 +45,7 @@ process filter_adata_process {
     tuple val(meta), path("cluster_order_before_filter*.csv"),  emit: cluster_order
     tuple val(meta), path("summary_before_filter*.csv"),        emit: summary
     tuple val(meta), path("dendrogram_before_filter*.svg"),     emit: svg
+    tuple val(meta), path("input_h5ad_*.json"),                 emit: input_info
     
 
     script:
@@ -69,5 +70,16 @@ process filter_adata_process {
 	${obs_col_flag} \
         ${obs_val_flag}
 
+    # the version of the input: the name, size and SHA-256 of the h5ad this step read
+    python3 - <<'PY'
+import hashlib, json, os
+name = "${h5ad}"
+digest = hashlib.sha256()
+with open(name, "rb") as f:
+    for chunk in iter(lambda: f.read(1 << 20), b""):
+        digest.update(chunk)
+json.dump({"file": os.path.basename(os.path.realpath(name)), "size_bytes": os.path.getsize(name),
+           "sha256": digest.hexdigest()}, open("input_h5ad_${meta.dataset_version_id}.json", "w"), indent=2)
+PY
     """
 }
