@@ -113,7 +113,7 @@ jobs:
           ls -lh results
           test -n "$(ls results/*adata_filtered*.h5ad 2>/dev/null)"
           test -n "$(ls results/*.csv 2>/dev/null)"
-          test -n "$(ls results/sc_nsforest_qc_*.json 2>/dev/null)"
+          test -n "$(ls results/master_dataset_summary_*.json 2>/dev/null)"
 
       - name: Upload results
         if: always()

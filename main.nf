@@ -281,9 +281,12 @@ workflow {
         .join(filtered_h5ad_ch)
         .join(positive_genes_ch.csv)
         .join(merged_nsforest_ch.top10)
-        .map { meta, csvs, json, h5ad, positive_csv, top10_csv -> tuple(meta, csvs, json, h5ad, positive_csv, top10_csv) }
+        .join(filter_output_ch.input_info)
+        .join(filter_output_ch.cluster_sizes)
+        .join(filter_output_ch.summary)
 
-    build_etl_json_process(etl_input_ch, uberon_ch, disease_ch, hsapdv_ch, assay_ch)
+    build_etl_json_process(etl_input_ch, uberon_ch, disease_ch, hsapdv_ch, assay_ch,
+                           channel.value(file(params.harvester_csv)))
 
     // Step 9a: Publish + S3 Manifest
     def s3_results_base = workflow.workDir.parent.toUriString() + '/results'

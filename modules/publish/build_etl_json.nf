@@ -1,7 +1,7 @@
 /**
- * Build the ETL JSON
+ * Build the master dataset summary JSON (the one file per dataset that the ETL ingests)
  *
- * Writes the one JSON file for a dataset that goes on to the ETL. It holds the whole
+ * Writes the one JSON file for a dataset that goes on to the ETL (master_dataset_summary_*.json). It holds the whole
  * cellxgene-harvester-nf record (nothing is left out), the sc-nsforest-qc-nf run
  * (parameters, the dataset summary, the result files) and where the final filtered
  * h5ad file is. The location is in "s3_filtered_h5ad": with --s3_h5ad_prefix it is
@@ -24,7 +24,7 @@
  *
  * Output:
  * -------
- * @emit json: tuple(meta, sc_nsforest_qc_{prefix}.json)
+ * @emit json: tuple(meta, master_dataset_summary_{prefix}.json)
  */
 process build_etl_json_process {
     tag "etl_json_${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
@@ -33,14 +33,16 @@ process build_etl_json_process {
         mode: params.publish_mode
 
     input:
-    tuple val(meta), path(summary_csvs), path(harvester_json), path(h5ad), path(positive_csv), path(top10_csv)
+    tuple val(meta), path(summary_csvs), path(harvester_json), path(h5ad), path(positive_csv), path(top10_csv),
+          path(input_info), path(sizes_before), path(summary_before)
     path(uberon_json,  stageAs: 'resolve/uberon.json')
     path(disease_json, stageAs: 'resolve/disease.json')
     path(hsapdv_json,  stageAs: 'resolve/hsapdv.json')
     path(assay_json,   stageAs: 'resolve/assay.json')
+    path(harvester_csv, stageAs: 'input/harvester.csv')
 
     output:
-    tuple val(meta), path("sc_nsforest_qc_*.json"), emit: json
+    tuple val(meta), path("master_dataset_summary_*.json"), emit: json
 
     script:
     def h5ad_name = h5ad.name
@@ -104,11 +106,49 @@ def table(path):
                 r[k] = float(r[k])
     return rows
 
+def sha256(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+# what the minimum cluster size (and the other filters) did: the one post-filter result
+import anndata
+final = anndata.read_h5ad("${h5ad}", backed="r")
+after = final.obs["${meta.author_cell_type}"].astype(str).value_counts()
+before = {r["cluster"]: int(r["count"]) for r in csv.DictReader(open("${sizes_before}"))}
+dropped = [{"cluster": c, "cells": n} for c, n in sorted(before.items()) if c not in after.index]
+size = next(csv.DictReader(open("${summary_before}")))
+fc = record.get("filter_choices", {})
+
 out = {
     "schema_version": "1.0",
+    "kind": "master_dataset_summary",
+    "dataset_id": "${meta.dataset_id}",
+    "dataset_version_id": "${meta.dataset_version_id}",
     "harvester": record,
     "sc_nsforest_qc": {
         **run,
+        "input": {
+            "cellxgene_harvester_version": fc.get("harvester_version"),
+            "cellxgene_harvester_snapshot": fc.get("snapshot"),
+            "harvester_csv": {"file": os.path.basename("${params.harvester_csv}"), "sha256": sha256("input/harvester.csv")},
+            "harvester_json": {"file": "${harvester_json}", "sha256": sha256("${harvester_json}")},
+            "filtered_h5ad_url": record.get("filtered_h5ad_url"),
+            "input_h5ad": json.load(open("${input_info}")),
+        },
+        "filtering": {
+            "min_cluster_size": run["min_cluster_size"],
+            "cells_before": int(size["n_obs"]),
+            "genes_before": int(size["n_vars"]),
+            "clusters_before": int(size["n_clusters"]),
+            "cells_after": int(final.n_obs),
+            "genes_after": int(final.n_vars),
+            "clusters_after": int(len(after)),
+            "clusters_dropped": dropped,
+        },
+        "nsforest_image": "${task.container}",
         "gene_annotation": gene_annotation(),
         "dataset_summary": summary,
         "binary_genes": {
@@ -117,7 +157,7 @@ out = {
         },
     },
 }
-name = "sc_nsforest_qc_" + "${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}".replace("/", "_").replace(" ", "_") + ".json"
+name = "master_dataset_summary_" + "${meta.organ}_${meta.first_author}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}".replace("/", "_").replace(" ", "_") + ".json"
 json.dump(out, open(name, "w"), indent=2)
 PY
     """
