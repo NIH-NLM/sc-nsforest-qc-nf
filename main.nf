@@ -227,7 +227,7 @@ workflow {
     merged_nsforest_ch = merge_nsforest_results_process(merge_input_ch)
 
     // Step 5b: the genes with a binary score above 0 in each cluster, with the score
-    positive_genes_ch = binary_positive_genes_process(
+    binary_positive_genes_process(
         prep_output_ch.binary_csv
             .join(filtered_h5ad_ch)
     )
@@ -280,7 +280,6 @@ workflow {
         .map { meta, csvs -> tuple(meta.findAll { k, _v -> k != 'filtered_h5ad_path' }, csvs) }
         .join(harvester_json_ch)
         .join(filtered_h5ad_ch)
-        .join(positive_genes_ch.csv)
         .join(merged_nsforest_ch.top10)
         .join(filter_output_ch.input_info)
         .join(merged_nsforest_ch.results_csv)

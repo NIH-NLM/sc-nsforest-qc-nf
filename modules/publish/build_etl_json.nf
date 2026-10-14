@@ -16,7 +16,6 @@
  *                     records of all datasets; the record of meta.dataset_id is used)
  *   - h5ad:           the final filtered h5ad (adata_filtered_*.h5ad); its CellxGene schema version
  *                     (uns['schema_version']) is recorded in sc_nsforest_qc.gene_annotation
- *   - positive_csv:   binary_positive_genes_*.csv (every gene with a binary score above 0, per cluster)
  *   - top10_csv:      binary_genes_top10_*.csv (the top binary genes per cluster from NSForest, with
  *                     the random forest importance and the cluster median)
  *   - uberon_json, disease_json, hsapdv_json, assay_json: the resolve files given to the workflow;
@@ -33,7 +32,7 @@ process build_etl_json_process {
         mode: params.publish_mode
 
     input:
-    tuple val(meta), path(summary_csvs), path(harvester_json), path(h5ad), path(positive_csv), path(top10_csv),
+    tuple val(meta), path(summary_csvs), path(harvester_json), path(h5ad), path(top10_csv),
           path(input_info), path(results_ensg), path(results_symbols), path(cluster_summary),
           path(silhouette_version), path(cluster_stats)
     path(uberon_json,  stageAs: 'resolve/uberon.json')
@@ -220,7 +219,6 @@ out = {
         "gene_annotation": gene_annotation(),
         "dataset_summary": summary,
         "binary_genes": {
-            "positive": table("${positive_csv}"),
             "top10": table("${top10_csv}"),
         },
     },
