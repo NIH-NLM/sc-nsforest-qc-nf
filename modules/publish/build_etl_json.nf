@@ -100,6 +100,12 @@ for f in glob.glob("master_dataset_summary_*.csv"):
                 summary[k] = float(v)
             except ValueError:
                 summary[k] = v
+# the text columns that hold a list as joined text are not copied: summary.source_* and summary.filtered_* hold
+# the counts as lists, and resolve_files.*.content holds the terms as lists
+for column in ("tissue_ontology_summary", "assay_ontology_summary", "cell_type_ontology_summary",
+               "disease_ontology_summary", "sex_ontology_summary", "development_stage_summary",
+               "tissue_ontology_term_id", "disease_ontology_term_id", "development_stage_ontology_term_id"):
+    summary.pop(column, None)
 def table(path):
     rows = list(csv.DictReader(open(path)))
     for r in rows:
@@ -167,7 +173,6 @@ for row in csv.DictReader(open("${cluster_stats}")):
             **{k: number(r[k]) for k in ("f_score", "precision", "recall", "onTarget", "TN", "FP", "FN", "TP", "marker_count")},
             "markers_ensg": ast.literal_eval(r["NSForest_markers"]),
             "markers_symbol": ast.literal_eval(symbol_rows[name]["NSForest_markers"]),
-            "binary_genes": ast.literal_eval(r["binary_genes"]),
         }
     if name in silhouette_rows:
         s = silhouette_rows[name]
