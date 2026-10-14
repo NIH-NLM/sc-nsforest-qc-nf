@@ -34,7 +34,8 @@ process build_etl_json_process {
 
     input:
     tuple val(meta), path(summary_csvs), path(harvester_json), path(h5ad), path(positive_csv), path(top10_csv),
-          path(input_info), path(sizes_before), path(summary_before)
+          path(input_info), path(results_ensg), path(results_symbols), path(cluster_summary),
+          path(silhouette_version), path(cluster_stats)
     path(uberon_json,  stageAs: 'resolve/uberon.json')
     path(disease_json, stageAs: 'resolve/disease.json')
     path(hsapdv_json,  stageAs: 'resolve/hsapdv.json')
@@ -74,7 +75,8 @@ record = next(r for r in json.load(open("${harvester_json}")) if r["dataset"]["d
 run = json.load(open("run.json"))
 names = run.pop("resolve_file_names")
 run["resolve_files"] = {
-    key: {"file": names[key], "sha256": hashlib.sha256(open("resolve/" + key + ".json", "rb").read()).hexdigest()}
+    key: {"file": names[key], "sha256": hashlib.sha256(open("resolve/" + key + ".json", "rb").read()).hexdigest(),
+          "content": json.load(open("resolve/" + key + ".json"))}
     for key in ("uberon", "disease", "hsapdv", "assay")
 }
 def gene_annotation():
@@ -113,14 +115,83 @@ def sha256(path):
             h.update(chunk)
     return h.hexdigest()
 
-# what the minimum cluster size (and the other filters) did: the one post-filter result
-import anndata
-final = anndata.read_h5ad("${h5ad}", backed="r")
-after = final.obs["${meta.author_cell_type}"].astype(str).value_counts()
-before = {r["cluster"]: int(r["count"]) for r in csv.DictReader(open("${sizes_before}"))}
-dropped = [{"cluster": c, "cells": n} for c, n in sorted(before.items()) if c not in after.index]
-size = next(csv.DictReader(open("${summary_before}")))
 fc = record.get("filter_choices", {})
+
+# the summary fields before and after sc-nsforest-qc-nf, in the keys of the cellxgene-harvester-nf record:
+# source_ = what it was given (the harvester's filtered counts), filtered_ = counted on the final h5ad
+import anndata
+FIELDS = {"tissue": ("tissue_ontology_term_id", "tissue"), "assay": ("assay_ontology_term_id", "assay"),
+          "cell_type": ("cell_type_ontology_term_id", "cell_type"), "disease": ("disease_ontology_term_id", "disease"),
+          "development_stage": ("development_stage_ontology_term_id", "development_stage"),
+          "sex": ("sex_ontology_term_id", "sex")}
+obs = anndata.read_h5ad("${h5ad}", backed="r").obs
+qc_summary = {
+    "source_cell_count": record.get("filtered_cell_count"),
+    "filtered_cell_count": int(len(obs)),
+    "source_donor_count": record.get("filtered_donor_count"),
+    "filtered_donor_count": int(obs["donor_id"].nunique()) if "donor_id" in obs else None,
+}
+for key, (id_col, label_col) in FIELDS.items():
+    groups = obs.groupby([obs[id_col].astype(str), obs[label_col].astype(str)], observed=True).size()
+    counts = {(i, l): int(n) for (i, l), n in groups.items()}
+    given = record.get("filtered_" + key, [])
+    qc_summary["source_" + key] = [{"ontology_id": x["ontology_id"], "label": x["label"], "source_count": x["filtered_count"]} for x in given]
+    seen = {(x["ontology_id"], x["label"]) for x in given}
+    qc_summary["filtered_" + key] = (
+        [{"ontology_id": x["ontology_id"], "label": x["label"], "filtered_count": counts.get((x["ontology_id"], x["label"]), 0)} for x in given]
+        + [{"ontology_id": i, "label": l, "filtered_count": n} for (i, l), n in counts.items() if (i, l) not in seen and n > 0])
+
+# ---- the results of each cluster: NSForest (ENSG and symbols), silhouette and cluster size ----
+import ast, importlib.metadata as md
+def number(v):
+    try:
+        return int(v)
+    except ValueError:
+        return float(v)
+
+def by_cluster(path, column):
+    return {r[column]: r for r in csv.DictReader(open(path))}
+
+cluster_col = "${meta.author_cell_type}"
+ensg_rows = by_cluster("${results_ensg}", "clusterName")
+symbol_rows = by_cluster("${results_symbols}", "clusterName")
+silhouette_rows = by_cluster("${cluster_summary}", cluster_col)
+clusters = []
+for row in csv.DictReader(open("${cluster_stats}")):
+    name = row["cluster"]
+    entry = {"cluster": name, "n_cells": int(row["n_cells"]), "percentage": float(row["percentage"])}
+    if name in ensg_rows:
+        r = ensg_rows[name]
+        entry["nsforest"] = {
+            "software_version": r["software_version"], "cluster_size": int(r["clusterSize"]),
+            **{k: number(r[k]) for k in ("f_score", "precision", "recall", "onTarget", "TN", "FP", "FN", "TP", "marker_count")},
+            "markers_ensg": ast.literal_eval(r["NSForest_markers"]),
+            "markers_symbol": ast.literal_eval(symbol_rows[name]["NSForest_markers"]),
+            "binary_genes": ast.literal_eval(r["binary_genes"]),
+        }
+    if name in silhouette_rows:
+        s = silhouette_rows[name]
+        entry["silhouette"] = {"mean": float(s["mean_silhouette"]), "std": float(s["std_silhouette"]),
+                               "median": float(s["median_silhouette"]), "count": int(s["count"])}
+    clusters.append(entry)
+
+# ---- the versions of the codes that ran ----
+sil = json.load(open("${silhouette_version}"))
+software = {
+    "sc-nsforest-qc-nf": {k: v for k, v in {"version": "${workflow.manifest.version}", "revision": "${workflow.revision ?: ''}",
+                                            "commit": "${workflow.commitId ?: ''}"}.items() if v},
+    "nextflow": "${nextflow.version}",
+    "run_date": "${workflow.start}",
+    "cellxgene-harvester": record.get("filter_choices", {}).get("harvester_version"),
+    "cellxgene-harvester-nf": record.get("filter_choices", {}).get("harvester_nf_version"),
+    "nsforest": md.version("nsforest"),
+    "scsilhouette": sil["version"],
+    "python": __import__("platform").python_version(),
+    "scanpy": md.version("scanpy"),
+    "anndata": md.version("anndata"),
+    "images": {"nsforest": "${task.container}", "scsilhouette": sil["image"]},
+}
+software = {k: v for k, v in software.items() if v}
 
 out = {
     "schema_version": "1.0",
@@ -138,17 +209,9 @@ out = {
             "filtered_h5ad_url": record.get("filtered_h5ad_url"),
             "input_h5ad": json.load(open("${input_info}")),
         },
-        "filtering": {
-            "min_cluster_size": run["min_cluster_size"],
-            "cells_before": int(size["n_obs"]),
-            "genes_before": int(size["n_vars"]),
-            "clusters_before": int(size["n_clusters"]),
-            "cells_after": int(final.n_obs),
-            "genes_after": int(final.n_vars),
-            "clusters_after": int(len(after)),
-            "clusters_dropped": dropped,
-        },
-        "nsforest_image": "${task.container}",
+        "summary": qc_summary,
+        "clusters": clusters,
+        "software": software,
         "gene_annotation": gene_annotation(),
         "dataset_summary": summary,
         "binary_genes": {

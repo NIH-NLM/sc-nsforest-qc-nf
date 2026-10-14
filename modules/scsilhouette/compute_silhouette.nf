@@ -23,12 +23,14 @@ process compute_silhouette_process {
     label 'scsilhouette'
     containerOptions '--entrypoint ""'
     publishDir "${params.outdir}",
-        mode: params.publish_mode
+        mode: params.publish_mode,
+        saveAs: { fn -> fn == 'scsilhouette_version.json' ? null : fn }
 
     input:
     tuple val(meta), path(h5ad)
 
     output:
+    tuple val(meta), path("scsilhouette_version.json"), emit: version
     tuple val(meta), path("silhouette_scores*.csv"), emit: scores
     tuple val(meta), path("scsilhouette_cluster_summary*.csv"),   emit: cluster_summary
     tuple val(meta), path("annotation*.json"),       emit: annotation
@@ -49,5 +51,8 @@ process compute_silhouette_process {
         --save-scores \
         --save-cluster-summary \
         --save-annotation
+
+    # the version of scsilhouette and the image it ran in, for the master dataset summary
+    python3 -c "import json, scsilhouette; json.dump({'version': scsilhouette.__version__, 'image': '${task.container}'}, open('scsilhouette_version.json', 'w'))"
     """
 }

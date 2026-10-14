@@ -180,7 +180,8 @@ workflow {
     dendrogram_output_ch = dendrogram_process(filtered_h5ad_ch)
 
     // Step 1b: Cluster statistics
-    cluster_stats_process(filtered_h5ad_ch)
+    cluster_stats_ch = cluster_stats_process(filtered_h5ad_ch).results
+        .map { meta, files -> tuple(meta, [files].flatten().find { f -> f.name.startsWith('cluster_statistics') && f.name.endsWith('.csv') }) }
 
     // Step 1c: Cluster -> cell ontology ID mapping (4-column manual curation sheet)
     cluster_cid_mapping_process(filtered_h5ad_ch)
@@ -282,8 +283,11 @@ workflow {
         .join(positive_genes_ch.csv)
         .join(merged_nsforest_ch.top10)
         .join(filter_output_ch.input_info)
-        .join(filter_output_ch.cluster_sizes)
-        .join(filter_output_ch.summary)
+        .join(merged_nsforest_ch.results_csv)
+        .join(merged_nsforest_ch.results_csv_symbols)
+        .join(silhouette_output_ch.cluster_summary)
+        .join(silhouette_output_ch.version)
+        .join(cluster_stats_ch)
 
     build_etl_json_process(etl_input_ch, uberon_ch, disease_ch, hsapdv_ch, assay_ch,
                            channel.value(file(params.harvester_csv)))
