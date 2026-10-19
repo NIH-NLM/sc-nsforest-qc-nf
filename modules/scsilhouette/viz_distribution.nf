@@ -18,7 +18,7 @@
  *   Flat filenames: {organ}_{first_author}_{journal}_{year}_{cluster_header_safe}_{embedding_safe}_{vid}_distribution_*.{html,svg}
  */
 process viz_distribution_process {
-    tag "viz_distribution_${meta.organ}_${meta.first_author}_${meta.journal}_${meta.year}_${meta.embedding}_${dataset_version_id}"
+    tag "viz_distribution_${meta.organ}_${meta.first_author}_${meta.journal}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
     label 'scsilhouette'
     containerOptions '--entrypoint ""'
     publishDir "${params.outdir}",
