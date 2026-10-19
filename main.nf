@@ -57,6 +57,7 @@ params.cluster_summary    = null
 params.annotation         = null
 params.binary_scores      = null   // binary scores (gene x cluster, ENSG) exported from Ajith's pkl, passed through
 params.medians            = null   // medians (gene x cluster, ENSG) exported from Ajith's pkl, passed through
+params.sha256             = null   // optional: the sha256 of --custom_h5ad, computed elsewhere; skips the checksum task
 params.outdir             = './'
 params.github_token       = null   // without it nothing is published to GitHub
 params.publish_repo       = 'NIH-NLM/nlm-ckn'
@@ -68,8 +69,10 @@ params.nsforest_seed         = 42
 process checksum_h5ad_process {
     tag "sha256_${h5ad.name}"
     container 'ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest:4c380184b7a60bbc7f26938b737130953a5b5982'
-    cpus 2
-    memory '8 GB'
+    // a large request, as for the dendrogram step, so that Batch picks a big machine with a fast network:
+    // the 195 GB file is read in place, and a small machine reads it slowly
+    cpus 8
+    memory '384 GB'
     publishDir "${params.outdir}", mode: params.publish_mode
 
     input:
@@ -105,6 +108,27 @@ process passthrough_binary_scores_process {
     script:
     """
     cp ${binary} binary_scores_ensg_${meta.organ}_${meta.first_author}_${meta.journal.replace(' ', '_')}_${meta.year}_${meta.author_cell_type.replace(' ', '_')}_${meta.embedding.replace(' ', '_')}_${meta.dataset_version_id}.csv
+    """
+}
+
+// Used when the sha256 of the unfiltered h5ad is given (--sha256): only writes the .sha256 file.
+process write_sha256_process {
+    tag "sha256_given"
+    container 'ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest:4c380184b7a60bbc7f26938b737130953a5b5982'
+    cpus 1
+    memory '1 GB'
+    publishDir "${params.outdir}", mode: params.publish_mode
+
+    input:
+    val sha256
+    val h5ad_name
+
+    output:
+    path "${h5ad_name}.sha256", emit: file
+
+    script:
+    """
+    echo "${sha256}  ${h5ad_name}" > ${h5ad_name}.sha256
     """
 }
 
@@ -189,8 +213,18 @@ workflow {
         if (!params[p]) { log.error "ERROR: --${p} is required"; exit 1 }
     }
 
-    h5ad_ch = Channel.value(file(params.custom_h5ad))
-    sha_out = checksum_h5ad_process(h5ad_ch)
+    // the sha256 of the unfiltered h5ad is the dataset id: computed here, or given with --sha256
+    if (params.sha256) {
+        if (!(params.sha256.toString().trim().toLowerCase() ==~ /[0-9a-f]{64}/)) {
+            log.error "ERROR: --sha256 must be 64 hexadecimal characters"; exit 1
+        }
+        sha_value = Channel.value(params.sha256.toString().trim().toLowerCase())
+        sha_file  = write_sha256_process(sha_value, params.custom_h5ad.toString().tokenize('/').last()).file
+    } else {
+        sha_out   = checksum_h5ad_process(Channel.value(file(params.custom_h5ad)))
+        sha_value = sha_out.sha256
+        sha_file  = sha_out.file
+    }
 
     row_ch = Channel
         .fromPath(params.datasets_csv)
@@ -198,7 +232,7 @@ workflow {
         .first()
 
     // meta: same keys as main.nf; dataset_version_id replaced by the sha256 id
-    meta_ch = row_ch.combine(sha_out.sha256).map { row, sha ->
+    meta_ch = row_ch.combine(sha_value).map { row, sha ->
         [
             organ:                              params.organ,
             first_author:                       row.first_author,
@@ -299,7 +333,7 @@ workflow {
         )
         .flatMap { meta, files -> (files instanceof List) ? files.flatten() : [files] }
         .map { f -> f.name }
-        .mix(sha_out.file.map { f -> f.name })
+        .mix(sha_file.map { f -> f.name })
         .collect()
 
     manifest_process(names_ch, s3_results_base, params.filtered_h5ad, params.custom_h5ad)
