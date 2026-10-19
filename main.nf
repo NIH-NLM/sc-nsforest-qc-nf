@@ -58,6 +58,7 @@ params.annotation         = null
 params.binary_scores      = null   // binary scores (gene x cluster, ENSG) exported from Ajith's pkl, passed through
 params.medians            = null   // medians (gene x cluster, ENSG) exported from Ajith's pkl, passed through
 params.sha256             = null   // optional: the sha256 of --custom_h5ad, computed elsewhere; skips the checksum task
+params.skip_plots         = false  // true: do not draw the NSForest plots (boxplots, scatter, dot, matrix, violin); they can come in a later run
 params.outdir             = './'
 params.github_token       = null   // without it nothing is published to GitHub
 params.publish_repo       = 'NIH-NLM/nlm-ckn'
@@ -276,7 +277,9 @@ workflow {
 
     passthrough_binary_scores_process(meta_ch.map { m -> tuple(m, file(params.binary_scores)) })
 
-    plots_process(h5ad_meta.join(results_ch))
+    if (!params.skip_plots) {
+        plots_process(h5ad_meta.join(results_ch))
+    }
 
     sil_ch = meta_ch.map { m ->
         tuple(m, file(params.silhouette_scores), file(params.cluster_summary), file(params.annotation))
@@ -315,7 +318,7 @@ workflow {
     def s3_results_base = workflow.workDir.parent.toUriString() + '/results/' + params.outdir
     names_ch = Channel.empty()
         .mix(
-            plots_process.out.plots,
+            (params.skip_plots ? Channel.empty() : plots_process.out.plots),
             viz_summary_process.out.plots,
             viz_distribution_process.out.plots,
             viz_2D_projection_process.out.plots,
@@ -342,7 +345,7 @@ workflow {
     if (params.github_token) {
         publish_ch = Channel.empty()
             .mix(
-                plots_process.out.plots,
+                (params.skip_plots ? Channel.empty() : plots_process.out.plots),
                 viz_summary_process.out.plots,
                 viz_distribution_process.out.plots,
                 viz_2D_projection_process.out.plots,
