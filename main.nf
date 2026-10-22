@@ -159,7 +159,7 @@ workflow {
     // one row for each cluster header
     row_ch = Channel
         .fromPath(params.datasets_csv)
-        .splitCsv(header: true, sep: ',')
+        .splitCsv(header: true, sep: ',', quote: '"')
 
     // meta: the keys the modules use; dataset_version_id is the sha256 id
     meta_ch = row_ch.combine(sha_value).map { row, sha ->

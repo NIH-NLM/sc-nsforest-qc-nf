@@ -21,7 +21,7 @@ import csv
 import json
 import pandas as pd
 import scanpy as sc
-import nsforest as ns
+from . import nsf_compat
 
 from .common_utils import (
     get_output_prefix,
@@ -90,10 +90,10 @@ def create_stats_before_filter(adata, cluster_header, prefix, embedding="X_pca")
             sc.pp.pca(adata, zero_center=False, use_highly_variable=True)
 
         # Render the figure via nsforest/scanpy but save it ourselves.
-        # ns.pp.dendrogram(save="svg") routes through scanpy's savefig_or_show,
+        # nsf_compat.dendrogram(save="svg") routes through scanpy's savefig_or_show,
         # which in scanpy 1.9.6 + matplotlib 3.8.0 crashes with
         # "'bool' object has no attribute 'write'" inside PIL's PNG backend.
-        ns.pp.dendrogram(
+        nsf_compat.dendrogram(
             adata, cluster_header,
             tl_kwargs={"optimal_ordering": True},
             pl_kwargs={"show": False},
@@ -110,7 +110,7 @@ def create_stats_before_filter(adata, cluster_header, prefix, embedding="X_pca")
             raise
         logger.warning(f"Optimal ordering failed — retrying without: {e}")
         try:
-            ns.pp.dendrogram(
+            nsf_compat.dendrogram(
                 adata, cluster_header,
                 tl_kwargs={"optimal_ordering": False},
                 save=False,
@@ -134,7 +134,7 @@ def create_stats_before_filter(adata, cluster_header, prefix, embedding="X_pca")
                 sc.pp.highly_variable_genes(adata, n_top_genes=2000)
             sc.pp.pca(adata, zero_center=False, use_highly_variable=True)
             # adata.obsm["X_pca"] now has real PCA; the previous alias is overwritten.
-            ns.pp.dendrogram(
+            nsf_compat.dendrogram(
                 adata, cluster_header,
                 tl_kwargs={"optimal_ordering": True},
                 save=False,
@@ -495,7 +495,7 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
 
         # Populate adata.uns['dendrogram_' + cluster_header] for downstream consumers.
         # SVG + CSVs are emitted by dendrogram.py (see modules/nsforest/dendrogram.nf).
-        ns.pp.dendrogram(
+        nsf_compat.dendrogram(
             adata, cluster_header,
             tl_kwargs={"optimal_ordering": True},
             save=False,
@@ -506,7 +506,7 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
             raise
         logger.warning(f"Optimal ordering failed — retrying without: {e}")
         try:
-            ns.pp.dendrogram(
+            nsf_compat.dendrogram(
                 adata, cluster_header,
                 tl_kwargs={"optimal_ordering": False},
                 save=False,
@@ -525,7 +525,7 @@ def run_filter_adata(h5ad_path, cluster_header, organ, first_author, journal, ye
                 sc.pp.highly_variable_genes(adata, n_top_genes=2000)
             sc.pp.pca(adata, zero_center=False, use_highly_variable=True)
             # adata.obsm["X_pca"] now has real PCA; the previous alias is overwritten.
-            ns.pp.dendrogram(
+            nsf_compat.dendrogram(
                 adata, cluster_header,
                 tl_kwargs={"optimal_ordering": True},
                 save=False,

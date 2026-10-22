@@ -14,7 +14,7 @@ import glob
 import os
 import scanpy as sc
 import pandas as pd
-import nsforest as ns
+from . import nsf_compat
 
 from .common_utils import (
     get_output_prefix,
@@ -58,17 +58,17 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journ
 
     # Boxplots — html (interactive) + svg (static for publication)
     for metric in ['f_score', 'precision', 'recall', 'onTarget']:
-        ns.pl.boxplot(results, metric, save=True, output_folder="", outputfilename_prefix=prefix)
+        nsf_compat.boxplot(results, metric, save=True, output_folder="", outputfilename_prefix=prefix)
         os.rename(f"{prefix}_boxplot_{metric}.html", f"boxplot_{prefix}_{metric}.html")
-        ns.pl.boxplot(results, metric, save="svg",  output_folder="", outputfilename_prefix=prefix)
+        nsf_compat.boxplot(results, metric, save="svg",  output_folder="", outputfilename_prefix=prefix)
         os.rename(f"{prefix}_boxplot_{metric}.svg",  f"boxplot_{prefix}_{metric}.svg")
     logger.info("Boxplots saved.")
 
     # Scatter plots — html (interactive) + svg (static for publication)
     for metric in ['f_score', 'precision', 'recall', 'onTarget']:
-        ns.pl.scatter_w_clusterSize(results, metric, save=True,  output_folder="", outputfilename_prefix=prefix)
+        nsf_compat.scatter_w_clusterSize(results, metric, save=True,  output_folder="", outputfilename_prefix=prefix)
         os.rename(f"{prefix}_scatter_{metric}.html", f"scatter_{prefix}_{metric}.html")
-        ns.pl.scatter_w_clusterSize(results, metric, save="svg", output_folder="", outputfilename_prefix=prefix)
+        nsf_compat.scatter_w_clusterSize(results, metric, save="svg", output_folder="", outputfilename_prefix=prefix)
         os.rename(f"{prefix}_scatter_{metric}.svg",  f"scatter_{prefix}_{metric}.svg")
     logger.info("Scatter plots saved.")
     
@@ -102,26 +102,26 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journ
                     f"(max {max_cells_per_cluster}/cluster, seed={seed})")
 
     # Dotplot
-    ns.pl.dotplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
+    nsf_compat.dotplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                   gene_symbols='gene_symbol', save="svg", output_folder="",
                   outputfilename_suffix=prefix)
-    ns.pl.dotplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
+    nsf_compat.dotplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                   gene_symbols='gene_symbol', standard_scale='var', save="svg",
                   output_folder="", outputfilename_suffix="_scaled" + prefix)
 
     # Stacked violin
-    ns.pl.stackedviolin(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
+    nsf_compat.stackedviolin(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                         gene_symbols='gene_symbol', save="svg", output_folder="",
                         outputfilename_suffix=prefix)
-    ns.pl.stackedviolin(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
+    nsf_compat.stackedviolin(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                         gene_symbols='gene_symbol', standard_scale='var', save="svg",
                         output_folder="", outputfilename_suffix="_scaled" + prefix)
 
     # Matrix plot
-    ns.pl.matrixplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
+    nsf_compat.matrixplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                      gene_symbols='gene_symbol', save="svg", output_folder="",
                      outputfilename_suffix=prefix)
-    ns.pl.matrixplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
+    nsf_compat.matrixplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                      gene_symbols='gene_symbol', standard_scale='var', save="svg",
                      output_folder="", outputfilename_suffix="_scaled" + prefix)
 
