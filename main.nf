@@ -25,7 +25,7 @@ nextflow.enable.dsl = 2
  *   --datasets_csv   one row per cluster header (see params/neocortex_datasets.csv)
  *   --organ          neocortex
  *   --custom_h5ad    the downsampled h5ad
- *   --outdir         e.g. prod/data/neocortex/sc-nsforest-qc-nf/neocortex-jorstad-2023
+ *   --outdir         optional; the default is results, as in the other runs
  *
  * Dataset id: a custom file has no cellxgene dataset_version_id, so the sha256 of the h5ad stands in
  * for it. Like a cellxgene id, only its last 6 characters appear in file names. The full sha256 is
@@ -59,7 +59,7 @@ params.published_subclass_csv     = null   // optional: the published subclass r
 params.published_combinations_csv = null   // optional: the published cluster combinatorial results; compared with ours
 params.sha256             = null   // optional: the sha256 of --custom_h5ad, computed elsewhere; skips the checksum task
 params.skip_plots         = false  // true: do not draw the NS-Forest plots (boxplots, scatter, dot, matrix, violin)
-params.outdir             = './'
+params.outdir             = 'results'
 params.github_token       = null   // without it nothing is published to GitHub
 params.publish_repo       = 'NIH-NLM/nlm-ckn'
 params.publish_dest_dir   = null   // default: data/prod/<organ>/sc-nsforest-qc-nf/results/<organ>-<author>-<journal>-<year>-<hash6>
@@ -302,7 +302,7 @@ workflow {
     )
 
     // Step 9: everything the run writes, for the S3 manifest and for GitHub
-    def s3_results_base = workflow.workDir.parent.toUriString() + '/results/' + params.outdir
+    def s3_results_base = workflow.workDir.parent.toUriString() + '/results'
 
     outputs_ch = Channel.empty()
         .mix(
