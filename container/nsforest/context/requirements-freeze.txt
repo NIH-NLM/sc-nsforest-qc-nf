@@ -101,4 +101,4 @@ wcwidth==0.2.13
 wheel==0.46.2
 zenodo_get==1.6.0
 zipp>=3.19.1
-git+https://github.com/JCVenterInstitute/NSForest.git
+nsforest==4.0.0  # the version Jorstad et al. used (Zenodo 10.5281/zenodo.13172641); was git+https://github.com/JCVenterInstitute/NSForest.git

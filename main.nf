@@ -2,63 +2,63 @@
 nextflow.enable.dsl = 2
 
 /*
- * main_plots_master.nf  -- STUB, not yet run
+ * main.nf (branch neocortex-run) -- NS-Forest markers, marker combinations and silhouette scores
+ * for ONE custom h5ad with several cluster headers: the Jorstad et al. 2023 human neocortex atlas,
+ * downsampled to 73,144 cells (Zenodo 10.5281/zenodo.13172641).
  *
- * Plots + master dataset summary only, for ONE dataset (Li, retina) whose
- * NSForest was run on the FULL data (Ajith's nsforest.pkl) and whose silhouette
- * was already computed on the full data. Reuses the modules of main.nf so
- * file names come out in the usual manner. main.nf is untouched.
+ * The h5ad is used as it is: no download, no filter. One run of the steps below for each row of the
+ * datasets CSV (one row per cluster header: CrossArea_subclass and CrossArea_cluster):
  *
- * Skipped (their outputs come in as inputs): download, filter, dendrogram,
- * prep, run_nsforest, merge, compute_silhouette.
+ *   1      dendrogram (cluster order), cluster statistics, cluster to cell ontology mapping
+ *   2-3    medians and binary scores, histograms
+ *   4-5    NS-Forest on batches of clusters, merge the results
+ *   6      marker combinations (DecisionTree, combinations=True): the cluster header, with the
+ *          NS-Forest markers of its parent subclasses (--subclass_header)
+ *   7      plots
+ *   8      silhouette scores as scatter-gather (see modules/scsilhouette/silhouette_scatter.nf),
+ *          summary and distribution plots, dataset summary
+ *   9      the S3 manifest; publish to GitHub (needs --github_token)
  *
- * Inputs (all paths may be S3 on Lifebit):
- *   --datasets_csv        the harvester CSV (use the Li row; first row is used)
- *   --organ               retina
- *   --custom_h5ad         the UNFILTERED h5ad Ajith's NSForest ran on (3,214,213 cells);
- *                         used for the NSForest plots and for the sha256 id
- *   --filtered_h5ad       the FILTERED h5ad the silhouette ran on (adata_filtered_..._cbd4aa);
- *                         used for the silhouette 2D projection
- *   --nsforest_results    results_ensg CSV  (TODO: made from nsforest.pkl, see below)
- *   --silhouette_scores, --cluster_summary, --annotation   existing silhouette outputs
- *   --outdir              e.g. prod/data/retina/sc-nsforest-qc-nf/retina-li-2026-<id>
+ * No ETL JSON in this run: the CSV files and plots are what the ETL reads.
  *
- * Custom h5ad id: there is no cellxgene dataset_version_id for a custom file,
- * so the sha256 of the h5ad is computed and the FULL sha256 stands in for
- * dataset_version_id in meta. Like a cellxgene id, only its last 6 characters
- * appear in file names (get_output_prefix takes dataset_version_id[-6:]).
- * The full sha256 is written to <prefix>.h5ad.sha256 alongside the outputs.
+ * Inputs (paths may be S3 on Lifebit):
+ *   --datasets_csv   one row per cluster header (see params/neocortex_datasets.csv)
+ *   --organ          neocortex
+ *   --custom_h5ad    the downsampled h5ad
+ *   --outdir         e.g. prod/data/neocortex/sc-nsforest-qc-nf/neocortex-jorstad-2023
  *
- * Open items (Anne decides):
- *   - binary scores: now exported from the pkl's AnnData varm (6946 genes x 140
- *     clusters, ENSG) as binary_scores_ensg.csv; pass that as --binary_scores
- *   - Ray's ETL needs: NSForest results (ENSG), master dataset summary, silhouette
- *     F-beta summary, binary scores (ENSG); exact names to confirm
+ * Dataset id: a custom file has no cellxgene dataset_version_id, so the sha256 of the h5ad stands in
+ * for it. Like a cellxgene id, only its last 6 characters appear in file names. The full sha256 is
+ * written to <h5ad name>.sha256 beside the outputs.
  */
 
+include { cluster_cid_mapping_process }    from './modules/nsforest/cluster_cid_mapping.nf'
+include { cluster_stats_process }          from './modules/nsforest/cluster_stats.nf'
+include { combinations_process }           from './modules/nsforest/combinations.nf'
+include { compare_published_process as compare_subclass_process }      from './modules/nsforest/compare_published.nf'
+include { compare_published_process as compare_combinations_process }  from './modules/nsforest/compare_published.nf'
+include { compute_summary_stats_process }  from './modules/scsilhouette/compute_summary_stats.nf'
+include { dendrogram_process }             from './modules/nsforest/dendrogram.nf'
+include { merge_nsforest_results_process } from './modules/nsforest/merge_nsforest_results.nf'
+include { plot_histograms_process }        from './modules/nsforest/plot_histograms.nf'
 include { plots_process }                  from './modules/nsforest/plots.nf'
+include { prep_process }                   from './modules/nsforest/prep.nf'
+include { publish_results_process }        from './modules/publish/publish_results.nf'
+include { run_nsforest_process }           from './modules/nsforest/run_nsforest.nf'
+include { silhouette_scatter_gather }      from './modules/scsilhouette/silhouette_scatter.nf'
 include { viz_2D_projection_process }      from './modules/scsilhouette/viz_2D_projection.nf'
 include { viz_distribution_process }       from './modules/scsilhouette/viz_distribution.nf'
 include { viz_summary_process }            from './modules/scsilhouette/viz_summary.nf'
-include { compute_summary_stats_process }  from './modules/scsilhouette/compute_summary_stats.nf'
-include { plot_histograms_process }        from './modules/nsforest/plot_histograms.nf'
-include { dendrogram_process }             from './modules/nsforest/dendrogram.nf'
-include { cluster_stats_process }          from './modules/nsforest/cluster_stats.nf'
-include { cluster_cid_mapping_process }    from './modules/nsforest/cluster_cid_mapping.nf'
-include { publish_results_process }        from './modules/publish/publish_results.nf'
 
 params.datasets_csv       = null
 params.organ              = null
 params.custom_h5ad        = null
-params.filtered_h5ad      = null
-params.nsforest_results   = null
-params.silhouette_scores  = null
-params.cluster_summary    = null
-params.annotation         = null
-params.binary_scores      = null   // binary scores (gene x cluster, ENSG) exported from Ajith's pkl, passed through
-params.medians            = null   // medians (gene x cluster, ENSG) exported from Ajith's pkl, passed through
+params.subclass_header    = 'CrossArea_subclass'   // obs column of the parent subclasses
+params.combinations_header = 'CrossArea_cluster'   // the cluster header whose combinations are evaluated
+params.published_subclass_csv     = null   // optional: the published subclass results (Zenodo); compared with our subclass results
+params.published_combinations_csv = null   // optional: the published cluster combinatorial results; compared with ours
 params.sha256             = null   // optional: the sha256 of --custom_h5ad, computed elsewhere; skips the checksum task
-params.skip_plots         = false  // true: do not draw the NSForest plots (boxplots, scatter, dot, matrix, violin); they can come in a later run
+params.skip_plots         = false  // true: do not draw the NS-Forest plots (boxplots, scatter, dot, matrix, violin)
 params.outdir             = './'
 params.github_token       = null   // without it nothing is published to GitHub
 params.publish_repo       = 'NIH-NLM/nlm-ckn'
@@ -69,11 +69,9 @@ params.nsforest_seed         = 42
 
 process checksum_h5ad_process {
     tag "sha256_${h5ad.name}"
-    container 'ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest:4c380184b7a60bbc7f26938b737130953a5b5982'
-    // a large request, as for the dendrogram step, so that Batch picks a big machine with a fast network:
-    // the 195 GB file is read in place, and a small machine reads it slowly
-    cpus 8
-    memory '384 GB'
+    container params.nsforest_image
+    cpus 4
+    memory '32 GB'
     publishDir "${params.outdir}", mode: params.publish_mode
 
     input:
@@ -90,32 +88,10 @@ process checksum_h5ad_process {
     """
 }
 
-// Pass-through: nothing is recomputed (no prep / NSForest / silhouette). The
-// binary scores are renamed to the usual binary_scores_ensg_<prefix>.csv.
-// Prefix follows get_output_prefix: organ_author_journal_year_clusterheader_embedding_vid6.
-process passthrough_binary_scores_process {
-    tag "binary_${meta.organ}_${meta.first_author}_${meta.year}_${meta.dataset_version_id}"
-    container 'ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest:4c380184b7a60bbc7f26938b737130953a5b5982'
-    cpus 1
-    memory '4 GB'
-    publishDir "${params.outdir}", mode: params.publish_mode
-
-    input:
-    tuple val(meta), path(binary)
-
-    output:
-    tuple val(meta), path("binary_scores_ensg_*.csv"), emit: binary_csv
-
-    script:
-    """
-    cp ${binary} binary_scores_ensg_${meta.organ}_${meta.first_author}_${meta.journal.replace(' ', '_')}_${meta.year}_${meta.author_cell_type.replace(' ', '_')}_${meta.embedding.replace(' ', '_')}_${meta.dataset_version_id}.csv
-    """
-}
-
-// Used when the sha256 of the unfiltered h5ad is given (--sha256): only writes the .sha256 file.
+// Used when the sha256 of the h5ad is given (--sha256): only writes the .sha256 file.
 process write_sha256_process {
     tag "sha256_given"
-    container 'ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest:4c380184b7a60bbc7f26938b737130953a5b5982'
+    container params.nsforest_image
     cpus 1
     memory '1 GB'
     publishDir "${params.outdir}", mode: params.publish_mode
@@ -133,54 +109,11 @@ process write_sha256_process {
     """
 }
 
-// Pass-through of Ajith's results (label 'results') and medians (label 'medians'):
-// copied under the usual names results_ensg_<prefix>.csv and medians_ensg_<prefix>.csv.
-process passthrough_ensg_process {
-    tag "${label}_${meta.organ}_${meta.first_author}_${meta.year}_${meta.dataset_version_id}"
-    container 'ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest:4c380184b7a60bbc7f26938b737130953a5b5982'
-    cpus 1
-    memory '4 GB'
-    publishDir "${params.outdir}", mode: params.publish_mode
-
-    input:
-    tuple val(meta), path(source), val(label)
-
-    output:
-    tuple val(meta), path("*_ensg_*.csv"), emit: csv
-
-    script:
-    """
-    cp ${source} ${label}_ensg_${meta.organ}_${meta.first_author}_${meta.journal.replace(' ', '_')}_${meta.year}_${meta.author_cell_type.replace(' ', '_')}_${meta.embedding.replace(' ', '_')}_${meta.dataset_version_id}.csv
-    """
-}
-
-// Pass-through of the silhouette files that were computed before this run, under this run's
-// prefix, so that every file of the dataset folder carries the same name ending.
-process passthrough_named_process {
-    tag "${stem}_${meta.organ}_${meta.first_author}_${meta.year}_${meta.dataset_version_id}"
-    container 'ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest:4c380184b7a60bbc7f26938b737130953a5b5982'
-    cpus 1
-    memory '4 GB'
-    publishDir "${params.outdir}", mode: params.publish_mode
-
-    input:
-    tuple val(meta), path(source), val(stem), val(ext)
-
-    output:
-    tuple val(meta), path("${stem}_*.${ext}"), emit: file
-
-    script:
-    """
-    cp ${source} ${stem}_${meta.organ}_${meta.first_author}_${meta.journal.replace(' ', '_')}_${meta.year}_${meta.author_cell_type.replace(' ', '_')}_${meta.embedding.replace(' ', '_')}_${meta.dataset_version_id}.${ext}
-    """
-}
-
-// master_s3_manifest.csv: every file this run publishes with its S3 address, plus one row
-// for the filtered h5ad and one for the unfiltered h5ad, which this run only reads (the addresses given as
-// --filtered_h5ad and --custom_h5ad). The h5ad files are not written to GitHub.
+// master_s3_manifest.csv: every file this run publishes with its S3 address, plus one row for the h5ad,
+// which this run only reads (the address given as --custom_h5ad). The h5ad is not written to GitHub.
 process manifest_process {
     tag "master_s3_manifest"
-    container 'ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest:4c380184b7a60bbc7f26938b737130953a5b5982'
+    container params.nsforest_image
     cpus 2
     memory '8 GB'
     publishDir "${params.outdir}", mode: params.publish_mode
@@ -188,33 +121,29 @@ process manifest_process {
     input:
     val file_names
     val s3_base
-    val filtered_h5ad
-    val unfiltered_h5ad
+    val h5ad
 
     output:
     path "master_s3_manifest.csv", emit: manifest
 
     script:
     def names_str = file_names.unique().sort().join('\n')
-    def h5ad_name = filtered_h5ad.toString().tokenize('/').last()
-    def unfiltered_name = unfiltered_h5ad.toString().tokenize('/').last()
+    def h5ad_name = h5ad.toString().tokenize('/').last()
     """
     cat > file_names.txt << 'NAMES_EOF'
 ${names_str}
 NAMES_EOF
     nsforest-cli generate-s3-manifest --s3-base "${s3_base}"
-    echo "${h5ad_name},${filtered_h5ad}" >> master_s3_manifest.csv
-    echo "${unfiltered_name},${unfiltered_h5ad}" >> master_s3_manifest.csv
+    echo "${h5ad_name},${h5ad}" >> master_s3_manifest.csv
     """
 }
 
 workflow {
-    ['datasets_csv', 'organ', 'custom_h5ad', 'filtered_h5ad', 'nsforest_results',
-     'silhouette_scores', 'cluster_summary', 'annotation', 'binary_scores', 'medians'].each { p ->
+    ['datasets_csv', 'organ', 'custom_h5ad'].each { p ->
         if (!params[p]) { log.error "ERROR: --${p} is required"; exit 1 }
     }
 
-    // the sha256 of the unfiltered h5ad is the dataset id: computed here, or given with --sha256
+    // the sha256 of the h5ad is the dataset id: computed here, or given with --sha256
     if (params.sha256) {
         if (!(params.sha256.toString().trim().toLowerCase() ==~ /[0-9a-f]{64}/)) {
             log.error "ERROR: --sha256 must be 64 hexadecimal characters"; exit 1
@@ -227,12 +156,12 @@ workflow {
         sha_file  = sha_out.file
     }
 
+    // one row for each cluster header
     row_ch = Channel
         .fromPath(params.datasets_csv)
         .splitCsv(header: true, sep: ',')
-        .first()
 
-    // meta: same keys as main.nf; dataset_version_id replaced by the sha256 id
+    // meta: the keys the modules use; dataset_version_id is the sha256 id
     meta_ch = row_ch.combine(sha_value).map { row, sha ->
         [
             organ:                              params.organ,
@@ -252,9 +181,9 @@ workflow {
             collection_url:                     row.collection_url,
             explorer_url:                       row.explorer_url,
             h5ad_url:                           params.custom_h5ad,
-            filtered_h5ad_path:                 params.filtered_h5ad,
+            filtered_h5ad_path:                 params.custom_h5ad,
             nsforest_input:                     'unfiltered',
-            silhouette_input:                   'filtered',
+            silhouette_input:                   'unfiltered',
             tissue_ontology_term_id:            row.tissue_ontology_term_id,
             disease_ontology_term_id:           row.disease_ontology_term_id,
             development_stage_ontology_term_id: row.development_stage_ontology_term_id,
@@ -269,99 +198,165 @@ workflow {
         ]
     }
 
-    // TODO: process converting nsforest.pkl -> results_ensg CSV (+ markers.csv,
-    // supplementary-file.csv) goes here once the pkl has been inspected.
-    results_ch = meta_ch.map { m -> tuple(m, file(params.nsforest_results)) }
-    h5ad_meta  = meta_ch.map { m -> tuple(m, file(params.custom_h5ad)) }
-    filtered_meta = meta_ch.map { m -> tuple(m, file(params.filtered_h5ad)) }
+    h5ad_ch = meta_ch.map { m -> tuple(m, file(params.custom_h5ad)) }
 
-    passthrough_binary_scores_process(meta_ch.map { m -> tuple(m, file(params.binary_scores)) })
+    // Step 1: dendrogram (cluster order), cluster statistics, cluster -> cell ontology mapping
+    dendrogram_output_ch = dendrogram_process(h5ad_ch)
+    cluster_stats_process(h5ad_ch)
+    cluster_cid_mapping_process(h5ad_ch)
 
+    // Step 2: medians and binary scores in one pass
+    prep_output_ch = prep_process(h5ad_ch)
+
+    // Step 3: histograms
+    plot_histograms_process(
+        prep_output_ch.medians_csv
+            .join(prep_output_ch.binary_csv)
+    )
+
+    // Step 4: NS-Forest on batches of clusters
+    def batchSize = params.batch_size ?: 5
+
+    nsforest_input_ch = h5ad_ch
+        .join(prep_output_ch.medians_csv)
+        .join(prep_output_ch.binary_csv)
+        .join(dendrogram_output_ch.cluster_order)
+        .flatMap { meta, h5ad, medians_csv, binary_csv, cluster_order_csv ->
+            def clusters = cluster_order_csv
+                .splitCsv(header: true)
+                .collect { row -> row.cluster_order }
+            clusters.collate(batchSize).collect { batch ->
+                tuple(meta, h5ad, medians_csv, binary_csv, batch.join(','))
+            }
+        }
+
+    nsforest_output_ch = run_nsforest_process(nsforest_input_ch)
+
+    // Step 5: merge the batches
+    merge_input_ch = nsforest_output_ch.partial.groupTuple()
+        .map { meta, file_lists -> tuple(meta, file_lists.flatten()) }
+        .join(h5ad_ch)
+
+    merged_nsforest_ch = merge_nsforest_results_process(merge_input_ch)
+
+    // Step 6: marker combinations for the cluster header, with the markers of its parent subclasses.
+    // Both rows share the same dataset id, which pairs them.
+    subclass_results_ch = merged_nsforest_ch.results_csv
+        .filter { meta, f -> meta.author_cell_type == params.subclass_header }
+        .map { meta, f -> tuple(meta.dataset_version_id, f) }
+
+    combinations_input_ch = merged_nsforest_ch.results_csv
+        .filter { meta, f -> meta.author_cell_type == params.combinations_header }
+        .map { meta, f -> tuple(meta.dataset_version_id, meta, f) }
+        .join(subclass_results_ch)
+        .map { vid, meta, cluster_results, subclass_results ->
+            tuple(meta, file(params.custom_h5ad), params.subclass_header, subclass_results, cluster_results)
+        }
+
+    combinations_process(combinations_input_ch)
+
+    // Step 6b: compare with the published results, cluster by cluster (only when they are given)
+    comparison_ch = Channel.empty()
+    if (params.published_subclass_csv) {
+        compare_subclass_process(
+            merged_nsforest_ch.results_csv
+                .filter { meta, f -> meta.author_cell_type == params.subclass_header }
+                .map { meta, f -> tuple(meta, f, file(params.published_subclass_csv), 'published_subclass') }
+        )
+        comparison_ch = comparison_ch.mix(compare_subclass_process.out.comparison)
+    }
+    if (params.published_combinations_csv) {
+        compare_combinations_process(
+            combinations_process.out.results
+                .map { meta, f -> tuple(meta, f, file(params.published_combinations_csv), 'published_combinations') }
+        )
+        comparison_ch = comparison_ch.mix(compare_combinations_process.out.comparison)
+    }
+
+    // Step 7: plots
     if (!params.skip_plots) {
-        plots_process(h5ad_meta.join(results_ch))
+        plots_process(h5ad_ch.join(merged_nsforest_ch.results_csv))
     }
 
-    sil_ch = meta_ch.map { m ->
-        tuple(m, file(params.silhouette_scores), file(params.cluster_summary), file(params.annotation))
-    }
+    // Step 8: silhouette (scatter-gather) and its plots and summary
+    silhouette_output_ch = silhouette_scatter_gather(h5ad_ch)
 
     viz_summary_process(
-        sil_ch.join(results_ch).map { m, s, c, a, r -> tuple(m, s, c, a, r) }
+        silhouette_output_ch.scores
+            .join(silhouette_output_ch.cluster_summary)
+            .join(silhouette_output_ch.annotation)
+            .join(merged_nsforest_ch.results_csv)
     )
-    viz_distribution_process(sil_ch)
-    viz_2D_projection_process(filtered_meta)
+    viz_distribution_process(
+        silhouette_output_ch.scores
+            .join(silhouette_output_ch.cluster_summary)
+            .join(silhouette_output_ch.annotation)
+    )
+    viz_2D_projection_process(h5ad_ch)
 
     compute_summary_stats_process(
-        sil_ch.join(results_ch).map { m, s, c, a, r -> tuple(m, s, c, a, r) }
+        silhouette_output_ch.scores
+            .join(silhouette_output_ch.cluster_summary)
+            .join(silhouette_output_ch.annotation)
+            .join(merged_nsforest_ch.results_csv)
     )
 
-    // Ajith's results and medians under the usual names
-    passthrough_ensg_process(
-        meta_ch.map { m -> tuple(m, file(params.nsforest_results), 'results') }
-            .mix(meta_ch.map { m -> tuple(m, file(params.medians), 'medians') })
-    )
-
-    // the silhouette files computed before this run, under this run's prefix
-    passthrough_named_process(
-        meta_ch.map { m -> tuple(m, file(params.silhouette_scores), 'silhouette_scores', 'csv') }
-            .mix(meta_ch.map { m -> tuple(m, file(params.cluster_summary), 'scsilhouette_cluster_summary', 'csv') })
-            .mix(meta_ch.map { m -> tuple(m, file(params.annotation), 'annotation', 'json') })
-    )
-
-    // the plots and tables that come from the medians, binary scores and the filtered file
-    plot_histograms_process(meta_ch.map { m -> tuple(m, file(params.medians), file(params.binary_scores)) })
-    dendrogram_process(filtered_meta)
-    cluster_stats_process(filtered_meta)
-    cluster_cid_mapping_process(filtered_meta)
-
-    // the S3 manifest: the names of everything published above
+    // Step 9: everything the run writes, for the S3 manifest and for GitHub
     def s3_results_base = workflow.workDir.parent.toUriString() + '/results/' + params.outdir
-    names_ch = Channel.empty()
+
+    outputs_ch = Channel.empty()
         .mix(
+            dendrogram_output_ch.svg,
+            dendrogram_output_ch.cluster_order,
+            dendrogram_output_ch.cluster_sizes,
+            dendrogram_output_ch.summary,
+            cluster_stats_process.out.results,
+            cluster_cid_mapping_process.out.results,
+            prep_output_ch.medians_csv,
+            prep_output_ch.medians_csv_symbols,
+            prep_output_ch.medians_pkl,
+            prep_output_ch.medians_pkl_symbols,
+            prep_output_ch.binary_csv,
+            prep_output_ch.binary_csv_symbols,
+            prep_output_ch.binary_pkl,
+            prep_output_ch.binary_pkl_symbols,
+            plot_histograms_process.out.histograms,
+            merged_nsforest_ch.results_csv,
+            merged_nsforest_ch.results_csv_symbols,
+            merged_nsforest_ch.results_pkl,
+            merged_nsforest_ch.results_pkl_symbols,
+            merged_nsforest_ch.markers,
+            merged_nsforest_ch.markers_symbols,
+            merged_nsforest_ch.markers_ontarget,
+            merged_nsforest_ch.markers_ontarget_symbols,
+            merged_nsforest_ch.markers_ontarget_supp,
+            merged_nsforest_ch.markers_ontarget_supp_symbols,
+            merged_nsforest_ch.gene_selection,
+            merged_nsforest_ch.gene_selection_symbols,
+            combinations_process.out.results,
+            comparison_ch,
             (params.skip_plots ? Channel.empty() : plots_process.out.plots),
+            silhouette_output_ch.scores,
+            silhouette_output_ch.cluster_summary,
+            silhouette_output_ch.annotation,
             viz_summary_process.out.plots,
             viz_distribution_process.out.plots,
             viz_2D_projection_process.out.plots,
-            compute_summary_stats_process.out.summary,
-            passthrough_binary_scores_process.out.binary_csv,
-            passthrough_ensg_process.out.csv,
-            passthrough_named_process.out.file,
-            plot_histograms_process.out.histograms,
-            dendrogram_process.out.svg,
-            dendrogram_process.out.cluster_order,
-            dendrogram_process.out.cluster_sizes,
-            dendrogram_process.out.summary,
-            cluster_stats_process.out.results,
-            cluster_cid_mapping_process.out.results
+            compute_summary_stats_process.out.summary
         )
+
+    names_ch = outputs_ch
         .flatMap { meta, files -> (files instanceof List) ? files.flatten() : [files] }
         .map { f -> f.name }
         .mix(sha_file.map { f -> f.name })
         .collect()
 
-    manifest_process(names_ch, s3_results_base, params.filtered_h5ad, params.custom_h5ad)
+    manifest_process(names_ch, s3_results_base, params.custom_h5ad)
 
     // publish to a branch of the GitHub repository (only with --github_token)
     if (params.github_token) {
-        publish_ch = Channel.empty()
-            .mix(
-                (params.skip_plots ? Channel.empty() : plots_process.out.plots),
-                viz_summary_process.out.plots,
-                viz_distribution_process.out.plots,
-                viz_2D_projection_process.out.plots,
-                compute_summary_stats_process.out.summary,
-                passthrough_binary_scores_process.out.binary_csv,
-                passthrough_ensg_process.out.csv,
-                passthrough_named_process.out.file,
-                plot_histograms_process.out.histograms,
-                dendrogram_process.out.svg,
-                dendrogram_process.out.cluster_order,
-                dendrogram_process.out.cluster_sizes,
-                dendrogram_process.out.summary,
-                cluster_stats_process.out.results,
-                cluster_cid_mapping_process.out.results,
-                meta_ch.combine(manifest_process.out.manifest)
-            )
+        publish_ch = outputs_ch
+            .mix(meta_ch.combine(manifest_process.out.manifest))
             .flatMap { meta, files -> ((files instanceof List) ? files.flatten() : [files]).collect { f -> tuple(meta, f) } }
             .groupTuple()
         publish_results_process(publish_ch)

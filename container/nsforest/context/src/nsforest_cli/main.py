@@ -252,5 +252,36 @@ def run_nsforest_command(
                  max_cells_per_cluster=max_cells_per_cluster, seed=seed)
 
 
+@app.command("combinations")
+def combinations_command(
+    h5ad_path: Path = typer.Option(..., help="Path to the h5ad file"),
+    cluster_header: str = typer.Option(..., help="Column name for the clusters (e.g. CrossArea_cluster)"),
+    subclass_header: str = typer.Option(..., help="Column name for the parent subclasses (e.g. CrossArea_subclass)"),
+    subclass_results: Path = typer.Option(..., help="Merged NSForest results CSV for the subclasses"),
+    cluster_results: Path = typer.Option(..., help="Merged NSForest results CSV for the clusters"),
+    organ: str = typer.Option(..., help="Organ/tissue"),
+    first_author: str = typer.Option(..., help="First author"),
+    journal: str = typer.Option(..., help="Journal"),
+    year: str = typer.Option(..., help="Publication year"),
+    embedding: str = typer.Option("", help="Embedding key"),
+    dataset_version_id: str = typer.Option("", help="Dataset version ID"),
+):
+    """Evaluate the combinations of subclass and cluster markers for each cluster (DecisionTree, combinations=True)."""
+    from .combinations import run_combinations
+    run_combinations(h5ad_path, cluster_header, subclass_header, subclass_results, cluster_results,
+                     organ, first_author, journal, year, embedding, dataset_version_id)
+
+
+@app.command("compare-published")
+def compare_published_command(
+    ours: Path = typer.Option(..., help="Our results CSV (merged NSForest results, or the combinations results)"),
+    published: Path = typer.Option(..., help="The published results CSV to compare with"),
+    label: str = typer.Option(..., help="Name for the output files, e.g. jorstad_subclass"),
+):
+    """Compare our results with a published results CSV, cluster by cluster."""
+    from .compare_published import run_compare
+    run_compare(ours, published, label)
+
+
 if __name__ == "__main__":
     app()
