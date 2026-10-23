@@ -4,23 +4,23 @@ nextflow.enable.dsl = 2
 /*
  * main_plots_master.nf  -- STUB, not yet run
  *
- * Plots + master dataset summary only, for ONE dataset (Li, retina) whose
- * NSForest was run on the FULL data (Ajith's nsforest.pkl) and whose silhouette
- * was already computed on the full data. Reuses the modules of main.nf so
- * file names come out in the usual manner. main.nf is untouched.
+ * Plots + master dataset summary for ONE dataset (Li, retina) whose NSForest
+ * was run on the FULL data (Ajith's nsforest.pkl). The silhouette scores are
+ * computed here, over many tasks (modules/scsilhouette/silhouette_scatter.nf),
+ * from the filtered h5ad. Reuses the modules of main.nf so file names come out
+ * in the usual manner. main.nf is untouched.
  *
  * Skipped (their outputs come in as inputs): download, filter, dendrogram,
- * prep, run_nsforest, merge, compute_silhouette.
+ * prep, run_nsforest, merge.
  *
  * Inputs (all paths may be S3 on Lifebit):
  *   --datasets_csv        the harvester CSV (use the Li row; first row is used)
  *   --organ               retina
  *   --custom_h5ad         the UNFILTERED h5ad Ajith's NSForest ran on (3,214,213 cells);
  *                         used for the NSForest plots and for the sha256 id
- *   --filtered_h5ad       the FILTERED h5ad the silhouette ran on (adata_filtered_..._cbd4aa);
- *                         used for the silhouette 2D projection
+ *   --filtered_h5ad       the FILTERED h5ad the silhouette is computed on (adata_filtered_..._cbd4aa);
+ *                         also used for the silhouette 2D projection
  *   --nsforest_results    results_ensg CSV  (TODO: made from nsforest.pkl, see below)
- *   --silhouette_scores, --cluster_summary, --annotation   existing silhouette outputs
  *   --outdir              e.g. prod/data/retina/sc-nsforest-qc-nf/retina-li-2026-<id>
  *
  * Custom h5ad id: there is no cellxgene dataset_version_id for a custom file,
@@ -37,6 +37,7 @@ nextflow.enable.dsl = 2
  */
 
 include { plots_process }                  from './modules/nsforest/plots.nf'
+include { silhouette_scatter_gather }      from './modules/scsilhouette/silhouette_scatter.nf'
 include { viz_2D_projection_process }      from './modules/scsilhouette/viz_2D_projection.nf'
 include { viz_distribution_process }       from './modules/scsilhouette/viz_distribution.nf'
 include { viz_summary_process }            from './modules/scsilhouette/viz_summary.nf'
@@ -52,9 +53,6 @@ params.organ              = null
 params.custom_h5ad        = null
 params.filtered_h5ad      = null
 params.nsforest_results   = null
-params.silhouette_scores  = null
-params.cluster_summary    = null
-params.annotation         = null
 params.binary_scores      = null   // binary scores (gene x cluster, ENSG) exported from Ajith's pkl, passed through
 params.medians            = null   // medians (gene x cluster, ENSG) exported from Ajith's pkl, passed through
 params.sha256             = null   // optional: the sha256 of --custom_h5ad, computed elsewhere; skips the checksum task
@@ -154,27 +152,6 @@ process passthrough_ensg_process {
     """
 }
 
-// Pass-through of the silhouette files that were computed before this run, under this run's
-// prefix, so that every file of the dataset folder carries the same name ending.
-process passthrough_named_process {
-    tag "${stem}_${meta.organ}_${meta.first_author}_${meta.year}_${meta.dataset_version_id}"
-    container 'ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest:4c380184b7a60bbc7f26938b737130953a5b5982'
-    cpus 1
-    memory '4 GB'
-    publishDir "${params.outdir}", mode: params.publish_mode
-
-    input:
-    tuple val(meta), path(source), val(stem), val(ext)
-
-    output:
-    tuple val(meta), path("${stem}_*.${ext}"), emit: file
-
-    script:
-    """
-    cp ${source} ${stem}_${meta.organ}_${meta.first_author}_${meta.journal.replace(' ', '_')}_${meta.year}_${meta.author_cell_type.replace(' ', '_')}_${meta.embedding.replace(' ', '_')}_${meta.dataset_version_id}.${ext}
-    """
-}
-
 // master_s3_manifest.csv: every file this run publishes with its S3 address, plus one row
 // for the filtered h5ad and one for the unfiltered h5ad, which this run only reads (the addresses given as
 // --filtered_h5ad and --custom_h5ad). The h5ad files are not written to GitHub.
@@ -210,7 +187,7 @@ NAMES_EOF
 
 workflow {
     ['datasets_csv', 'organ', 'custom_h5ad', 'filtered_h5ad', 'nsforest_results',
-     'silhouette_scores', 'cluster_summary', 'annotation', 'binary_scores', 'medians'].each { p ->
+     'binary_scores', 'medians'].each { p ->
         if (!params[p]) { log.error "ERROR: --${p} is required"; exit 1 }
     }
 
@@ -281,31 +258,23 @@ workflow {
         plots_process(h5ad_meta.join(results_ch))
     }
 
-    sil_ch = meta_ch.map { m ->
-        tuple(m, file(params.silhouette_scores), file(params.cluster_summary), file(params.annotation))
-    }
+    // the silhouette scores, computed over many tasks from the filtered h5ad
+    silhouette_output_ch = silhouette_scatter_gather(filtered_meta)
 
-    viz_summary_process(
-        sil_ch.join(results_ch).map { m, s, c, a, r -> tuple(m, s, c, a, r) }
-    )
+    sil_ch = silhouette_output_ch.scores
+        .join(silhouette_output_ch.cluster_summary)
+        .join(silhouette_output_ch.annotation)
+
+    viz_summary_process(sil_ch.join(results_ch))
     viz_distribution_process(sil_ch)
     viz_2D_projection_process(filtered_meta)
 
-    compute_summary_stats_process(
-        sil_ch.join(results_ch).map { m, s, c, a, r -> tuple(m, s, c, a, r) }
-    )
+    compute_summary_stats_process(sil_ch.join(results_ch))
 
     // Ajith's results and medians under the usual names
     passthrough_ensg_process(
         meta_ch.map { m -> tuple(m, file(params.nsforest_results), 'results') }
             .mix(meta_ch.map { m -> tuple(m, file(params.medians), 'medians') })
-    )
-
-    // the silhouette files computed before this run, under this run's prefix
-    passthrough_named_process(
-        meta_ch.map { m -> tuple(m, file(params.silhouette_scores), 'silhouette_scores', 'csv') }
-            .mix(meta_ch.map { m -> tuple(m, file(params.cluster_summary), 'scsilhouette_cluster_summary', 'csv') })
-            .mix(meta_ch.map { m -> tuple(m, file(params.annotation), 'annotation', 'json') })
     )
 
     // the plots and tables that come from the medians, binary scores and the filtered file
@@ -325,7 +294,9 @@ workflow {
             compute_summary_stats_process.out.summary,
             passthrough_binary_scores_process.out.binary_csv,
             passthrough_ensg_process.out.csv,
-            passthrough_named_process.out.file,
+            silhouette_output_ch.scores,
+            silhouette_output_ch.cluster_summary,
+            silhouette_output_ch.annotation,
             plot_histograms_process.out.histograms,
             dendrogram_process.out.svg,
             dendrogram_process.out.cluster_order,
@@ -352,7 +323,9 @@ workflow {
                 compute_summary_stats_process.out.summary,
                 passthrough_binary_scores_process.out.binary_csv,
                 passthrough_ensg_process.out.csv,
-                passthrough_named_process.out.file,
+                silhouette_output_ch.scores,
+                silhouette_output_ch.cluster_summary,
+                silhouette_output_ch.annotation,
                 plot_histograms_process.out.histograms,
                 dendrogram_process.out.svg,
                 dendrogram_process.out.cluster_order,
