@@ -36,6 +36,8 @@ COPY context/setup.py .
 
 RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel
 RUN python -m pip install --no-cache-dir -r /app/requirements.txt
+# the build fails unless NS-Forest is the version Jorstad et al. used, and the log records where it was imported from
+RUN python -c "import nsforest, importlib.metadata as m; v = m.version('nsforest'); print('nsforest', v, nsforest.__file__); assert v == '4.0.0', v"
 RUN python -m pip install --no-cache-dir "plotly==5.22.0"
 RUN python -m pip install --no-cache-dir "kaleido==0.2.1"
 RUN python -m pip install --no-cache-dir "awscli"

@@ -14,7 +14,7 @@ import matplotlib
 matplotlib.use("Agg")
 import csv
 import pandas as pd
-import nsforest as ns
+from . import nsf_compat
 
 
 from .common_utils import (
@@ -58,7 +58,7 @@ def run_dendrogram(h5ad_path, cluster_header, organ, first_author, journal, year
             'savefig.pad_inches':  0.4,
     }):
         try:
-            ns.pp.dendrogram(
+            nsf_compat.dendrogram(
                 adata,
                 cluster_header,
                 tl_kwargs={"optimal_ordering": True},
@@ -72,7 +72,7 @@ def run_dendrogram(h5ad_path, cluster_header, organ, first_author, journal, year
         except ValueError as e:
             if "negative distances" in str(e):
                 logger.warning(f"Optimal ordering failed — retrying without: {e}")
-                ns.pp.dendrogram(
+                nsf_compat.dendrogram(
                     adata,
                     cluster_header,
                     tl_kwargs={"optimal_ordering": False},

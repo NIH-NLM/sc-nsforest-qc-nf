@@ -14,7 +14,7 @@ import glob
 import os
 import scanpy as sc
 import pandas as pd
-import nsforest as ns
+from . import nsf_compat
 
 from .common_utils import (
     get_output_prefix,
@@ -51,24 +51,34 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journ
         return
 
     results['NSForest_markers'] = results['NSForest_markers'].apply(ast.literal_eval)
-    
+
+    # Results from outside this workflow (for example the authors' file) may call precision PPV
+    # and may lack recall and onTarget: draw the metrics that are there, and say which were skipped.
+    if 'precision' not in results.columns and 'PPV' in results.columns:
+        results = results.rename(columns={'PPV': 'precision'})
+    metrics = [m for m in ['f_score', 'precision', 'recall', 'onTarget']
+               if m in results.columns and results[m].notna().any()]
+    skipped = [m for m in ['f_score', 'precision', 'recall', 'onTarget'] if m not in metrics]
+    if skipped:
+        logger.warning(f"Metrics not in the results, boxplots and scatter plots skipped for: {skipped}")
+
     # Gene symbol mapping
     ensg_to_symbol = load_gene_mapping()
     results, markers_dict = map_markers_to_symbols(results, ensg_to_symbol)
 
     # Boxplots — html (interactive) + svg (static for publication)
-    for metric in ['f_score', 'precision', 'recall', 'onTarget']:
-        ns.pl.boxplot(results, metric, save=True, output_folder="", outputfilename_prefix=prefix)
+    for metric in metrics:
+        nsf_compat.boxplot(results, metric, save=True, output_folder="", outputfilename_prefix=prefix)
         os.rename(f"{prefix}_boxplot_{metric}.html", f"boxplot_{prefix}_{metric}.html")
-        ns.pl.boxplot(results, metric, save="svg",  output_folder="", outputfilename_prefix=prefix)
+        nsf_compat.boxplot(results, metric, save="svg",  output_folder="", outputfilename_prefix=prefix)
         os.rename(f"{prefix}_boxplot_{metric}.svg",  f"boxplot_{prefix}_{metric}.svg")
     logger.info("Boxplots saved.")
 
     # Scatter plots — html (interactive) + svg (static for publication)
-    for metric in ['f_score', 'precision', 'recall', 'onTarget']:
-        ns.pl.scatter_w_clusterSize(results, metric, save=True,  output_folder="", outputfilename_prefix=prefix)
+    for metric in metrics:
+        nsf_compat.scatter_w_clusterSize(results, metric, save=True,  output_folder="", outputfilename_prefix=prefix)
         os.rename(f"{prefix}_scatter_{metric}.html", f"scatter_{prefix}_{metric}.html")
-        ns.pl.scatter_w_clusterSize(results, metric, save="svg", output_folder="", outputfilename_prefix=prefix)
+        nsf_compat.scatter_w_clusterSize(results, metric, save="svg", output_folder="", outputfilename_prefix=prefix)
         os.rename(f"{prefix}_scatter_{metric}.svg",  f"scatter_{prefix}_{metric}.svg")
     logger.info("Scatter plots saved.")
     
@@ -102,26 +112,26 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journ
                     f"(max {max_cells_per_cluster}/cluster, seed={seed})")
 
     # Dotplot
-    ns.pl.dotplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
+    nsf_compat.dotplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                   gene_symbols='gene_symbol', save="svg", output_folder="",
                   outputfilename_suffix=prefix)
-    ns.pl.dotplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
+    nsf_compat.dotplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                   gene_symbols='gene_symbol', standard_scale='var', save="svg",
                   output_folder="", outputfilename_suffix="_scaled" + prefix)
 
     # Stacked violin
-    ns.pl.stackedviolin(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
+    nsf_compat.stackedviolin(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                         gene_symbols='gene_symbol', save="svg", output_folder="",
                         outputfilename_suffix=prefix)
-    ns.pl.stackedviolin(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
+    nsf_compat.stackedviolin(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                         gene_symbols='gene_symbol', standard_scale='var', save="svg",
                         output_folder="", outputfilename_suffix="_scaled" + prefix)
 
     # Matrix plot
-    ns.pl.matrixplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
+    nsf_compat.matrixplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                      gene_symbols='gene_symbol', save="svg", output_folder="",
                      outputfilename_suffix=prefix)
-    ns.pl.matrixplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
+    nsf_compat.matrixplot(adata, markers_dict, cluster_header, dendrogram=True, use_raw=False,
                      gene_symbols='gene_symbol', standard_scale='var', save="svg",
                      output_folder="", outputfilename_suffix="_scaled" + prefix)
 

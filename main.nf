@@ -231,7 +231,7 @@ workflow {
             h5ad_url:                           params.custom_h5ad,
             filtered_h5ad_path:                 params.filtered_h5ad,
             nsforest_input:                     'unfiltered',
-            silhouette_input:                   'filtered',
+            silhouette_input:                   'unfiltered',
             tissue_ontology_term_id:            row.tissue_ontology_term_id,
             disease_ontology_term_id:           row.disease_ontology_term_id,
             development_stage_ontology_term_id: row.development_stage_ontology_term_id,

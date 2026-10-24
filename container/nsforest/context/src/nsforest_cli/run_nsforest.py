@@ -119,15 +119,29 @@ def run_nsforest(h5ad_path, medians_csv, binary_scores_csv, cluster_header,
     else:
         logger.info("Running NSForest for all clusters")
 
-    results = nsforesting.NSForest(
-        adata_prep,
-        cluster_header,
+    import inspect
+    from importlib.metadata import version as _pkg_version
+    logger.info(f"NS-Forest version: {_pkg_version('nsforest')}")
+
+    nsf_kwargs = dict(
         cluster_list=cluster_list if cluster_list else [],
         n_trees=n_trees,
         n_genes_eval=n_genes_eval,
-        save=False,
         save_supplementary=False,
     )
+    if 'save' in inspect.signature(nsforesting.NSForest).parameters:
+        nsf_kwargs['save'] = False          # 4.1 and later: nothing is written unless asked
+    else:
+        # 4.0.0 has no `save`: it always creates output_folder and writes {output_folder}{prefix}_results.csv.
+        # Send that file to a subfolder so it is not picked up as a task output (*results*.csv).
+        nsf_kwargs['output_folder'] = "nsforest_native_output/"
+        nsf_kwargs['outputfilename_prefix'] = "native"
+
+    results = nsforesting.NSForest(adata_prep, cluster_header, **nsf_kwargs)
+
+    # 4.0.0 names the column PPV; 4.1 and the merge step use `precision`
+    if 'PPV' in results.columns and 'precision' not in results.columns:
+        results = results.rename(columns={'PPV': 'precision'})
 
     logger.info(f"NSForest results shape: {results.shape}")
 
