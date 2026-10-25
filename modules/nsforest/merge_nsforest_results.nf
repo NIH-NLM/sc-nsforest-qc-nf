@@ -1,7 +1,8 @@
 process merge_nsforest_results_process {
     tag "merge_${meta.organ}_${meta.first_author}_${meta.journal}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
     label 'nsforest'
-    publishDir "${params.outdir}", mode: params.publish_mode
+    // not published: the results and markers of the paper come from passthrough_nsforest_results_process (main.nf), under the
+    // same file names; this step is the intermediate NS-Forest run that the combinations and the check use
 
     input:
     tuple val(meta),

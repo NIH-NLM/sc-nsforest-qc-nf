@@ -2,8 +2,8 @@
 process prep_process {
     tag "prep_${meta.organ}_${meta.first_author}_${meta.journal}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
     label 'nsforest'
-    publishDir "${params.outdir}",
-        mode: params.publish_mode
+    // not published: the ENSG and symbols versions of the binary scores and medians come from passthrough_nsforest_results_process
+    // (main.nf), under the same file names; a second writer of these names would overwrite them in the results folder
 
     input:
     tuple val(meta), path(h5ad)
