@@ -68,7 +68,7 @@ params.max_cells_per_cluster = 0       // for the NS-Forest runs (the calculatio
 params.plots_max_cells_per_cluster = 0   // for the plots only; 0 = all the cells
 params.nsforest_seed         = 42
 params.silhouette_datasets_csv = null   // one row per supercluster h5ad: order,supercluster,dataset_version_id,h5ad_url,expected_cells
-params.renee_results      = null   // the NS-Forest results table of the paper (clusterSize, sampled_clusterSize), passed through
+params.nsforest_results   = null   // the NS-Forest results table of the paper (clusterSize, sampled_clusterSize), passed through
 params.dend_order         = null   // dendOrder_author_cell_type.csv (column CrossArea_cluster_order), passed through
 params.publish_header     = 'CrossArea_cluster'   // the cluster header whose results are published (one copy of every file)
 
@@ -143,14 +143,14 @@ NAMES_EOF
     """
 }
 
-// The NS-Forest results of the paper (Renee's table: clusterSize, sampled_clusterSize, PPV, ...) are passed through, as
+// The NS-Forest results of the paper (--nsforest_results: clusterSize, sampled_clusterSize, PPV, ...) are passed through, as
 // Ajith's results are for retina; our own combinations result is only the CHECK that they are the same (the run stops
 // if a marker, a score or a count differs). With them the ENSG and the gene-symbol versions of the results, the
 // markers, the binary scores and the medians are made under the usual names (csv and pkl). The ENSG ids are the ones of
 // the h5ad itself: raw.var_names has the Ensembl id of every gene, in the order of var_names (the symbols).
 // The results get one column, software_version: the calculation was NS-Forest 4.0.0, as for the paper.
 // plots_input_results_*.csv is the same table with PPV called precision, for the plots; it is not published.
-process passthrough_renee_process {
+process passthrough_nsforest_results_process {
     tag "results_${meta.organ}_${meta.first_author}_${meta.year}_${meta.dataset_version_id}"
     container params.nsforest_image
     cpus 2
@@ -158,12 +158,12 @@ process passthrough_renee_process {
     publishDir "${params.outdir}", mode: params.publish_mode
 
     input:
-    tuple val(meta), path(renee, stageAs: 'in_renee.csv'), path(binary, stageAs: 'in_binary.csv'), path(medians, stageAs: 'in_medians.csv'), path(h5ad), path(combos, stageAs: 'in_combinations.csv')
+    tuple val(meta), path(nsforest_results, stageAs: 'in_results.csv'), path(binary, stageAs: 'in_binary.csv'), path(medians, stageAs: 'in_medians.csv'), path(h5ad), path(combos, stageAs: 'in_combinations.csv')
 
     output:
     tuple val(meta), path("*_{ensg,symbols}_${meta.organ}_*.{csv,pkl}"), emit: files
     tuple val(meta), path("plots_input_results_*.csv"),                  emit: plots_results
-    path "renee_vs_ours_*.log",                                          emit: check
+    path "results_vs_recompute_*.log",                                          emit: check
 
     script:
     def vid    = meta.dataset_version_id.toString()[-6..-1]
@@ -176,7 +176,7 @@ import anndata
 import pandas as pd
 
 prefix, header, h5ad = sys.argv[1], sys.argv[2], sys.argv[3]
-log = open('renee_vs_ours_' + prefix + '.log', 'w')
+log = open('results_vs_recompute_' + prefix + '.log', 'w')
 def say(text):
     print(text)
     log.write(text + '\\n')
@@ -195,7 +195,7 @@ labels = set(b.obs[header].astype(str))
 say('h5ad: %d cells, %d genes, %d clusters in %s' % (b.n_obs, b.n_vars, len(labels), header))
 
 # the table of the paper
-r = pd.read_csv('in_renee.csv')
+r = pd.read_csv('in_results.csv')
 for col in ('clusterName', 'f_score', 'NSForest_markers'):
     if col not in r.columns:
         sys.exit('STOP: the results table has no column ' + col)
@@ -277,7 +277,7 @@ process passthrough_dendorder_process {
     publishDir "${params.outdir}", mode: params.publish_mode
 
     input:
-    tuple val(meta), path(dend, stageAs: 'in_dend.csv'), path(renee, stageAs: 'in_renee.csv')
+    tuple val(meta), path(dend, stageAs: 'in_dend.csv'), path(nsforest_results, stageAs: 'in_results.csv')
 
     output:
     tuple val(meta), path("dendOrder_*.csv"), emit: file
@@ -294,7 +294,7 @@ import pandas as pd
 prefix = sys.argv[1]
 col = 'CrossArea_cluster_order'
 d = pd.read_csv('in_dend.csv')
-names = list(pd.read_csv('in_renee.csv')['clusterName'])
+names = list(pd.read_csv('in_results.csv')['clusterName'])
 if col not in d.columns:
     sys.exit('STOP: the dendOrder file has no column ' + col)
 by_lower = {}
@@ -324,7 +324,7 @@ PY
 }
 
 workflow {
-    ['datasets_csv', 'organ', 'custom_h5ad', 'silhouette_datasets_csv', 'renee_results', 'dend_order'].each { p ->
+    ['datasets_csv', 'organ', 'custom_h5ad', 'silhouette_datasets_csv', 'nsforest_results', 'dend_order'].each { p ->
         if (!params[p]) { log.error "ERROR: --${p} is required"; exit 1 }
     }
 
@@ -465,19 +465,19 @@ workflow {
 
     // Step 7: the NS-Forest results of the paper, passed through, with the ENSG and the gene-symbol versions of
     // the results, binary scores and medians; our combinations result is the check that they are the same
-    renee_in_ch = prep_output_ch.binary_csv
+    results_in_ch = prep_output_ch.binary_csv
         .filter { m, f -> m.author_cell_type == params.publish_header }
         .join(prep_output_ch.medians_csv)
         .join(h5ad_ch)
         .join(combinations_process.out.results)
-        .map { m, binary, medians, h5ad, combos -> tuple(m, file(params.renee_results), binary, medians, h5ad, combos) }
-    passthrough_renee_process(renee_in_ch)
-    passthrough_dendorder_process(cluster_meta_ch.map { m -> tuple(m, file(params.dend_order), file(params.renee_results)) })
-    results_ch = cluster_meta_ch.map { m -> tuple(m, file(params.renee_results)) }
+        .map { m, binary, medians, h5ad, combos -> tuple(m, file(params.nsforest_results), binary, medians, h5ad, combos) }
+    passthrough_nsforest_results_process(results_in_ch)
+    passthrough_dendorder_process(cluster_meta_ch.map { m -> tuple(m, file(params.dend_order), file(params.nsforest_results)) })
+    results_ch = cluster_meta_ch.map { m -> tuple(m, file(params.nsforest_results)) }
 
     // plots, from the results of the paper (with PPV called precision)
     if (!params.skip_plots) {
-        plots_process(cluster_h5ad_ch.join(passthrough_renee_process.out.plots_results))
+        plots_process(cluster_h5ad_ch.join(passthrough_nsforest_results_process.out.plots_results))
     }
 
     // Step 8: silhouette on EACH supercluster dataset (a cell is compared only with the cells of its own dataset),
@@ -524,7 +524,7 @@ workflow {
             cluster_stats_process.out.results,
             cluster_cid_mapping_process.out.results,
             plot_histograms_process.out.histograms,
-            passthrough_renee_process.out.files,
+            passthrough_nsforest_results_process.out.files,
             passthrough_dendorder_process.out.file,
             (params.skip_plots ? Channel.empty() : plots_process.out.plots),
             silhouette_output_ch.scores,
