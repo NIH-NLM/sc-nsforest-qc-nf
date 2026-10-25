@@ -23,11 +23,11 @@ nextflow.enable.dsl = 2
  *   --nsforest_results    results_ensg CSV  (TODO: made from nsforest.pkl, see below)
  *   --outdir              e.g. prod/data/retina/sc-nsforest-qc-nf/retina-li-2026-<id>
  *
- * Custom h5ad id: there is no cellxgene dataset_version_id for a custom file,
- * so the sha256 of the h5ad is computed and the FULL sha256 stands in for
- * dataset_version_id in meta. Like a cellxgene id, only its last 6 characters
- * appear in file names (get_output_prefix takes dataset_version_id[-6:]).
- * The full sha256 is written to <prefix>.h5ad.sha256 alongside the outputs.
+ * Dataset id: the datasets CSV row carries the CellxGene dataset_version_id of the h5ad (the h5ad is that
+ * CellxGene file); only its last 6 characters appear in file names and in the GitHub folder
+ * (get_output_prefix takes dataset_version_id[-6:]). The sha256 of the h5ad is written to
+ * <h5ad>.sha256 alongside the outputs and kept in meta.sha256. Without a dataset_version_id in the row,
+ * the sha256 stands in for it, as before.
  *
  * Open items (Anne decides):
  *   - binary scores: now exported from the pkl's AnnData varm (6946 genes x 140
@@ -88,25 +88,83 @@ process checksum_h5ad_process {
     """
 }
 
-// Pass-through: nothing is recomputed (no prep / NSForest / silhouette). The
-// binary scores are renamed to the usual binary_scores_ensg_<prefix>.csv.
-// Prefix follows get_output_prefix: organ_author_journal_year_clusterheader_embedding_vid6.
-process passthrough_binary_scores_process {
-    tag "binary_${meta.organ}_${meta.first_author}_${meta.year}_${meta.dataset_version_id}"
-    container 'ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest:4c380184b7a60bbc7f26938b737130953a5b5982'
+// Pass-through of Ajith's NSForest results, binary scores and medians (ENSG): nothing is recomputed.
+// The ENSG csv files are copied unchanged under the usual names (and written as pkl too); the gene-symbol
+// versions are made from them with the biomart gene mapping (the nlm-ckn gene_mapping.csv baked into the image).
+// File names follow get_output_prefix: organ_author_journal_year_clusterheader_embedding_vid6.
+process passthrough_ajith_process {
+    tag "ajith_${meta.organ}_${meta.first_author}_${meta.year}_${meta.dataset_version_id}"
+    container params.nsforest_image
     cpus 1
-    memory '4 GB'
+    memory '8 GB'
     publishDir "${params.outdir}", mode: params.publish_mode
 
     input:
-    tuple val(meta), path(binary)
+    tuple val(meta), path(results, stageAs: 'in_results.csv'), path(binary, stageAs: 'in_binary.csv'), path(medians, stageAs: 'in_medians.csv')
 
     output:
-    tuple val(meta), path("binary_scores_ensg_*.csv"), emit: binary_csv
+    tuple val(meta), path("*_{ensg,symbols}_${meta.organ}_*.{csv,pkl,log}"), emit: files
 
     script:
+    def vid    = meta.dataset_version_id.toString()[-6..-1]
+    def prefix = "${meta.organ}_${meta.first_author}_${meta.journal.replace(' ', '_')}_${meta.year}_${meta.author_cell_type.replace(' ', '_')}_${meta.embedding.replace(' ', '_')}_${vid}"
     """
-    cp ${binary} binary_scores_ensg_${meta.organ}_${meta.first_author}_${meta.journal.replace(' ', '_')}_${meta.year}_${meta.author_cell_type.replace(' ', '_')}_${meta.embedding.replace(' ', '_')}_${meta.dataset_version_id}.csv
+    python - ${prefix} <<'PY'
+import ast
+import shutil
+import sys
+import pandas as pd
+from nsforest_cli.gene_mapping_utils import load_gene_mapping
+
+prefix = sys.argv[1]
+log = open('gene_mapping_symbols_' + prefix + '.log', 'w')
+mapping = load_gene_mapping()
+if not mapping:
+    sys.exit('STOP: the gene mapping is empty, no symbols can be made')
+log.write('gene mapping entries: %d\\n' % len(mapping))
+
+unmapped = set()
+def symbol(g):
+    s = mapping.get(g, mapping.get(g.split('.')[0]))
+    if s is None or pd.isna(s) or str(s) == '':
+        unmapped.add(g)
+        return g
+    return s
+
+def as_list(cell):
+    return ast.literal_eval(cell) if isinstance(cell, str) else cell
+
+# results: ensg csv unchanged, pkl and the markers file, then the symbols versions
+shutil.copyfile('in_results.csv', 'results_ensg_' + prefix + '.csv')
+res = pd.read_csv('in_results.csv')
+for col in ('NSForest_markers', 'binary_genes'):
+    if col in res.columns:
+        res[col] = res[col].apply(as_list)
+res.to_pickle('results_ensg_' + prefix + '.pkl')
+res[['clusterName', 'NSForest_markers', 'f_score']].to_csv('markers_ensg_' + prefix + '.csv', index=False)
+sym = res.copy()
+for col in ('NSForest_markers', 'binary_genes'):
+    if col in sym.columns:
+        sym[col] = sym[col].apply(lambda genes: [symbol(g) for g in genes])
+sym.to_csv('results_symbols_' + prefix + '.csv', index=False)
+sym.to_pickle('results_symbols_' + prefix + '.pkl')
+sym[['clusterName', 'NSForest_markers', 'f_score']].to_csv('markers_symbols_' + prefix + '.csv', index=False)
+
+# binary scores and medians: gene x cluster; ensg csv unchanged, pkl, and the symbols version (the row names)
+for kind, src in (('binary_scores', 'in_binary.csv'), ('medians', 'in_medians.csv')):
+    shutil.copyfile(src, kind + '_ensg_' + prefix + '.csv')
+    df = pd.read_csv(src, index_col=0)
+    df.index.name = 'gene'
+    df.to_pickle(kind + '_ensg_' + prefix + '.pkl')
+    out = df.rename(index=symbol)
+    out.to_csv(kind + '_symbols_' + prefix + '.csv')
+    out.to_pickle(kind + '_symbols_' + prefix + '.pkl')
+    log.write('%s: %d genes x %d clusters; duplicate symbols: %d\\n' % (kind, df.shape[0], df.shape[1], int(out.index.duplicated().sum())))
+
+log.write('ids without a symbol (kept as ids): %d %s\\n' % (len(unmapped), sorted(unmapped)[:50]))
+log.close()
+print(open('gene_mapping_symbols_' + prefix + '.log').read())
+PY
     """
 }
 
@@ -128,27 +186,6 @@ process write_sha256_process {
     script:
     """
     echo "${sha256}  ${h5ad_name}" > ${h5ad_name}.sha256
-    """
-}
-
-// Pass-through of Ajith's results (label 'results') and medians (label 'medians'):
-// copied under the usual names results_ensg_<prefix>.csv and medians_ensg_<prefix>.csv.
-process passthrough_ensg_process {
-    tag "${label}_${meta.organ}_${meta.first_author}_${meta.year}_${meta.dataset_version_id}"
-    container 'ghcr.io/nih-nlm/sc-nsforest-qc-nf/nsforest:4c380184b7a60bbc7f26938b737130953a5b5982'
-    cpus 1
-    memory '4 GB'
-    publishDir "${params.outdir}", mode: params.publish_mode
-
-    input:
-    tuple val(meta), path(source), val(label)
-
-    output:
-    tuple val(meta), path("*_ensg_*.csv"), emit: csv
-
-    script:
-    """
-    cp ${source} ${label}_ensg_${meta.organ}_${meta.first_author}_${meta.journal.replace(' ', '_')}_${meta.year}_${meta.author_cell_type.replace(' ', '_')}_${meta.embedding.replace(' ', '_')}_${meta.dataset_version_id}.csv
     """
 }
 
@@ -209,7 +246,7 @@ workflow {
         .splitCsv(header: true, sep: ',')
         .first()
 
-    // meta: same keys as main.nf; dataset_version_id replaced by the sha256 id
+    // meta: same keys as main.nf; dataset_version_id is the CellxGene id of the row (the sha256 id only when the row has none)
     meta_ch = row_ch.combine(sha_value).map { row, sha ->
         [
             organ:                              params.organ,
@@ -224,7 +261,7 @@ workflow {
             doi:                                row.doi,
             collection_name:                    row.collection_name,
             dataset_title:                      row.dataset_title,
-            dataset_version_id:                 sha,
+            dataset_version_id:                 (row.dataset_version_id ?: sha),
             journal:                            row.journal,
             collection_url:                     row.collection_url,
             explorer_url:                       row.explorer_url,
@@ -252,7 +289,8 @@ workflow {
     h5ad_meta  = meta_ch.map { m -> tuple(m, file(params.custom_h5ad)) }
     filtered_meta = meta_ch.map { m -> tuple(m, file(params.filtered_h5ad)) }
 
-    passthrough_binary_scores_process(meta_ch.map { m -> tuple(m, file(params.binary_scores)) })
+    // Ajith's results, binary scores and medians: ENSG csv/pkl unchanged and the gene-symbol versions
+    passthrough_ajith_process(meta_ch.map { m -> tuple(m, file(params.nsforest_results), file(params.binary_scores), file(params.medians)) })
 
     if (!params.skip_plots) {
         plots_process(h5ad_meta.join(results_ch))
@@ -271,12 +309,6 @@ workflow {
 
     compute_summary_stats_process(sil_ch.join(results_ch))
 
-    // Ajith's results and medians under the usual names
-    passthrough_ensg_process(
-        meta_ch.map { m -> tuple(m, file(params.nsforest_results), 'results') }
-            .mix(meta_ch.map { m -> tuple(m, file(params.medians), 'medians') })
-    )
-
     // the plots and tables that come from the medians, binary scores and the filtered file
     plot_histograms_process(meta_ch.map { m -> tuple(m, file(params.medians), file(params.binary_scores)) })
     dendrogram_process(filtered_meta)
@@ -292,8 +324,7 @@ workflow {
             viz_distribution_process.out.plots,
             viz_2D_projection_process.out.plots,
             compute_summary_stats_process.out.summary,
-            passthrough_binary_scores_process.out.binary_csv,
-            passthrough_ensg_process.out.csv,
+            passthrough_ajith_process.out.files,
             silhouette_output_ch.scores,
             silhouette_output_ch.cluster_summary,
             silhouette_output_ch.annotation,
@@ -321,8 +352,7 @@ workflow {
                 viz_distribution_process.out.plots,
                 viz_2D_projection_process.out.plots,
                 compute_summary_stats_process.out.summary,
-                passthrough_binary_scores_process.out.binary_csv,
-                passthrough_ensg_process.out.csv,
+                passthrough_ajith_process.out.files,
                 silhouette_output_ch.scores,
                 silhouette_output_ch.cluster_summary,
                 silhouette_output_ch.annotation,

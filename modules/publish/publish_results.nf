@@ -32,10 +32,9 @@ process publish_results_process {
     def year      = meta.year
     def journal   = meta.journal
     def vid       = meta.dataset_version_id.toString()[-6..-1]
-    def vidFull   = meta.dataset_version_id.toString()   // the whole sha256 of the unfiltered h5ad
     def sid       = workflow.sessionId.toString()[-6..-1]
     def branch    = "${today}-${sid}-${organSlug}-sc_nsforest_qc_nf"
-    def dest_dir  = params.publish_dest_dir ?: "data/prod/${organ}/sc-nsforest-qc-nf/results/${organ}-${firstAuth}-${journal}-${year}-${vidFull}"
+    def dest_dir  = params.publish_dest_dir ?: "data/prod/${organ}/sc-nsforest-qc-nf/results/${organ}-${firstAuth}-${journal}-${year}-${vid}"
     def repo      = params.publish_repo ?: 'NIH-NLM/cell-kn'
     def repo_url  = "https://\${GITHUB_TOKEN}@github.com/${repo}.git"
     """
@@ -64,11 +63,10 @@ process publish_results_process {
     git checkout ${branch} 2>/dev/null || git checkout -b ${branch}
 
     mkdir -p "${dest_dir}"
-    # the pinned tools end their file names with the last 6 characters of the id: the copies in GitHub carry all of it
+    # file names and the folder end with the last 6 characters of the dataset version id, as for every other dataset
     for f in ../*.html ../*.log ../*.svg ../*.pkl ../*.json ../*.csv; do
         [ -e "\$f" ] || continue
-        name=\$(basename "\$f" | sed -e "s/_${vid}\\./_${vidFull}./" -e "s/_${vid}_/_${vidFull}_/")
-        cp -L "\$f" "${dest_dir}/\$name"
+        cp -L "\$f" "${dest_dir}/\$(basename "\$f")"
     done
 
     find "${dest_dir}" -type f -size +50M | while read f; do
