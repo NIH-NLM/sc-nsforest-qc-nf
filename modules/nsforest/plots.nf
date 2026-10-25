@@ -42,7 +42,7 @@ process plots_process {
         --year "${meta.year}" \
         --embedding "${meta.embedding}" \
 	--dataset-version-id "${meta.dataset_version_id}" \
-        --max-cells-per-cluster ${params.max_cells_per_cluster} \
+        --max-cells-per-cluster ${params.plots_max_cells_per_cluster} \
         --seed ${params.nsforest_seed}
     """
 }
