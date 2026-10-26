@@ -579,7 +579,7 @@ workflow {
     // publish to a branch of the GitHub repository (only with --github_token)
     if (params.github_token) {
         publish_ch = outputs_ch
-            .mix(meta_ch.combine(manifest_process.out.manifest))
+            .mix(cluster_meta_ch.combine(manifest_process.out.manifest))   // the published header only: one group, one publish task
             .flatMap { meta, files -> ((files instanceof List) ? files.flatten() : [files]).collect { f -> tuple(meta, f) } }
             .groupTuple()
         publish_results_process(publish_ch)
