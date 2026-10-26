@@ -12,6 +12,7 @@
  *   - h5ad:        the h5ad with the subclass and the cluster columns
  *   - results_csv: NS-Forest results of the subclasses
  *   - dend_order:  CSV with the cluster order of the paper (column CrossArea_cluster_order)
+ * @param child_header: obs column of the clusters named in the dendrogram file
  *
  * Output:
  * -------
@@ -25,6 +26,7 @@ process plots_subclass_process {
 
     input:
     tuple val(meta), path(h5ad), path(results_csv, stageAs: 'in_results.csv'), path(dend_order, stageAs: 'in_dend.csv')
+    val child_header   // the cluster header of the dendrogram file (a module does not see the params of main.nf)
 
     output:
     tuple val(meta),
@@ -37,7 +39,7 @@ process plots_subclass_process {
         --h5ad-path ${h5ad} \
         --results-csv ${results_csv} \
         --cluster-header "${meta.author_cell_type}" \
-        --child-header "${params.combinations_header}" \
+        --child-header "${child_header}" \
         --organ "${meta.organ}" \
         --first-author "${meta.first_author}" \
         --journal "${meta.journal}" \

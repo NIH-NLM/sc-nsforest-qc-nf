@@ -488,7 +488,8 @@ workflow {
             h5ad_ch
                 .filter { m, f -> m.author_cell_type == params.subclass_header }
                 .join(merged_nsforest_ch.results_csv.filter { m, f -> m.author_cell_type == params.subclass_header })
-                .map { m, h5ad, results -> tuple(m, h5ad, results, file(params.dend_order)) }
+                .map { m, h5ad, results -> tuple(m, h5ad, results, file(params.dend_order)) },
+            params.combinations_header
         )
         subclass_plots_ch = plots_subclass_process.out.plots
             .map { m, files -> tuple(m.dataset_version_id, files) }
