@@ -76,6 +76,12 @@ process publish_results_process {
         rm "\$f"
     done
 
+    # GitHub refuses a file over 100 MB: a file still above 99 MB is not pushed (it stays in the S3 results folder and in the manifest)
+    find "${dest_dir}" -type f -size +99M | while read f; do
+        echo "not pushed to GitHub, over 99 MB: \$(basename "\$f")" | tee -a ../publish_report.txt
+        rm "\$f"
+    done
+
     git add "${dest_dir}/"
     git commit -m "workflow: publish ${organ} ${firstAuth} ${year} ${vid} results (${today})"
     git push origin ${branch}
