@@ -196,6 +196,26 @@ def plots_command(
     run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journal, year, embedding, dataset_version_id,
               max_cells_per_cluster=max_cells_per_cluster, seed=seed)
 
+@app.command("plots-subclass")
+def plots_subclass_command(
+    h5ad_path: Path = typer.Option(..., help="Path to the h5ad with both the subclass and the cluster columns"),
+    results_csv: Path = typer.Option(..., help="Path to the NSForest results CSV of the subclasses"),
+    cluster_header: str = typer.Option(..., help="Column name for the subclasses"),
+    child_header: str = typer.Option(..., help="Column name for the clusters of the dendrogram file"),
+    organ: str = typer.Option(..., help="Organ/tissue"),
+    first_author: str = typer.Option(..., help="First author"),
+    journal: str = typer.Option(..., help="Journal"),
+    year: str = typer.Option(..., help="Publication year"),
+    embedding: str = typer.Option("", help="Embedding key"),
+    dataset_version_id: str = typer.Option("", help="Dataset version ID"),
+    dend_order_csv: Path = typer.Option(None, help="CSV with the cluster order of the paper (rows follow it)"),
+    order_column: str = typer.Option("CrossArea_cluster_order", help="Column of dend_order_csv with the cluster order"),
+):
+    """Stacked violin and dotplot of the subclass results, as in the Zenodo deposit."""
+    from .plots import run_subclass_plots
+    run_subclass_plots(h5ad_path, results_csv, cluster_header, child_header, organ, first_author, journal, year,
+                       embedding, dataset_version_id, dend_order_csv=dend_order_csv, order_column=order_column)
+
 @app.command("prep")
 def prep_command(
     h5ad_path: Path = typer.Option(..., help="Path to adata_filtered.h5ad"),

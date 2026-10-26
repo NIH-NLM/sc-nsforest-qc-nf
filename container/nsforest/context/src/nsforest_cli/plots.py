@@ -127,3 +127,64 @@ def run_plots(h5ad_path, results_csv, cluster_header, organ, first_author, journ
 
 
     logger.info("Plotting complete!")
+
+
+def parent_group_order(obs, parent_header, child_header, dend_order_csv, order_column="CrossArea_cluster_order"):
+    """
+    The order of the parent groups (the subclasses) of a figure of the paper: the order in which the clusters
+    of the dendrogram file (Jorstad Fig 5B) first meet each parent.
+    """
+    parents = obs[[child_header, parent_header]].astype(str).drop_duplicates()
+    parent_of = dict(zip(parents[child_header], parents[parent_header]))
+    order = []
+    for child in pd.read_csv(dend_order_csv)[order_column].astype(str):
+        parent = parent_of.get(child)
+        if parent is not None and parent not in order:
+            order.append(parent)
+    return order
+
+
+def run_subclass_plots(h5ad_path, results_csv, cluster_header, child_header, organ, first_author, journal, year, embedding,
+                       dataset_version_id, dend_order_csv=None, order_column="CrossArea_cluster_order"):
+    """
+    The stacked violin and the dotplot of the NS-Forest results of the subclasses on all the cells, as in the Zenodo
+    deposit (stacked_violin_global_subclass.png, dotplot_global_subclass.png): one row per subclass, and under
+    each subclass its own markers. The rows are in the order of the dendrogram file when it is given.
+    """
+    log_section("NSForest: Plotting the subclass results (stacked violin and dotplot)")
+    sc.settings.figdir = "."
+
+    prefix = get_output_prefix(organ, first_author, journal, year, cluster_header, embedding, dataset_version_id)
+
+    logger.info(f"Loading results: {results_csv}")
+    results = pd.read_csv(results_csv)
+    results = results.dropna(subset=['NSForest_markers', 'clusterName'])
+    results = results[results['NSForest_markers'].str.strip() != '[]']
+    if results.empty:
+        logger.warning("No valid marker results: skipping the subclass plots")
+        return
+    results['NSForest_markers'] = results['NSForest_markers'].apply(ast.literal_eval)
+
+    ensg_to_symbol = load_gene_mapping()
+    results, markers_dict = map_markers_to_symbols(results, ensg_to_symbol)
+
+    logger.info(f"Loading h5ad: {h5ad_path}")
+    adata = load_h5ad(h5ad_path, cluster_header)
+    adata = add_gene_symbols_to_adata(adata, ensg_to_symbol)
+    adata = adata[adata.obs[cluster_header].notna()].copy()
+    adata.obs[cluster_header] = adata.obs[cluster_header].astype(str).astype("category")
+
+    order = True
+    if dend_order_csv:
+        order = parent_group_order(adata.obs, cluster_header, child_header, dend_order_csv, order_column)
+        order = [g for g in order if g in markers_dict] + [g for g in markers_dict if g not in order]
+        markers_dict = {g: markers_dict[g] for g in order}
+        logger.info(f"Subclass rows in the order of {dend_order_csv}: {order}")
+
+    nsf_compat.dotplot(adata, markers_dict, cluster_header, dendrogram=order, use_raw=False,
+                       gene_symbols='gene_symbol', save="svg", output_folder="",
+                       outputfilename_suffix=prefix)
+    nsf_compat.stackedviolin(adata, markers_dict, cluster_header, dendrogram=order, use_raw=False,
+                             gene_symbols='gene_symbol', save="svg", output_folder="",
+                             outputfilename_suffix=prefix)
+    logger.info("Subclass plotting complete!")

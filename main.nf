@@ -42,6 +42,7 @@ include { dendrogram_process }             from './modules/nsforest/dendrogram.n
 include { merge_nsforest_results_process } from './modules/nsforest/merge_nsforest_results.nf'
 include { plot_histograms_process }        from './modules/nsforest/plot_histograms.nf'
 include { plots_process }                  from './modules/nsforest/plots.nf'
+include { plots_subclass_process }         from './modules/nsforest/plots_subclass.nf'
 include { prep_process }                   from './modules/nsforest/prep.nf'
 include { publish_results_process }        from './modules/publish/publish_results.nf'
 include { run_nsforest_process }           from './modules/nsforest/run_nsforest.nf'
@@ -480,6 +481,21 @@ workflow {
         plots_process(cluster_h5ad_ch.join(passthrough_nsforest_results_process.out.plots_results))
     }
 
+    // plots of the subclass results, as in the Zenodo deposit; they go with the files of the published cluster header
+    subclass_plots_ch = Channel.empty()
+    if (!params.skip_plots) {
+        plots_subclass_process(
+            h5ad_ch
+                .filter { m, f -> m.author_cell_type == params.subclass_header }
+                .join(merged_nsforest_ch.results_csv.filter { m, f -> m.author_cell_type == params.subclass_header })
+                .map { m, h5ad, results -> tuple(m, h5ad, results, file(params.dend_order)) }
+        )
+        subclass_plots_ch = plots_subclass_process.out.plots
+            .map { m, files -> tuple(m.dataset_version_id, files) }
+            .join(cluster_meta_ch.map { m -> tuple(m.dataset_version_id, m) })
+            .map { vid, files, m -> tuple(m, files) }
+    }
+
     // Step 8: silhouette on EACH supercluster dataset (a cell is compared only with the cells of its own dataset),
     // joined into one set of outputs in the usual format
     sil_rows_ch = Channel
@@ -527,6 +543,7 @@ workflow {
             passthrough_nsforest_results_process.out.files,
             passthrough_dendorder_process.out.file,
             (params.skip_plots ? Channel.empty() : plots_process.out.plots),
+            subclass_plots_ch,
             silhouette_output_ch.scores,
             silhouette_output_ch.cluster_summary,
             silhouette_output_ch.annotation,
