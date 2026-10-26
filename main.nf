@@ -42,6 +42,7 @@ include { dendrogram_process }             from './modules/nsforest/dendrogram.n
 include { merge_nsforest_results_process } from './modules/nsforest/merge_nsforest_results.nf'
 include { plot_histograms_process }        from './modules/nsforest/plot_histograms.nf'
 include { plots_process }                  from './modules/nsforest/plots.nf'
+include { plots_combinatorial_process }    from './modules/nsforest/plots_combinatorial.nf'
 include { plots_subclass_process }         from './modules/nsforest/plots_subclass.nf'
 include { prep_process }                   from './modules/nsforest/prep.nf'
 include { publish_results_process }        from './modules/publish/publish_results.nf'
@@ -481,6 +482,17 @@ workflow {
         plots_process(cluster_h5ad_ch.join(passthrough_nsforest_results_process.out.plots_results))
     }
 
+    // the global combinatorial figures of the clusters (dotplot, stacked violin, matrix plot; scaled; PNG, SVG, HTML)
+    combinatorial_plots_ch = Channel.empty()
+    if (!params.skip_plots) {
+        plots_combinatorial_process(
+            cluster_h5ad_ch
+                .join(passthrough_nsforest_results_process.out.plots_results)
+                .map { m, h5ad, results -> tuple(m, h5ad, results, file(params.dend_order)) }
+        )
+        combinatorial_plots_ch = plots_combinatorial_process.out.plots
+    }
+
     // plots of the subclass results, as in the Zenodo deposit; they go with the files of the published cluster header
     subclass_plots_ch = Channel.empty()
     if (!params.skip_plots) {
@@ -545,6 +557,7 @@ workflow {
             passthrough_dendorder_process.out.file,
             (params.skip_plots ? Channel.empty() : plots_process.out.plots),
             subclass_plots_ch,
+            combinatorial_plots_ch,
             silhouette_output_ch.scores,
             silhouette_output_ch.cluster_summary,
             silhouette_output_ch.annotation,

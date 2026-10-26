@@ -1,9 +1,10 @@
 /**
  * Subclass Plots Module
  *
- * The stacked violin and the dotplot of the NS-Forest results of the subclasses on all the cells, as in the
- * Zenodo deposit (stacked_violin_global_subclass.png, dotplot_global_subclass.png): one row per subclass, and
- * under each subclass its own markers. The rows follow the order of the dendrogram file (Jorstad Fig 5B).
+ * The scaled dotplot, stacked violin and matrix plot of the NS-Forest results of the subclasses on all the cells, as in
+ * the Zenodo deposit (stacked_violin_global_subclass.png, dotplot_global_subclass.png): one row per subclass, and
+ * under each subclass its own markers; each as PNG, SVG and HTML. The rows follow the order of the dendrogram file
+ * (Jorstad Fig 5B).
  *
  * Input:
  * ------
@@ -16,7 +17,7 @@
  *
  * Output:
  * -------
- * @emit plots: tuple(meta, [stacked violin and dotplot as SVG])
+ * @emit plots: tuple(meta, [dotplot, stacked violin and matrix plot as PNG, SVG and HTML])
  */
 process plots_subclass_process {
     tag "plots_subclass_${meta.organ}_${meta.first_author}_${meta.journal}_${meta.year}_${meta.embedding}_${meta.dataset_version_id}"
@@ -30,7 +31,7 @@ process plots_subclass_process {
 
     output:
     tuple val(meta),
-          path("*.{svg,html,log}", optional: true),
+          path("*.{svg,html,png,log}", optional: true),
           emit: plots
 
     script:

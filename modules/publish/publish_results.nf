@@ -65,7 +65,7 @@ process publish_results_process {
 
     mkdir -p "${dest_dir}"
     # the pinned tools end their file names with the last 6 characters of the id: the copies in GitHub carry all of it
-    for f in ../*.html ../*.log ../*.svg ../*.pkl ../*.json ../*.csv; do
+    for f in ../*.html ../*.log ../*.svg ../*.png ../*.pkl ../*.json ../*.csv; do
         [ -e "\$f" ] || continue
         name=\$(basename "\$f" | sed -e "s/_${vid}\\./_${vidFull}./" -e "s/_${vid}_/_${vidFull}_/")
         cp -L "\$f" "${dest_dir}/\$name"
