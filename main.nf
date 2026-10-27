@@ -109,14 +109,14 @@ process passthrough_ajith_process {
     def vid    = meta.dataset_version_id.toString()[-6..-1]
     def prefix = "${meta.organ}_${meta.first_author}_${meta.journal.replace(' ', '_')}_${meta.year}_${meta.author_cell_type.replace(' ', '_')}_${meta.embedding.replace(' ', '_')}_${vid}"
     """
-    python - ${prefix} <<'PY'
+    python - ${prefix} "${meta.author_cell_type}" <<'PY'
 import ast
 import shutil
 import sys
 import pandas as pd
 from nsforest_cli.gene_mapping_utils import load_gene_mapping
 
-prefix = sys.argv[1]
+prefix, header = sys.argv[1], sys.argv[2]
 log = open('gene_mapping_symbols_' + prefix + '.log', 'w')
 mapping = load_gene_mapping()
 if not mapping:
@@ -134,9 +134,17 @@ def symbol(g):
 def as_list(cell):
     return ast.literal_eval(cell) if isinstance(cell, str) else cell
 
-# results: ensg csv unchanged, pkl and the markers file, then the symbols versions
-shutil.copyfile('in_results.csv', 'results_ensg_' + prefix + '.csv')
-res = pd.read_csv('in_results.csv')
+# results: Ajith's table with software_version (NS-Forest 4.0.0, as Anne states) and cluster_header added in front, in the
+# order of the other organs (the ETL needs cluster_header); nothing else is changed.
+# Then the pkl, the markers file and the symbols versions.
+raw = pd.read_csv('in_results.csv')
+if 'cluster_header' not in raw.columns:
+    raw.insert(0, 'cluster_header', header)
+if 'software_version' not in raw.columns:
+    raw.insert(0, 'software_version', '4.0.0')
+raw.to_csv('results_ensg_' + prefix + '.csv', index=False)
+res = raw.copy()
+log.write('results: %d clusters; cluster_header = %s; columns: %s\\n' % (len(res), header, list(res.columns)))
 for col in ('NSForest_markers', 'binary_genes'):
     if col in res.columns:
         res[col] = res[col].apply(as_list)
