@@ -160,7 +160,7 @@ process passthrough_nsforest_results_process {
     publishDir "${params.outdir}", mode: params.publish_mode
 
     input:
-    tuple val(meta), path(nsforest_results, stageAs: 'in_results.csv'), path(binary, stageAs: 'in_binary.csv'), path(medians, stageAs: 'in_medians.csv'), path(h5ad), path(combos, stageAs: 'in_combinations.csv')
+    tuple val(meta), path(nsforest_results, stageAs: 'in_results.csv'), path(binary, stageAs: 'in_binary.csv'), path(medians, stageAs: 'in_medians.csv'), path(h5ad), path(combos, stageAs: 'in_combinations.csv'), path(cluster_level, stageAs: 'in_cluster_level.csv')
 
     output:
     tuple val(meta), path("*_{ensg,symbols}_${meta.organ}_*.{csv,pkl}"), emit: files
@@ -233,14 +233,38 @@ if bad:
     sys.exit('STOP: the results table differs from our recompute')
 say('CHECK: the results table equals our combinations result: same markers, same order, scores within 1e-8, same counts')
 
+# binary_genes: the table of the paper has none. They come from our NS-Forest run on the same global data at the cluster level
+# (the top genes by binary score of each cluster, up to 10: the candidates of the combinations); NS-Forest 4.0.0 writes them
+# in its results table. Read as gene symbols; a list of Ensembl ids is converted.
+e2s = dict(zip(ens, sym))
+cl = pd.read_csv('in_cluster_level.csv')
+if 'binary_genes' not in cl.columns:
+    sys.exit('STOP: the cluster-level NS-Forest results have no binary_genes column')
+cl['binary_genes'] = cl['binary_genes'].apply(lambda t: ast.literal_eval(t) if isinstance(t, str) else t)
+bg = {}
+for name, genes in zip(cl['clusterName'].astype(str), cl['binary_genes']):
+    bg[name] = [g if g in s2e else e2s.get(g, g) for g in genes]
+no_bg = [n for n in r['clusterName'] if not bg.get(n)]
+if no_bg:
+    sys.exit('STOP: no binary_genes in our cluster-level NS-Forest results for %d clusters: %s' % (len(no_bg), no_bg[:20]))
+bad_bg = sorted({g for gs in bg.values() for g in gs if g not in s2e})
+if bad_bg:
+    sys.exit('STOP: binary_genes that are not genes of the h5ad: ' + str(bad_bg[:20]))
+say('binary_genes: %d clusters, %d to %d genes each, from our cluster-level NS-Forest run (not from the table of the paper)'
+    % (len(r), min(len(bg[n]) for n in r['clusterName']), max(len(bg[n]) for n in r['clusterName'])))
+
 # results, markers: the symbols as given, the ENSG ids from the h5ad
+# columns in the order of the other organs: software_version, cluster_header, ..., NSForest_markers, binary_genes, onTarget
 res = r.copy()
 res.insert(0, 'software_version', '4.0.0')
+res.insert(1, 'cluster_header', header)
+res.insert(list(res.columns).index('NSForest_markers') + 1, 'binary_genes', [bg[n] for n in res['clusterName']])
 res.to_csv('results_symbols_' + prefix + '.csv', index=False)
 res.to_pickle('results_symbols_' + prefix + '.pkl')
 res[['clusterName', 'NSForest_markers', 'f_score']].to_csv('markers_symbols_' + prefix + '.csv', index=False)
 res_e = res.copy()
 res_e['NSForest_markers'] = res_e['NSForest_markers'].apply(lambda gs: [s2e[g] for g in gs])
+res_e['binary_genes'] = res_e['binary_genes'].apply(lambda gs: [s2e[g] for g in gs])
 res_e.to_csv('results_ensg_' + prefix + '.csv', index=False)
 res_e.to_pickle('results_ensg_' + prefix + '.pkl')
 res_e[['clusterName', 'NSForest_markers', 'f_score']].to_csv('markers_ensg_' + prefix + '.csv', index=False)
@@ -472,7 +496,8 @@ workflow {
         .join(prep_output_ch.medians_csv)
         .join(h5ad_ch)
         .join(combinations_process.out.results)
-        .map { m, binary, medians, h5ad, combos -> tuple(m, file(params.nsforest_results), binary, medians, h5ad, combos) }
+        .join(merged_nsforest_ch.results_csv.filter { m, f -> m.author_cell_type == params.publish_header })
+        .map { m, binary, medians, h5ad, combos, cluster_level -> tuple(m, file(params.nsforest_results), binary, medians, h5ad, combos, cluster_level) }
     passthrough_nsforest_results_process(results_in_ch)
     passthrough_dendorder_process(cluster_meta_ch.map { m -> tuple(m, file(params.dend_order), file(params.nsforest_results)) })
     results_ch = cluster_meta_ch.map { m -> tuple(m, file(params.nsforest_results)) }

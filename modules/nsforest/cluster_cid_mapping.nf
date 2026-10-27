@@ -41,5 +41,20 @@ process cluster_cid_mapping_process {
         --year "${meta.year}" \
         --embedding "${meta.embedding}" \
         --dataset-version-id "${meta.dataset_version_id}"
+
+    # the ETL aligns the mapping with the other files by the dataset version id: it is added as the last column
+    python - "${meta.dataset_version_id}" <<'PY'
+import glob
+import sys
+import pandas as pd
+files = glob.glob('*.csv')
+if len(files) != 1:
+    sys.exit('STOP: expected one mapping csv, found %s' % files)
+df = pd.read_csv(files[0], dtype=str, keep_default_na=False)
+if 'dataset_version_id' not in df.columns:
+    df['dataset_version_id'] = sys.argv[1]
+df.to_csv(files[0], index=False)
+print(files[0], len(df), 'rows; columns', list(df.columns))
+PY
     """
 }
